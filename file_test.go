@@ -29,10 +29,6 @@ func TestNewFile(t *testing.T) {
 	if !reflect.DeepEqual(f.CLIHeader, wantCLIHeader) {
 		t.Errorf("CLIHeader = %v, want %v", f.CLIHeader, wantCLIHeader)
 	}
-	md, err := f.Metadata()
-	if err != nil {
-		t.Fatal(err)
-	}
 	wantMetadataHeader := winmd.MetadataHeader{
 		Signature:    1112167234,
 		MajorVersion: 1,
@@ -40,13 +36,13 @@ func TestNewFile(t *testing.T) {
 		Length:       12,
 		Version:      "v4.0.30319",
 	}
-	if !reflect.DeepEqual(md.MetadataHeader, wantMetadataHeader) {
-		t.Errorf("Metadata = %v, want %v", md.MetadataHeader, wantMetadataHeader)
+	if !reflect.DeepEqual(f.MetadataHeader, wantMetadataHeader) {
+		t.Errorf("Metadata = %v, want %v", f.MetadataHeader, wantMetadataHeader)
 	}
-	if md.Stream("#Strings") == nil {
+	if f.Stream("#Strings") == nil {
 		t.Error("missing stream #String")
 	}
-	if md.Stream("#~") == nil {
+	if f.Stream("#~") == nil {
 		t.Error("missing stream #~")
 	}
 }

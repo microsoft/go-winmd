@@ -34,14 +34,9 @@ func (s *Stream) Open() io.ReadSeeker {
 	return io.NewSectionReader(s.sr, 0, 1<<63-1)
 }
 
-type Metadata struct {
-	MetadataHeader
-	Streams []*Stream
-}
-
 // Stream returns the stream with the given name, or nil if no such
 // stream exists.
-func (m *Metadata) Stream(name string) *Stream {
+func (m *File) Stream(name string) *Stream {
 	for _, s := range m.Streams {
 		if s.Name == name {
 			return s

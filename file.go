@@ -11,8 +11,9 @@ import (
 
 // A File represents an open Windows Metadata file.
 type File struct {
-	CLIHeader CLIHeader
-	pefile    *pe.File
+	CLIHeader      CLIHeader
+	MetadataHeader MetadataHeader
+	Streams        []*Stream
 }
 
 // NewFile creates a new File from an underlying PE file.
@@ -41,9 +42,14 @@ func NewFile(pefile *pe.File) (*File, error) {
 	if err != nil {
 		return nil, err
 	}
+	mdhdr, streams, err := readMetadata(pefile, clihdr.Metadata.VirtualAddress)
+	if err != nil {
+		return nil, err
+	}
 	return &File{
-		CLIHeader: *clihdr,
-		pefile:    pefile,
+		CLIHeader:      *clihdr,
+		MetadataHeader: *mdhdr,
+		Streams:        streams,
 	}, nil
 }
 
@@ -106,14 +112,13 @@ func readCLIHeader(pefile *pe.File, pe64 bool) (*CLIHeader, error) {
 	return &hdr, nil
 }
 
-// Metadata reads the Metadata from pefile info f.
+// readMetadata reads the Metadata from pefile info f.
 // f.CLIHeader must be already filled.
-func (f *File) Metadata() (*Metadata, error) {
+func readMetadata(pefile *pe.File, rva uint32) (*MetadataHeader, []*Stream, error) {
 	// figure out which section contains the metadata.
-	rva := f.CLIHeader.Metadata.VirtualAddress
 	var ds *pe.Section
-	for _, s := range f.pefile.Sections {
-		if s.VirtualAddress <= f.CLIHeader.Metadata.VirtualAddress && rva < s.VirtualAddress+s.VirtualSize {
+	for _, s := range pefile.Sections {
+		if s.VirtualAddress <= rva && rva < s.VirtualAddress+s.VirtualSize {
 			ds = s
 			break
 		}
@@ -121,7 +126,7 @@ func (f *File) Metadata() (*Metadata, error) {
 
 	// didn't find a section.
 	if ds == nil {
-		return nil, errors.New("metadata section is missing")
+		return nil, nil, errors.New("metadata section is missing")
 	}
 
 	// The metadata section can be huge, we better don't call ds.Data()
@@ -131,7 +136,7 @@ func (f *File) Metadata() (*Metadata, error) {
 	rootOffset := int64(rva - ds.VirtualAddress)
 	_, err := r.Seek(rootOffset, io.SeekStart)
 	if err != nil {
-		return nil, fmt.Errorf("failure to seek to the metadata root: %v", err)
+		return nil, nil, fmt.Errorf("failure to seek to the metadata root: %v", err)
 	}
 
 	read := func(data interface{}) bool {
@@ -147,46 +152,46 @@ func (f *File) Metadata() (*Metadata, error) {
 		return err == nil
 	}
 
-	// parse metadata header.
-	var metadata Metadata
-	if !read(&metadata.Signature) {
-		return nil, fmt.Errorf("failure to read the metadata header signature: %v", err)
+	// parse hdr header.
+	var hdr MetadataHeader
+	if !read(&hdr.Signature) {
+		return nil, nil, fmt.Errorf("failure to read the metadata header signature: %v", err)
 	}
 	const signature = 0x424A5342
-	if metadata.Signature != signature {
-		return nil, fmt.Errorf("metadata header signature (%#X) must be (%#X)", metadata.Signature, signature)
+	if hdr.Signature != signature {
+		return nil, nil, fmt.Errorf("metadata header signature (%#X) must be (%#X)", hdr.Signature, signature)
 	}
 	var streamsCount uint16
-	if !read(&metadata.MajorVersion) ||
-		!read(&metadata.MinorVersion) ||
-		!read(&metadata.Reserved) ||
-		!read(&metadata.Length) ||
-		!readStr(int(metadata.Length), &metadata.Version) ||
-		!read(&metadata.Flags) ||
+	if !read(&hdr.MajorVersion) ||
+		!read(&hdr.MinorVersion) ||
+		!read(&hdr.Reserved) ||
+		!read(&hdr.Length) ||
+		!readStr(int(hdr.Length), &hdr.Version) ||
+		!read(&hdr.Flags) ||
 		!read(&streamsCount) {
-		return nil, fmt.Errorf("failure to read the metadata header: %v", err)
+		return nil, nil, fmt.Errorf("failure to read the metadata header: %v", err)
 	}
-	metadata.Streams = make([]*Stream, streamsCount)
+	streams := make([]*Stream, streamsCount)
 	for i := 0; i < int(streamsCount); i++ {
 		var s Stream
 		if !read(&s.Offset) ||
 			!read(&s.Size) ||
 			!readStr(32, &s.Name) { // the stream header name is limited to 32 characters.
-			return nil, fmt.Errorf("failure to read the stream header (%d): %v", i, err)
+			return nil, nil, fmt.Errorf("failure to read the stream header (%d): %v", i, err)
 		}
 		s.sr = io.NewSectionReader(ds, rootOffset+int64(s.Offset), int64(s.Size))
 		s.ReaderAt = s.sr
-		metadata.Streams[i] = &s
+		streams[i] = &s
 		// name is null-terminated and padded to the next 4-byte boundary when layed out in disk.
 		l := len(s.Name) + 1
 		padding := (4 - l) % 4
 		// seek backwards, we probably read more than necessary.
 		_, err = r.Seek(-int64(32-l-padding), io.SeekCurrent)
 		if err != nil {
-			return nil, fmt.Errorf("failure to seek to the stream header (%d): %v", i, err)
+			return nil, nil, fmt.Errorf("failure to seek to the stream header (%d): %v", i, err)
 		}
 	}
-	return &metadata, nil
+	return &hdr, streams, nil
 }
 
 func readDataDirectory(d []byte) pe.DataDirectory {
