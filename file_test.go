@@ -41,10 +41,19 @@ func TestNewFile(t *testing.T) {
 	if !reflect.DeepEqual(f.MetadataHeader, wantMetadataHeader) {
 		t.Errorf("Metadata = %v, want %v", f.MetadataHeader, wantMetadataHeader)
 	}
+	if f.Stream("#~") == nil {
+		t.Error("missing stream #~")
+	}
 	if f.Stream("#Strings") == nil {
 		t.Error("missing stream #String")
 	}
-	if f.Stream("#~") == nil {
-		t.Error("missing stream #~")
+	if f.Stream("#US") == nil {
+		t.Error("missing stream #US")
+	}
+	if f.Stream("#GUID") == nil {
+		t.Error("missing stream #GUID")
+	}
+	if f.Stream("#Blob") == nil {
+		t.Error("missing stream #Blob")
 	}
 }

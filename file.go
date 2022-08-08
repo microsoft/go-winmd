@@ -171,26 +171,46 @@ func readMetadata(pefile *pe.File, rva uint32) (*MetadataHeader, []*Stream, erro
 		!read(&streamsCount) {
 		return nil, nil, fmt.Errorf("failure to read the metadata header: %v", err)
 	}
+
+	readStreamNameStr := func(data *string) bool {
+		// the name of the stream as null-terminated variable length array
+		// of ASCII characters, padded to the next 4-byte boundary
+		// with \x00 characters. The name is limited to 32 characters.
+		const nameMaxLength = 32
+		const namePadding = 4
+		var nameBuf [nameMaxLength]byte
+		// Read in chunks of 4 bytes, accumulating the string
+		// into nameBuf until the first \x00 character is found.
+		var found bool
+		for j := 0; j < nameMaxLength; j += namePadding {
+			if !read(nameBuf[j : j+namePadding]) {
+				break
+			}
+			idx := bytes.IndexByte(nameBuf[:j+namePadding], 0)
+			if idx != -1 {
+				found = true
+				*data = string(nameBuf[:idx])
+				break
+			}
+		}
+		if !found {
+			err = errors.New("name not found")
+		}
+		return err == nil
+	}
+
+	// parse stream headers.
 	streams := make([]*Stream, streamsCount)
-	const maxNameLength = 32 // the stream header name is limited to 32 characters.
 	for i := 0; i < int(streamsCount); i++ {
 		var s Stream
 		if !read(&s.Offset) ||
 			!read(&s.Size) ||
-			!readStr(maxNameLength, &s.Name) {
+			!readStreamNameStr(&s.Name) {
 			return nil, nil, fmt.Errorf("failure to read the stream header (%d): %v", i, err)
 		}
 		s.sr = io.NewSectionReader(ds, rootOffset+int64(s.Offset), int64(s.Size))
 		s.ReaderAt = s.sr
 		streams[i] = &s
-		// name is null-terminated and padded to the next 4-byte boundary when layed out in disk.
-		l := len(s.Name) + 1
-		padding := (4 - l) % 4
-		// seek backwards, we probably read more than necessary.
-		_, err = r.Seek(-int64(maxNameLength-l-padding), io.SeekCurrent)
-		if err != nil {
-			return nil, nil, fmt.Errorf("failure to seek to the stream header (%d): %v", i, err)
-		}
 	}
 	return &hdr, streams, nil
 }
