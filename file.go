@@ -78,67 +78,51 @@ func readCLIHeader(pefile *pe.File, pe64 bool) (*CLIHeader, error) {
 	}
 
 	// figure out which section contains the COM descriptor directory table
-	var ds *pe.Section
-	for _, s := range pefile.Sections {
-		if s.VirtualAddress <= comdd.VirtualAddress && comdd.VirtualAddress < s.VirtualAddress+s.VirtualSize {
-			ds = s
-			break
-		}
-	}
-
-	// didn't find a section.
+	ds := sectionByRVA(pefile, comdd.VirtualAddress)
 	if ds == nil {
 		return nil, errors.New("COM descriptor directory table is missing")
 	}
 
-	// read COM descriptor directory table.
-	d, err := ds.Data()
+	// read COM descriptor directory table might be in a large section,
+	// we better don't call ds.Data()
+	r := ds.Open()
+
+	// seek to the COM descriptor data directory virtual address.
+	_, err := r.Seek(int64(comdd.VirtualAddress-ds.VirtualAddress), io.SeekStart)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failure to seek to the COM descriptor data directory root: %v", err)
 	}
 
-	// seek to the virtual address specified in the COM descriptor data directory.
-	d = d[comdd.VirtualAddress-ds.VirtualAddress:]
+	read := func(data interface{}) bool {
+		err = binary.Read(r, binary.LittleEndian, data)
+		return err == nil
+	}
+	readDataDirectory := func(data *pe.DataDirectory) bool {
+		return read(&data.VirtualAddress) && read(&data.Size)
+	}
 
 	var hdr CLIHeader
-	// verify there is enough space for the CLI header.
-	cliHeaderSize := binary.Size(hdr)
-	if len(d) < cliHeaderSize {
-		return nil, fmt.Errorf("COM descriptor data directory size (%d) is less than minimum size (%d) for CLI header", len(d), cliHeaderSize)
+	if !read(&hdr.Size) ||
+		!read(&hdr.MajorRuntimeVersion) ||
+		!read(&hdr.MinorRuntimeVersion) ||
+		!readDataDirectory(&hdr.Metadata) ||
+		!read(&hdr.Flags) ||
+		!read(&hdr.EntryPointToken) ||
+		!readDataDirectory(&hdr.Resources) ||
+		!readDataDirectory(&hdr.StrongNameSignature) ||
+		!readDataDirectory(&hdr.CodeManagerTable) ||
+		!readDataDirectory(&hdr.VTableFixups) ||
+		!readDataDirectory(&hdr.ExportAddressTableJumps) ||
+		!readDataDirectory(&hdr.ManagedNativeHeader) {
+		return nil, fmt.Errorf("failure to read the CLI header: %v", err)
 	}
-
-	// parse CLI header.
-	hdr.Size = binary.LittleEndian.Uint32(d[0:4])
-	if hdr.Size < uint32(cliHeaderSize) {
-		return nil, fmt.Errorf("size field in CLI header (%d) is too smaller than the minimum size (%d)", hdr.Size, cliHeaderSize)
-	}
-	hdr.MajorRuntimeVersion = binary.LittleEndian.Uint16(d[4:6])
-	hdr.MinorRuntimeVersion = binary.LittleEndian.Uint16(d[6:8])
-	hdr.Metadata = readDataDirectory(d[8:16])
-	hdr.Flags = COMIMAGE_FLAGS(binary.LittleEndian.Uint32(d[16:20]))
-	hdr.EntryPointToken = binary.LittleEndian.Uint32(d[20:24])
-	hdr.Resources = readDataDirectory(d[24:32])
-	hdr.StrongNameSignature = readDataDirectory(d[32:40])
-	hdr.CodeManagerTable = readDataDirectory(d[40:48])
-	hdr.VTableFixups = readDataDirectory(d[48:56])
-	hdr.ExportAddressTableJumps = readDataDirectory(d[56:64])
-	hdr.ManagedNativeHeader = readDataDirectory(d[64:72])
 	return &hdr, nil
 }
 
 // readMetadata reads the Metadata from pefile.
-// f.CLIHeader must be already filled.
 func readMetadata(pefile *pe.File, rva uint32) (*MetadataHeader, []*Stream, error) {
 	// figure out which section contains the metadata.
-	var ds *pe.Section
-	for _, s := range pefile.Sections {
-		if s.VirtualAddress <= rva && rva < s.VirtualAddress+s.VirtualSize {
-			ds = s
-			break
-		}
-	}
-
-	// didn't find a section.
+	ds := sectionByRVA(pefile, rva)
 	if ds == nil {
 		return nil, nil, errors.New("metadata section is missing")
 	}
@@ -210,11 +194,16 @@ func readMetadata(pefile *pe.File, rva uint32) (*MetadataHeader, []*Stream, erro
 	return &hdr, streams, nil
 }
 
-func readDataDirectory(d []byte) pe.DataDirectory {
-	return pe.DataDirectory{
-		VirtualAddress: binary.LittleEndian.Uint32(d[0:4]),
-		Size:           binary.LittleEndian.Uint32(d[4:8]),
+// sectionByRVA returns the section which contains rva.
+func sectionByRVA(pefile *pe.File, rva uint32) *pe.Section {
+	var ds *pe.Section
+	for _, s := range pefile.Sections {
+		if s.VirtualAddress <= rva && rva < s.VirtualAddress+s.VirtualSize {
+			ds = s
+			break
+		}
 	}
+	return ds
 }
 
 // cstring converts UTF8 byte sequence b to string.
