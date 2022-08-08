@@ -28,17 +28,17 @@ func NewFile(pefile *pe.File) (*File, error) {
 	_, pe64 := pefile.OptionalHeader.(*pe.OptionalHeader64)
 
 	// grab the number of data directory entries.
-	var dd_length uint32
+	var ddLength uint32
 	if pe64 {
-		dd_length = pefile.OptionalHeader.(*pe.OptionalHeader64).NumberOfRvaAndSizes
+		ddLength = pefile.OptionalHeader.(*pe.OptionalHeader64).NumberOfRvaAndSizes
 	} else {
-		dd_length = pefile.OptionalHeader.(*pe.OptionalHeader32).NumberOfRvaAndSizes
+		ddLength = pefile.OptionalHeader.(*pe.OptionalHeader32).NumberOfRvaAndSizes
 	}
 
 	// check that the length of data directory entries is large.
 	// enough to include the COM descriptor directory.
-	if dd_length < pe.IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR+1 {
-		return nil, fmt.Errorf("data directory entries length (%d) is less than minimum length (%d) to include the COM descriptor directory", dd_length, pe.IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR)
+	if ddLength < pe.IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR+1 {
+		return nil, fmt.Errorf("data directory entries length (%d) is less than minimum length (%d) to include the COM descriptor directory", ddLength, pe.IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR)
 	}
 
 	clihdr, err := readCLIHeader(pefile, pe64)
@@ -56,7 +56,7 @@ func NewFile(pefile *pe.File) (*File, error) {
 	}, nil
 }
 
-// readCLIHeader reads the CLI header from pefile info f.
+// readCLIHeader reads the CLI header from pefile.
 func readCLIHeader(pefile *pe.File, pe64 bool) (*CLIHeader, error) {
 	// grab the com descriptor data directory entry.
 	var comdd pe.DataDirectory
@@ -115,7 +115,7 @@ func readCLIHeader(pefile *pe.File, pe64 bool) (*CLIHeader, error) {
 	return &hdr, nil
 }
 
-// readMetadata reads the Metadata from pefile info f.
+// readMetadata reads the Metadata from pefile.
 // f.CLIHeader must be already filled.
 func readMetadata(pefile *pe.File, rva uint32) (*MetadataHeader, []*Stream, error) {
 	// figure out which section contains the metadata.
@@ -165,11 +165,12 @@ func readMetadata(pefile *pe.File, rva uint32) (*MetadataHeader, []*Stream, erro
 		return nil, nil, fmt.Errorf("metadata header signature (%#X) must be (%#X)", hdr.Signature, signature)
 	}
 	var streamsCount uint16
+	var cstringLength uint32
 	if !read(&hdr.MajorVersion) ||
 		!read(&hdr.MinorVersion) ||
 		!read(&hdr.Reserved) ||
-		!read(&hdr.Length) ||
-		!readStr(int(hdr.Length), &hdr.Version) ||
+		!read(&cstringLength) ||
+		!readStr(int(cstringLength), &hdr.Version) ||
 		!read(&hdr.Flags) ||
 		!read(&streamsCount) {
 		return nil, nil, fmt.Errorf("failure to read the metadata header: %v", err)

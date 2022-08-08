@@ -41,7 +41,6 @@ type MetadataHeader struct {
 	MajorVersion uint16
 	MinorVersion uint16
 	Reserved     uint32
-	Length       uint32
 	Version      string
 	Flags        uint16
 }
@@ -53,15 +52,4 @@ type StreamHeader struct {
 	Offset uint32
 	Size   uint32
 	Name   string
-}
-
-// StreamTablesHeader contain the actual physical representations of the logical metadata tables.
-// Defined in §II.24.2.6.
-type StreamTablesHeader struct {
-	Reserved1    uint32
-	MajorVersion uint8
-	MinorVersion uint8
-	HeapSizes    uint8
-	Reserved2    uint8
-	Valid        uint64
 }
