@@ -150,7 +150,11 @@ func readMetadata(pefile *pe.File, rva uint32) (string, []*Heap, error) {
 		buf := make([]byte, n)
 		err = binary.Read(r, binary.LittleEndian, buf)
 		if err == nil {
-			*data = cstring(buf)
+			i := bytes.IndexByte(buf, 0)
+			if i == -1 {
+				i = len(buf)
+			}
+			*data = string(buf[:i])
 		}
 		return err == nil
 	}
@@ -246,14 +250,4 @@ func sectionByRVA(pefile *pe.File, rva uint32) *pe.Section {
 		}
 	}
 	return ds
-}
-
-// cstring converts UTF8 byte sequence b to string.
-// It stops once it finds 0 or reaches end of b.
-func cstring(b []byte) string {
-	i := bytes.IndexByte(b, 0)
-	if i == -1 {
-		i = len(b)
-	}
-	return string(b[:i])
 }
