@@ -56,6 +56,17 @@ func NewFile(pefile *pe.File) (*File, error) {
 	}, nil
 }
 
+// Stream returns the stream with the given name, or nil if no such
+// stream exists.
+func (m *File) Stream(name string) *Stream {
+	for _, s := range m.Streams {
+		if s.Name == name {
+			return s
+		}
+	}
+	return nil
+}
+
 // readCLIHeader reads the CLI header from pefile.
 func readCLIHeader(pefile *pe.File, pe64 bool) (*CLIHeader, error) {
 	// grab the com descriptor data directory entry.

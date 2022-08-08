@@ -36,7 +36,6 @@ func TestNewFile(t *testing.T) {
 		Signature:    1112167234,
 		MajorVersion: 1,
 		MinorVersion: 1,
-		Length:       12,
 		Version:      "v4.0.30319",
 	}
 	if !reflect.DeepEqual(f.MetadataHeader, wantMetadataHeader) {
