@@ -22,7 +22,7 @@ type File struct {
 // NewFile creates a new File from an underlying PE file.
 func NewFile(pefile *pe.File) (*File, error) {
 	if pefile.OptionalHeader == nil {
-		return nil, errors.New("optional header is missing")
+		return nil, errors.New("pe optional header is required to parse as winmd, but it is missing")
 	}
 
 	_, pe64 := pefile.OptionalHeader.(*pe.OptionalHeader64)
@@ -35,7 +35,7 @@ func NewFile(pefile *pe.File) (*File, error) {
 		ddLength = pefile.OptionalHeader.(*pe.OptionalHeader32).NumberOfRvaAndSizes
 	}
 
-	// check that the length of data directory entries is large.
+	// check that the length of data directory entries is large
 	// enough to include the COM descriptor directory.
 	if ddLength < pe.IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR+1 {
 		return nil, fmt.Errorf("data directory entries length (%d) is less than minimum length (%d) to include the COM descriptor directory", ddLength, pe.IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR)
@@ -110,7 +110,7 @@ func readCLIHeader(pefile *pe.File, pe64 bool) (*CLIHeader, error) {
 	// parse CLI header.
 	hdr.Size = binary.LittleEndian.Uint32(d[0:4])
 	if hdr.Size < uint32(cliHeaderSize) {
-		return nil, fmt.Errorf("size of CLI header (%d) is not the one defined in ECMA335 6th edition, section 11.25.3.3 (%d)", hdr.Size, cliHeaderSize)
+		return nil, fmt.Errorf("size field in CLI header (%d) is too smaller than the minimum size (%d)", hdr.Size, cliHeaderSize)
 	}
 	hdr.MajorRuntimeVersion = binary.LittleEndian.Uint16(d[4:6])
 	hdr.MinorRuntimeVersion = binary.LittleEndian.Uint16(d[6:8])
@@ -171,6 +171,7 @@ func readMetadata(pefile *pe.File, rva uint32) (*MetadataHeader, []*Stream, erro
 	if !read(&hdr.Signature) {
 		return nil, nil, fmt.Errorf("failure to read the metadata header signature: %v", err)
 	}
+	// magic signature from II.24.2.1
 	const signature = 0x424A5342
 	if hdr.Signature != signature {
 		return nil, nil, fmt.Errorf("metadata header signature (%#X) must be (%#X)", hdr.Signature, signature)
