@@ -14,9 +14,12 @@ import (
 
 // A File represents an open Windows Metadata file.
 type File struct {
-	CLIHeader      CLIHeader
-	MetadataHeader MetadataHeader
-	Streams        []*Stream
+	Version string
+	Tables  *Heap
+	Strings *Heap
+	US      *Heap
+	Blob    *Heap
+	GUID    *Heap
 }
 
 // NewFile creates a new File from an underlying PE file.
@@ -41,34 +44,36 @@ func NewFile(pefile *pe.File) (*File, error) {
 		return nil, fmt.Errorf("data directory entries length (%d) is less than minimum length (%d) to include the COM descriptor directory", ddLength, pe.IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR)
 	}
 
-	clihdr, err := readCLIHeader(pefile, pe64)
+	dir, err := readMetadataDirectory(pefile, pe64)
 	if err != nil {
 		return nil, err
 	}
-	mdhdr, streams, err := readMetadata(pefile, clihdr.Metadata.VirtualAddress)
+	version, heaps, err := readMetadata(pefile, dir.VirtualAddress)
 	if err != nil {
 		return nil, err
 	}
-	return &File{
-		CLIHeader:      *clihdr,
-		MetadataHeader: *mdhdr,
-		Streams:        streams,
-	}, nil
-}
-
-// Stream returns the stream with the given name, or nil if no such
-// stream exists.
-func (m *File) Stream(name string) *Stream {
-	for _, s := range m.Streams {
-		if s.Name == name {
-			return s
+	f := &File{
+		Version: version,
+	}
+	for _, h := range heaps {
+		switch h.name {
+		case "#Strings":
+			f.Strings = h
+		case "#US":
+			f.US = h
+		case "#Blob":
+			f.Blob = h
+		case "#GUID":
+			f.GUID = h
+		case "#~":
+			f.Tables = h
 		}
 	}
-	return nil
+	return f, nil
 }
 
-// readCLIHeader reads the CLI header from pefile.
-func readCLIHeader(pefile *pe.File, pe64 bool) (*CLIHeader, error) {
+// readMetadataDirectory reads the metadata virtual directory from the CLI header in the pefile.
+func readMetadataDirectory(pefile *pe.File, pe64 bool) (pe.DataDirectory, error) {
 	// grab the com descriptor data directory entry.
 	var comdd pe.DataDirectory
 	if pe64 {
@@ -80,7 +85,7 @@ func readCLIHeader(pefile *pe.File, pe64 bool) (*CLIHeader, error) {
 	// figure out which section contains the COM descriptor directory table
 	ds := sectionByRVA(pefile, comdd.VirtualAddress)
 	if ds == nil {
-		return nil, errors.New("COM descriptor directory table is missing")
+		return pe.DataDirectory{}, errors.New("COM descriptor directory table is missing")
 	}
 
 	// read COM descriptor directory table might be in a large section,
@@ -90,7 +95,7 @@ func readCLIHeader(pefile *pe.File, pe64 bool) (*CLIHeader, error) {
 	// seek to the COM descriptor data directory virtual address.
 	_, err := r.Seek(int64(comdd.VirtualAddress-ds.VirtualAddress), io.SeekStart)
 	if err != nil {
-		return nil, fmt.Errorf("failure to seek to the COM descriptor data directory root: %v", err)
+		return pe.DataDirectory{}, fmt.Errorf("failure to seek to the COM descriptor data directory root: %v", err)
 	}
 
 	read := func(data interface{}) bool {
@@ -101,30 +106,30 @@ func readCLIHeader(pefile *pe.File, pe64 bool) (*CLIHeader, error) {
 		return read(&data.VirtualAddress) && read(&data.Size)
 	}
 
-	var hdr CLIHeader
+	// The CLI header contains all of the runtime-specific data entries and other information.
+	// We are only interested on in the metadata data directory.
+	// Defined in §II.25.3.3.
+	var hdr struct {
+		Size                uint32
+		MajorRuntimeVersion uint16
+		MinorRuntimeVersion uint16
+		Metadata            pe.DataDirectory
+	}
 	if !read(&hdr.Size) ||
 		!read(&hdr.MajorRuntimeVersion) ||
 		!read(&hdr.MinorRuntimeVersion) ||
-		!readDataDirectory(&hdr.Metadata) ||
-		!read(&hdr.Flags) ||
-		!read(&hdr.EntryPointToken) ||
-		!readDataDirectory(&hdr.Resources) ||
-		!readDataDirectory(&hdr.StrongNameSignature) ||
-		!readDataDirectory(&hdr.CodeManagerTable) ||
-		!readDataDirectory(&hdr.VTableFixups) ||
-		!readDataDirectory(&hdr.ExportAddressTableJumps) ||
-		!readDataDirectory(&hdr.ManagedNativeHeader) {
-		return nil, fmt.Errorf("failure to read the CLI header: %v", err)
+		!readDataDirectory(&hdr.Metadata) {
+		return pe.DataDirectory{}, fmt.Errorf("failure to read the CLI header: %v", err)
 	}
-	return &hdr, nil
+	return hdr.Metadata, nil
 }
 
 // readMetadata reads the Metadata from pefile.
-func readMetadata(pefile *pe.File, rva uint32) (*MetadataHeader, []*Stream, error) {
+func readMetadata(pefile *pe.File, rva uint32) (string, []*Heap, error) {
 	// figure out which section contains the metadata.
 	ds := sectionByRVA(pefile, rva)
 	if ds == nil {
-		return nil, nil, errors.New("metadata section is missing")
+		return "", nil, errors.New("metadata section is missing")
 	}
 
 	// The metadata section can be huge, we better don't call ds.Data()
@@ -134,7 +139,7 @@ func readMetadata(pefile *pe.File, rva uint32) (*MetadataHeader, []*Stream, erro
 	rootOffset := int64(rva - ds.VirtualAddress)
 	_, err := r.Seek(rootOffset, io.SeekStart)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failure to seek to the metadata root: %v", err)
+		return "", nil, fmt.Errorf("failure to seek to the metadata root: %v", err)
 	}
 
 	read := func(data interface{}) bool {
@@ -150,15 +155,22 @@ func readMetadata(pefile *pe.File, rva uint32) (*MetadataHeader, []*Stream, erro
 		return err == nil
 	}
 
-	// parse hdr header.
-	var hdr MetadataHeader
+	// the Metadata header is defined in §II.24.2.1.
+	var hdr struct {
+		Signature    uint32
+		MajorVersion uint16
+		MinorVersion uint16
+		Reserved     uint32
+		Version      string
+		Flags        uint16
+	}
 	if !read(&hdr.Signature) {
-		return nil, nil, fmt.Errorf("failure to read the metadata header signature: %v", err)
+		return "", nil, fmt.Errorf("failure to read the metadata header signature: %v", err)
 	}
 	// magic signature from II.24.2.1
 	const signature = 0x424A5342
 	if hdr.Signature != signature {
-		return nil, nil, fmt.Errorf("metadata header signature (%#X) must be (%#X)", hdr.Signature, signature)
+		return "", nil, fmt.Errorf("metadata header signature (%#X) must be (%#X)", hdr.Signature, signature)
 	}
 	var streamsCount uint16
 	var cstringLength uint32
@@ -169,7 +181,7 @@ func readMetadata(pefile *pe.File, rva uint32) (*MetadataHeader, []*Stream, erro
 		!readStr(int(cstringLength), &hdr.Version) ||
 		!read(&hdr.Flags) ||
 		!read(&streamsCount) {
-		return nil, nil, fmt.Errorf("failure to read the metadata header: %v", err)
+		return "", nil, fmt.Errorf("failure to read the metadata header: %v", err)
 	}
 
 	readStreamNameStr := func(data *string) bool {
@@ -200,19 +212,28 @@ func readMetadata(pefile *pe.File, rva uint32) (*MetadataHeader, []*Stream, erro
 	}
 
 	// parse stream headers.
-	streams := make([]*Stream, streamsCount)
+	heaps := make([]*Heap, streamsCount)
 	for i := 0; i < int(streamsCount); i++ {
-		var s Stream
+		// the stream header is defined in §II.24.2.2.
+		var s struct {
+			Offset uint32
+			Size   uint32
+			Name   string
+		}
 		if !read(&s.Offset) ||
 			!read(&s.Size) ||
 			!readStreamNameStr(&s.Name) {
-			return nil, nil, fmt.Errorf("failure to read the stream header (%d): %v", i, err)
+			return "", nil, fmt.Errorf("failure to read the stream header (%d): %v", i, err)
 		}
-		s.sr = io.NewSectionReader(ds, rootOffset+int64(s.Offset), int64(s.Size))
-		s.ReaderAt = s.sr
-		streams[i] = &s
+		sr := io.NewSectionReader(ds, rootOffset+int64(s.Offset), int64(s.Size))
+		heaps[i] = &Heap{
+			sr:       sr,
+			ReaderAt: sr,
+			name:     s.Name,
+			Size:     s.Size,
+		}
 	}
-	return &hdr, streams, nil
+	return hdr.Version, heaps, nil
 }
 
 // sectionByRVA returns the section which contains rva.

@@ -5,11 +5,8 @@ package winmd
 
 import "io"
 
-// Stream provides access to metadata tables and heaps,
-// as defined in §II.24.
-type Stream struct {
-	StreamHeader
-
+// Heap provides access to metadata heaps as defined in §II.24.2.
+type Heap struct {
 	// Embed ReaderAt for ReadAt method.
 	// Do not embed SectionReader directly
 	// to avoid having Read and Seek.
@@ -17,11 +14,13 @@ type Stream struct {
 	// Open() to avoid fighting over the seek offset
 	// with other clients.
 	io.ReaderAt
-	sr *io.SectionReader
+	Size uint32
+	sr   *io.SectionReader
+	name string
 }
 
 // Data reads and returns the contents of the stream s.
-func (s *Stream) Data() ([]byte, error) {
+func (s *Heap) Data() ([]byte, error) {
 	dat := make([]byte, s.sr.Size())
 	n, err := s.sr.ReadAt(dat, 0)
 	if n == len(dat) {
@@ -31,6 +30,6 @@ func (s *Stream) Data() ([]byte, error) {
 }
 
 // Open returns a new ReadSeeker reading the stream s.
-func (s *Stream) Open() io.ReadSeeker {
+func (s *Heap) Open() io.ReadSeeker {
 	return io.NewSectionReader(s.sr, 0, 1<<63-1)
 }

@@ -5,7 +5,6 @@ package winmd_test
 
 import (
 	"debug/pe"
-	"reflect"
 	"testing"
 
 	"github.com/microsoft/go-winmd"
@@ -21,39 +20,24 @@ func TestNewFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	wantCLIHeader := winmd.CLIHeader{
-		Size:                72,
-		MajorRuntimeVersion: 2,
-		MinorRuntimeVersion: 5,
-		Metadata:            pe.DataDirectory{VirtualAddress: 8272, Size: 16087908},
-		Flags:               1,
-		StrongNameSignature: pe.DataDirectory{VirtualAddress: 16096180, Size: 128},
+	wantVersion := "v4.0.30319"
+	if f.Version != wantVersion {
+		t.Errorf("Version = %v, want %v", f.Version, wantVersion)
+
 	}
-	if !reflect.DeepEqual(f.CLIHeader, wantCLIHeader) {
-		t.Errorf("CLIHeader = %v, want %v", f.CLIHeader, wantCLIHeader)
+	testHeap := func(h *winmd.Heap, size uint32) {
+		t.Helper()
+		if h == nil {
+			t.Error("heap missing")
+			return
+		}
+		if h.Size != size {
+			t.Errorf("Size = %v, want %v", h.Size, size)
+		}
 	}
-	wantMetadataHeader := winmd.MetadataHeader{
-		Signature:    1112167234,
-		MajorVersion: 1,
-		MinorVersion: 1,
-		Version:      "v4.0.30319",
-	}
-	if !reflect.DeepEqual(f.MetadataHeader, wantMetadataHeader) {
-		t.Errorf("Metadata = %v, want %v", f.MetadataHeader, wantMetadataHeader)
-	}
-	if f.Stream("#~") == nil {
-		t.Error("missing stream #~")
-	}
-	if f.Stream("#Strings") == nil {
-		t.Error("missing stream #String")
-	}
-	if f.Stream("#US") == nil {
-		t.Error("missing stream #US")
-	}
-	if f.Stream("#GUID") == nil {
-		t.Error("missing stream #GUID")
-	}
-	if f.Stream("#Blob") == nil {
-		t.Error("missing stream #Blob")
-	}
+	testHeap(f.Tables, 8836564)
+	testHeap(f.Strings, 6081516)
+	testHeap(f.US, 4)
+	testHeap(f.GUID, 16)
+	testHeap(f.Blob, 1169700)
 }
