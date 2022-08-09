@@ -22,7 +22,7 @@ type Metadata struct {
 	GUID    *Heap
 }
 
-// New creates a new File from an underlying PE file.
+// New creates a new Metadata from an underlying PE file.
 func New(pefile *pe.File) (*Metadata, error) {
 	if pefile.OptionalHeader == nil {
 		return nil, errors.New("pe optional header is required to parse as winmd, but it is missing")
