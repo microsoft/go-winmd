@@ -221,8 +221,9 @@ func readMetadata(pefile *pe.File, rva uint32) (string, []*Heap, error) {
 	}
 
 	// parse stream headers.
-	var streams []*Heap
-	streamNames := make(map[string]struct{})
+	// common case is to have just 5.
+	streams := make([]*Heap, 0, 5)
+	streamNames := make(map[string]struct{}, 5)
 	for i := 0; i < int(streamsCount); i++ {
 		// the stream header is defined in §II.24.2.2.
 		var s struct {
