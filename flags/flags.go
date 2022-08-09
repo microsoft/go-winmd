@@ -187,7 +187,7 @@ const (
 	PropertyAttributes_Unused        PropertyAttributes = 0xe9ff
 )
 
-// ElementType is defined in §II.23.1.15.
+// TypeAttributes is defined in §II.23.1.15.
 type TypeAttributes uint32
 
 const (
