@@ -44,15 +44,19 @@ type Assembly struct {
 	Culture        string
 }
 
-// AssemblyOS is defined in §II.22.3.
-type AssemblyOS struct {
+// assemblyOS is defined in §II.22.3.
+// This record should not be emitted into any PE file,
+// but needed temporarily to calculate sizes and offsets for subsequent tables.
+type assemblyOS struct {
 	OSPlatformID   uint32
 	OSMajorVersion uint32
 	OSMinorVersion uint32
 }
 
-// AssemblyProcessor is defined in §II.22.4.
-type AssemblyProcessor struct {
+// assemblyProcessor is defined in §II.22.4.
+// This record should not be emitted into any PE file,
+// but needed temporarily to calculate sizes and offsets for subsequent tables.
+type assemblyProcessor struct {
 	Processor uint32
 }
 
@@ -69,16 +73,20 @@ type AssemblyRef struct {
 	HashValue        BlobIndex
 }
 
-// AssemblyOS is defined in §II.22.6.
-type AssemblyRefOS struct {
+// assemblyRefOS is defined in §II.22.6.
+// This record should not be emitted into any PE file,
+// but needed temporarily to calculate sizes and offsets for subsequent tables.
+type assemblyRefOS struct {
 	OSPlatformID   uint32
 	OSMajorVersion uint32
 	OSMinorVersion uint32
 	AssemblyRef    Index[AssemblyRef]
 }
 
-// AssemblyRefProcessor is defined in §II.22.7.
-type AssemblyRefProcessor struct {
+// assemblyRefProcessor is defined in §II.22.7.
+// This record should not be emitted into any PE file,
+// but needed temporarily to calculate sizes and offsets for subsequent tables.
+type assemblyRefProcessor struct {
 	Processor   uint32
 	AssemblyRef Index[AssemblyRef]
 }
