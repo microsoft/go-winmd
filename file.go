@@ -147,6 +147,11 @@ func readMetadata(pefile *pe.File, rva uint32) (string, []*Heap, error) {
 		return err == nil
 	}
 	readStr := func(n int, data *string) bool {
+		const maxLength = 255
+		if n > maxLength {
+			err = fmt.Errorf("string length (%d) is higher than the maximum length (%d)", n, maxLength)
+			return false
+		}
 		buf := make([]byte, n)
 		err = binary.Read(r, binary.LittleEndian, buf)
 		if err == nil {
@@ -216,7 +221,7 @@ func readMetadata(pefile *pe.File, rva uint32) (string, []*Heap, error) {
 	}
 
 	// parse stream headers.
-	heaps := make([]*Heap, streamsCount)
+	var heaps []*Heap
 	for i := 0; i < int(streamsCount); i++ {
 		// the stream header is defined in §II.24.2.2.
 		var s struct {
@@ -230,12 +235,12 @@ func readMetadata(pefile *pe.File, rva uint32) (string, []*Heap, error) {
 			return "", nil, fmt.Errorf("failure to read the stream header (%d): %v", i, err)
 		}
 		sr := io.NewSectionReader(ds, rootOffset+int64(s.Offset), int64(s.Size))
-		heaps[i] = &Heap{
+		heaps = append(heaps, &Heap{
 			sr:       sr,
 			ReaderAt: sr,
 			name:     s.Name,
 			Size:     s.Size,
-		}
+		})
 	}
 	return hdr.Version, heaps, nil
 }
