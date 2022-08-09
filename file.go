@@ -221,7 +221,8 @@ func readMetadata(pefile *pe.File, rva uint32) (string, []*Heap, error) {
 	}
 
 	// parse stream headers.
-	var heaps []*Heap
+	var streams []*Heap
+	streamNames := make(map[string]struct{})
 	for i := 0; i < int(streamsCount); i++ {
 		// the stream header is defined in §II.24.2.2.
 		var s struct {
@@ -234,15 +235,20 @@ func readMetadata(pefile *pe.File, rva uint32) (string, []*Heap, error) {
 			!readStreamNameStr(&s.Name) {
 			return "", nil, fmt.Errorf("failure to read the stream header (%d): %v", i, err)
 		}
+		// check for duplicated names.
+		if _, ok := streamNames[s.Name]; ok {
+			return "", nil, fmt.Errorf("duplicated %s stream", s.Name)
+		}
+		streamNames[s.Name] = struct{}{}
 		sr := io.NewSectionReader(ds, rootOffset+int64(s.Offset), int64(s.Size))
-		heaps = append(heaps, &Heap{
+		streams = append(streams, &Heap{
 			sr:       sr,
 			ReaderAt: sr,
 			name:     s.Name,
 			Size:     s.Size,
 		})
 	}
-	return hdr.Version, heaps, nil
+	return hdr.Version, streams, nil
 }
 
 // sectionByRVA returns the section which contains rva.
