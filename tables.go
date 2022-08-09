@@ -15,7 +15,7 @@ type Index[T Record] int
 
 // CodedIndex indexes a record on any table.
 type CodedIndex struct {
-	Index[Record]
+	Index[any]
 	Table int
 }
 
