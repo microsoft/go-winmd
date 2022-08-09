@@ -12,8 +12,8 @@ import (
 	"io"
 )
 
-// A File represents an open Windows Metadata file.
-type File struct {
+// A Metadata represents an open Windows Metadata file.
+type Metadata struct {
 	Version string
 	Tables  *Heap
 	Strings *Heap
@@ -22,8 +22,8 @@ type File struct {
 	GUID    *Heap
 }
 
-// NewFile creates a new File from an underlying PE file.
-func NewFile(pefile *pe.File) (*File, error) {
+// New creates a new File from an underlying PE file.
+func New(pefile *pe.File) (*Metadata, error) {
 	if pefile.OptionalHeader == nil {
 		return nil, errors.New("pe optional header is required to parse as winmd, but it is missing")
 	}
@@ -52,7 +52,7 @@ func NewFile(pefile *pe.File) (*File, error) {
 	if err != nil {
 		return nil, err
 	}
-	f := &File{
+	f := &Metadata{
 		Version: version,
 	}
 	for _, h := range heaps {

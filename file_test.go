@@ -10,13 +10,13 @@ import (
 	"github.com/microsoft/go-winmd"
 )
 
-func TestNewFile(t *testing.T) {
+func TestNew(t *testing.T) {
 	pefile, err := pe.Open("./testdata/Windows.Win32.winmd")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer pefile.Close()
-	f, err := winmd.NewFile(pefile)
+	f, err := winmd.New(pefile)
 	if err != nil {
 		t.Fatal(err)
 	}
