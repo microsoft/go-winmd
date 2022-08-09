@@ -202,7 +202,7 @@ func readMetadata(pefile *pe.File, rva uint32) (string, []*Heap, error) {
 			if !read(nameBuf[j : j+namePadding]) {
 				break
 			}
-			idx := bytes.IndexByte(nameBuf[:j+namePadding], 0)
+			idx := bytes.IndexByte(nameBuf[j:j+namePadding], 0) + j
 			if idx != -1 {
 				found = true
 				*data = string(nameBuf[:idx])
