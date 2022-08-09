@@ -19,10 +19,10 @@ type CodedIndex struct {
 	Table int
 }
 
-// Slice indexes a range of records on the table T.
+// Slice indexes the range of records [Start,End) on the table T.
 type Slice[T Record] struct {
-	Start  Index[T]
-	Length int
+	Start Index[T]
+	End   Index[T]
 }
 
 // BlobIndex is an index to a #Blob heap.
