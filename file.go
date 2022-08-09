@@ -202,10 +202,10 @@ func readMetadata(pefile *pe.File, rva uint32) (string, []*Heap, error) {
 			if !read(nameBuf[j : j+namePadding]) {
 				break
 			}
-			idx := bytes.IndexByte(nameBuf[j:j+namePadding], 0) + j
+			idx := bytes.IndexByte(nameBuf[j:j+namePadding], 0)
 			if idx != -1 {
 				found = true
-				*data = string(nameBuf[:idx])
+				*data = string(nameBuf[:idx+j])
 				break
 			}
 		}
@@ -242,12 +242,16 @@ func readMetadata(pefile *pe.File, rva uint32) (string, []*Heap, error) {
 
 // sectionByRVA returns the section which contains rva.
 func sectionByRVA(pefile *pe.File, rva uint32) *pe.Section {
-	var ds *pe.Section
 	for _, s := range pefile.Sections {
-		if s.VirtualAddress <= rva && rva < s.VirtualAddress+s.VirtualSize {
-			ds = s
-			break
+		start := s.VirtualAddress
+		end := start + s.VirtualSize
+		if end < start {
+			// s.VirtualAddress + s.VirtualSize overflows.
+			continue
+		}
+		if start <= rva && rva < end {
+			return s
 		}
 	}
-	return ds
+	return nil
 }
