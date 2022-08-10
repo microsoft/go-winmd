@@ -95,7 +95,7 @@ type assemblyRefProcessor struct {
 type ClassLayout struct {
 	PackingSize uint16
 	ClassSize   uint32
-	AssemblyRef Index[TypeDef]
+	Parent Index[TypeDef]
 }
 
 // Constant is defined in §II.22.9.
