@@ -95,7 +95,7 @@ type assemblyRefProcessor struct {
 type ClassLayout struct {
 	PackingSize uint16
 	ClassSize   uint32
-	Parent Index[TypeDef]
+	Parent      Index[TypeDef]
 }
 
 // Constant is defined in §II.22.9.
@@ -136,7 +136,7 @@ type Event struct {
 // ExportedType is defined in §II.22.14.
 type ExportedType struct {
 	Flags          flags.TypeAttributes
-	TypeDefID      uint32
+	TypeDefID      uint32 // index into a TypeDef table, used as hint only
 	Name           string
 	Namespace      string     `winmd:",cache"`
 	Implementation CodedIndex `winmd:"Implementation"`
