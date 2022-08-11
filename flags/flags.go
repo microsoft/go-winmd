@@ -13,9 +13,9 @@ package flags
 type AssemblyHashAlgorithm uint32
 
 const (
-	AssemblyHash_AlgorithmNone AssemblyHashAlgorithm = 0x0000
-	AssemblyHash_AlgorithmMD5  AssemblyHashAlgorithm = 0x8003
-	AssemblyHash_AlgorithmSHA1 AssemblyHashAlgorithm = 0x8004
+	AssemblyHashAlgorithm_None AssemblyHashAlgorithm = 0x0000
+	AssemblyHashAlgorithm_MD5  AssemblyHashAlgorithm = 0x8003
+	AssemblyHashAlgorithm_SHA1 AssemblyHashAlgorithm = 0x8004
 )
 
 // AssemblyFlags is defined in §II.23.1.2.
