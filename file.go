@@ -10,20 +10,34 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/bits"
 )
 
-// A Metadata represents an open Windows Metadata file.
-type Metadata struct {
-	Version string
-	Tables  *Heap
-	Strings *Heap
-	US      *Heap
-	Blob    *Heap
-	GUID    *Heap
+// heap provides access to metadata heaps as defined in §II.24.2.
+type heap struct {
+	// Embed ReaderAt for ReadAt method.
+	// Do not embed SectionReader directly
+	// to avoid having Read and Seek.
+	// If a client wants Read and Seek it must use
+	// Open() to avoid fighting over the seek offset
+	// with other clients.
+	io.ReaderAt
+	Size uint32
+	sr   *io.SectionReader
+	name string
 }
 
-// New creates a new Metadata from an underlying PE file.
-func New(pefile *pe.File) (*Metadata, error) {
+// Data reads and returns the contents of the stream s.
+func (h *heap) Data() ([]byte, error) {
+	return readData(h.Open(), uint64(h.Size))
+}
+
+// Open returns a new ReadSeeker reading the stream s.
+func (s *heap) Open() io.ReadSeeker {
+	return io.NewSectionReader(s.sr, 0, 1<<63-1)
+}
+
+func newMetadata(pefile *pe.File) (*Metadata, error) {
 	if pefile.OptionalHeader == nil {
 		return nil, errors.New("pe optional header is required to parse as winmd, but it is missing")
 	}
@@ -55,18 +69,28 @@ func New(pefile *pe.File) (*Metadata, error) {
 	f := &Metadata{
 		Version: version,
 	}
+	var tableHeap *heap
 	for _, h := range heaps {
 		switch h.name {
 		case "#Strings":
-			f.Strings = h
+			f.Strings, err = readStringHeap(h)
 		case "#US":
-			f.US = h
+			f.US, err = readUSHeap(h)
 		case "#Blob":
-			f.Blob = h
+			f.Blob, err = readBlobHeap(h)
 		case "#GUID":
-			f.GUID = h
+			f.GUID, err = readGUIDHeap(h)
 		case "#~":
-			f.Tables = h
+			tableHeap = h
+		}
+		if err != nil {
+			return nil, err
+		}
+	}
+	if tableHeap != nil {
+		f.Tables, err = readTablesHeap(tableHeap, f.Strings)
+		if err != nil {
+			return nil, err
 		}
 	}
 	return f, nil
@@ -125,7 +149,7 @@ func readMetadataDirectory(pefile *pe.File, pe64 bool) (pe.DataDirectory, error)
 }
 
 // readMetadata reads the Metadata from pefile.
-func readMetadata(pefile *pe.File, rva uint32) (string, []*Heap, error) {
+func readMetadata(pefile *pe.File, rva uint32) (string, []*heap, error) {
 	// figure out which section contains the metadata.
 	ds := sectionByRVA(pefile, rva)
 	if ds == nil {
@@ -222,7 +246,7 @@ func readMetadata(pefile *pe.File, rva uint32) (string, []*Heap, error) {
 
 	// parse stream headers.
 	// common case is to have just 5.
-	streams := make([]*Heap, 0, 5)
+	streams := make([]*heap, 0, 5)
 	streamNames := make(map[string]struct{}, 5)
 	for i := 0; i < int(streamsCount); i++ {
 		// the stream header is defined in §II.24.2.2.
@@ -242,7 +266,7 @@ func readMetadata(pefile *pe.File, rva uint32) (string, []*Heap, error) {
 		}
 		streamNames[s.Name] = struct{}{}
 		sr := io.NewSectionReader(ds, rootOffset+int64(s.Offset), int64(s.Size))
-		streams = append(streams, &Heap{
+		streams = append(streams, &heap{
 			sr:       sr,
 			ReaderAt: sr,
 			name:     s.Name,
@@ -266,4 +290,86 @@ func sectionByRVA(pefile *pe.File, rva uint32) *pe.Section {
 		}
 	}
 	return nil
+}
+
+func readGUIDHeap(r *heap) (GUIDHeap, error) {
+	buf, err := r.Data()
+	if err != nil {
+		return nil, fmt.Errorf("fail to read GUID heap: %v", err)
+	}
+	return GUIDHeap(buf), nil
+}
+
+func readUSHeap(r *heap) (USHeap, error) {
+	buf, err := r.Data()
+	if err != nil {
+		return nil, fmt.Errorf("fail to read US heap: %v", err)
+	}
+	return USHeap(buf), nil
+}
+
+func readBlobHeap(r *heap) (BlobHeap, error) {
+	buf, err := r.Data()
+	if err != nil {
+		return nil, fmt.Errorf("fail to read blob heap: %v", err)
+	}
+	return BlobHeap(buf), nil
+}
+
+func readStringHeap(r *heap) (StringHeap, error) {
+	buf, err := r.Data()
+	if err != nil {
+		return nil, fmt.Errorf("fail to read string heap: %v", err)
+	}
+	if buf[len(buf)-1] != 0 {
+		return nil, errors.New("string heap must be null-terminated")
+	}
+	return StringHeap(buf), nil
+}
+
+func readTablesHeap(h *heap, stringHeap StringHeap) (*Tables, error) {
+	// The #~ stream can be huge, we better don't call ds.Data()
+	r := h.Open()
+
+	var err error
+	read := func(data any) bool {
+		err = binary.Read(r, binary.LittleEndian, data)
+		return err == nil
+	}
+
+	var (
+		padding6  [6]byte
+		heapSizes uint8
+		padding1  byte
+		valid     uint64
+		sorted    uint64
+	)
+	if !read(&padding6) || !read(&heapSizes) || !read(&padding1) || !read(&valid) || !read(&sorted) {
+		return nil, fmt.Errorf("fail to read the tables stream header: %v", err)
+	}
+	nrows := bits.OnesCount64(valid)
+	validrows := make([]uint32, nrows)
+	if err = binary.Read(r, binary.LittleEndian, validrows); err != nil {
+		return nil, fmt.Errorf("fail to read tables stream rows: %v", err)
+	}
+	var rows [45]uint32
+	for j, i := 0, 0; i < len(rows); i++ {
+		if (valid >> i & 1) == 0 {
+			continue
+		}
+		rows[i] = validrows[j]
+		j++
+	}
+	baseOffset := int64(24 + 4*nrows)
+	buf, err := readData(h.Open(), uint64(h.Size))
+	if err != nil {
+		return nil, fmt.Errorf("fail to read tables stream: %v", err)
+	}
+	tables := &Tables{
+		data:    buf[baseOffset:],
+		strings: stringHeap,
+	}
+	tables.layout = generateLayout(heapSizes, rows)
+	initTables(tables)
+	return tables, nil
 }

@@ -25,17 +25,17 @@ func TestNew(t *testing.T) {
 		t.Errorf("Version = %v, want %v", f.Version, wantVersion)
 
 	}
-	testHeap := func(h *winmd.Heap, size uint32) {
+	testHeap := func(data []byte, size int) {
 		t.Helper()
-		if h == nil {
+		if len(data) == 0 {
 			t.Error("heap missing")
 			return
 		}
-		if h.Size != size {
-			t.Errorf("Size = %v, want %v", h.Size, size)
+		if len(data) != size {
+			t.Errorf("Size = %v, want %v", len(data), size)
 		}
 	}
-	testHeap(f.Tables, 8836564)
+
 	testHeap(f.Strings, 6081516)
 	testHeap(f.US, 4)
 	testHeap(f.GUID, 16)
