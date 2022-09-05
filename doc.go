@@ -8,5 +8,4 @@ which can be located at https://www.ecma-international.org/wp-content/uploads/EC
 
 Documentation and comments referencing an ECMA-335 section are prefixed with the symbol §.
 */
-
 package winmd
