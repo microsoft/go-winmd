@@ -136,17 +136,17 @@ func (r *recordReader) coded(coded coded) (_ CodedIndex) {
 	bitmask := (1 << tagbits) - 1
 	code := r.uint(r.layout.codedSizes[coded])
 	if code < 1 {
-		return CodedIndex{table: tableNone}
+		return CodedIndex{Tag: -1}
 	}
 	row, tag := code>>tagbits-1, code&uint32(bitmask)
-	table, ok := codedTable(coded, uint8(tag))
+	_, ok := codedTable(coded, uint8(tag))
 	if !ok {
 		r.err = fmt.Errorf("unknown coded %d tag %d", coded, tag)
 		return
 	}
 	return CodedIndex{
 		Index: Index(row),
-		table: table,
+		Tag:   int8(tag),
 	}
 }
 

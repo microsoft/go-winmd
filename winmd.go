@@ -60,12 +60,7 @@ type Index uint32
 // CodedIndex indexes a record on any table.
 type CodedIndex struct {
 	Index Index
-	table table
-}
-
-// IsNull returns true if the coded index points to a null record.
-func (c CodedIndex) IsNull() bool {
-	return c.table != tableNone
+	Tag   int8
 }
 
 // BlobIndex is an index to a #Blob heap.

@@ -42,7 +42,6 @@ func main() {
 	w := new(bytes.Buffer)
 	writePrelude(w)
 	writeTablesStruct(w, tables)
-	writeCodedTable(w, tables)
 	writeTableValues(w, tables)
 	writeTableWidth(w, tables)
 	writeTableEncoding(w, tables)
@@ -146,25 +145,6 @@ func writeTableWidth(w io.Writer, tables []tableInfo) {
 	fmt.Fprintf(w, "\t}\n")
 	fmt.Fprintf(w, "}\n")
 	fmt.Fprintf(w, "\n")
-}
-
-func writeCodedTable(w io.Writer, tables []tableInfo) {
-	fmt.Fprintf(w, "// Define CodedTable function\n")
-	fmt.Fprintf(w, "\n")
-	fmt.Fprintf(w, "// CodedTable returns the table associated to c.\n")
-	fmt.Fprintf(w, "func (t *Tables) CodedTable(c CodedIndex) *Table[Record] {\n")
-	fmt.Fprintf(w, "\tswitch c.table {\n")
-	for _, t := range tables {
-		if !t.exported {
-			continue
-		}
-		fmt.Fprintf(w, "\tcase %s:\n", t.tableName)
-		fmt.Fprintf(w, "\t\treturn any(&t.%s).(*Table[Record])\n", t.name)
-	}
-	fmt.Fprintf(w, "\tdefault:\n")
-	fmt.Fprintf(w, "\t\treturn nil\n")
-	fmt.Fprintf(w, "\t}\n")
-	fmt.Fprintf(w, "}\n")
 }
 
 func writeTablesStruct(w io.Writer, tables []tableInfo) {
