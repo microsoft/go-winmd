@@ -88,47 +88,52 @@ func (t *Tables) CodedTable(c CodedIndex) *Table[Record] {
 	}
 }
 
-// Define table values
+// Define table enum
+
+type table uint8
 
 const (
-	tableAssembly               table = 32
-	tableAssemblyOS             table = 34
-	tableAssemblyProcessor      table = 33
-	tableAssemblyRef            table = 35
-	tableAssemblyRefOS          table = 37
-	tableAssemblyRefProcessor   table = 36
-	tableClassLayout            table = 15
+	tableModule                 table = 0
+	tableTypeRef                table = 1
+	tableTypeDef                table = 2
+	tableField                  table = 4
+	tableMethodDef              table = 6
+	tableParam                  table = 8
+	tableInterfaceImpl          table = 9
+	tableMemberRef              table = 10
 	tableConstant               table = 11
 	tableCustomAttribute        table = 12
+	tableFieldMarshal           table = 13
 	tableDeclSecurity           table = 14
+	tableClassLayout            table = 15
+	tableFieldLayout            table = 16
+	tableStandAloneSig          table = 17
 	tableEventMap               table = 18
 	tableEvent                  table = 20
-	tableExportedType           table = 39
-	tableField                  table = 4
-	tableFieldLayout            table = 16
-	tableFieldMarshal           table = 13
-	tableFieldRVA               table = 29
-	tableFile                   table = 38
-	tableGenericParam           table = 42
-	tableGenericParamConstraint table = 44
-	tableImplMap                table = 28
-	tableInterfaceImpl          table = 9
-	tableManifestResource       table = 40
-	tableMemberRef              table = 10
-	tableMethodDef              table = 6
-	tableMethodImpl             table = 25
-	tableMethodSemantics        table = 24
-	tableMethodSpec             table = 43
-	tableModule                 table = 0
-	tableModuleRef              table = 26
-	tableNestedClass            table = 41
-	tableParam                  table = 8
-	tableProperty               table = 23
 	tablePropertyMap            table = 21
-	tableStandAloneSig          table = 17
-	tableTypeDef                table = 2
-	tableTypeRef                table = 1
+	tableProperty               table = 23
+	tableMethodSemantics        table = 24
+	tableMethodImpl             table = 25
+	tableModuleRef              table = 26
 	tableTypeSpec               table = 27
+	tableImplMap                table = 28
+	tableFieldRVA               table = 29
+	tableAssembly               table = 32
+	tableAssemblyProcessor      table = 33
+	tableAssemblyOS             table = 34
+	tableAssemblyRef            table = 35
+	tableAssemblyRefProcessor   table = 36
+	tableAssemblyRefOS          table = 37
+	tableFile                   table = 38
+	tableExportedType           table = 39
+	tableManifestResource       table = 40
+	tableNestedClass            table = 41
+	tableGenericParam           table = 42
+	tableMethodSpec             table = 43
+	tableGenericParamConstraint table = 44
+
+	tableMax  = tableGenericParamConstraint + 1
+	tableNone = tableMax
 )
 
 // Implement table interface

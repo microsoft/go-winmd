@@ -96,7 +96,7 @@ type Table[T Record] struct {
 }
 
 func newTable[T Record](t *Tables, table table) Table[T] {
-	return Table[T]{t.layout.tables[table].rows, t}
+	return Table[T]{t.layout.tables[table].rowCount, t}
 }
 
 // Record returns the record at row.
@@ -112,7 +112,7 @@ func (t Table[T]) Record(row Index) (*T, error) {
 	}
 	// instantiate and decode the record
 	r := recordReader{
-		data: t.tables.data[offset : offset+(int(info.width)*int(info.rows-uint32(row)))], strings: t.tables.strings,
+		data: t.tables.data[offset : offset+(int(info.width)*int(info.rowCount-uint32(row)))], strings: t.tables.strings,
 		layout: &t.tables.layout,
 	}
 	err := (any)(&rec).(interface{ decode(r recordReader) error }).decode(r)

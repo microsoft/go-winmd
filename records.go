@@ -45,7 +45,7 @@ func (r *recordReader) slice(tbl, target table) (sl Slice) {
 		return
 	}
 	width := int(r.layout.tables[tbl].width)
-	nrowsref := Index(r.layout.tables[target].rows)
+	nrowsref := Index(r.layout.tables[target].rowCount)
 	validIdx := func(i Index) bool {
 		return i <= nrowsref
 	}
@@ -136,7 +136,7 @@ func (r *recordReader) index(tbl table) (v Index) {
 	return v - 1
 }
 
-func (r *recordReader) uint(size uint32) uint32 {
+func (r *recordReader) uint(size uint8) uint32 {
 	switch size {
 	case 1:
 		return uint32(r.uint8())

@@ -3,31 +3,21 @@
 
 package winmd
 
-import (
-	"math"
-)
-
-type table uint8
-
-const (
-	// the following values does not appear in the spec
-	tableMax  table = 0x2C + 1
-	tableNone table = 255
-)
+import "math/bits"
 
 type layout struct {
 	tables      [tableMax]tableInfo
-	stringSize  uint32
-	guidSize    uint32
-	blobSize    uint32
-	simpleSizes [tableMax]uint32
-	codedSizes  [codedMax]uint32
+	stringSize  uint8
+	guidSize    uint8
+	blobSize    uint8
+	simpleSizes [tableMax]uint8
+	codedSizes  [codedMax]uint8
 }
 
 type tableInfo struct {
-	rows   uint32
-	width  uint32
-	offset int
+	rowCount uint32
+	width    uint32
+	offset   int
 }
 
 func (t tableInfo) rowOffset(row uint32) int {
@@ -47,37 +37,42 @@ const (
 )
 
 type columnInfo struct {
-	size       uint32
+	size       uint8
 	columnType columnType
 	table      table
 	coded      coded
 }
 
-func generateLayout(heapSizes uint8, rows [tableMax]uint32) layout {
-	var la layout
-	la.stringSize = stringHeapIndexSize(heapSizes)
-	la.guidSize = guidHeapIndexSize(heapSizes)
-	la.blobSize = blobHeapIndexSize(heapSizes)
-	for i := table(0); i < tableMax; i++ {
-		la.simpleSizes[i] = refSimpleWidth(rows[i])
+// generateLayout generates the bit-accurate layout for the given heapSizes and tableRowCounts.
+func generateLayout(heapSizes uint8, tableRowCounts [tableMax]uint32) (la layout) {
+	// String, GUID, and blob index column sizes only depend on the heapSize.
+	la.stringSize, la.guidSize, la.blobSize = heapIndexSize(heapSizes)
+
+	// Simple index column sizes only depend on the number of rows of the referenced table.
+	for e := table(0); e < tableMax; e++ {
+		la.simpleSizes[e] = simpleIndexSize(e, tableRowCounts)
 	}
-	for i := coded(0); i < codedMax; i++ {
-		la.codedSizes[i] = refCodedWidth(rows, codedMap[i]...)
+
+	// Coded index column sizes depend on the maximum number of rows in the set of allowed tables to reference.
+	for e := coded(0); e < codedMax; e++ {
+		la.codedSizes[e] = codedIndexSize(e, tableRowCounts)
 	}
+
+	// We now have all the static and dynamic information to calculate the size of each table column.
 	var offset int
-	for i := 0; i < len(rows); i++ {
-		if rows[i] == 0 {
+	for t := table(0); t < tableMax; t++ {
+		rowCount := tableRowCounts[t]
+		if rowCount == 0 {
 			continue
 		}
-		// deep copy table columns
-		staticColInfo := staticTableInfo(table(i))
+		staticColInfo := staticTableInfo(t)
 		info := tableInfo{
-			rows:   rows[i],
-			offset: offset,
+			rowCount: rowCount,
+			offset:   offset,
 		}
 		for j := 0; j < len(staticColInfo); j++ {
 			c := staticColInfo[j]
-			var size uint32
+			var size uint8
 			switch c.columnType {
 			case columnTypeCodedIndex:
 				size = la.codedSizes[c.coded]
@@ -92,54 +87,70 @@ func generateLayout(heapSizes uint8, rows [tableMax]uint32) layout {
 			default:
 				size = c.size
 			}
-			info.width += size
+			info.width += uint32(size)
 		}
-		la.tables[i] = info
-		offset += int(info.width * rows[i])
+		la.tables[t] = info
+		offset += int(info.width * rowCount)
 	}
 	return la
 }
 
-func refSimpleWidth(rows uint32) uint32 {
-	if rows < 1<<16 {
+// simpleIndexSize calculates the size of the simple index e.
+// Algorithm defined in §II.24.2.6.
+func simpleIndexSize(e table, tableRowCounts [tableMax]uint32) uint8 {
+	// e is a simple index into a table with index i, it is stored using 2 bytes if table i has
+	// less than 2^16 rows, otherwise it is stored using 4 bytes.
+	if tableRowCounts[e] < 1<<16 {
 		return 2
 	}
 	return 4
 }
 
-func refCodedWidth(rows [tableMax]uint32, refs ...table) uint32 {
-	// algorithm defined in §II.24.2.6.
-	logn := byte(math.Ceil(math.Log2(float64(len(refs)))))
-	var maxRows uint32
-	for _, r := range refs {
-		if r != tableNone && rows[r] > maxRows {
-			maxRows = rows[r]
+// codedIndexSize calculates the size of the coded index e.
+// Algorithm defined in §II.24.2.6.
+func codedIndexSize(e coded, tableRowCounts [tableMax]uint32) uint8 {
+	// e is a coded index that points into table t[i] out of n possible tables {t[0], t[n-1]}.
+	tables := codedMap[e]
+	// The index is stored using 2 bytes if the maximum number of rows of tables is less than 2^(16 – (log2(n))),
+	// and using 4 bytes otherwise.
+	var maxRowCount uint32
+	for _, r := range tables {
+		if r != tableNone && tableRowCounts[r] > maxRowCount {
+			maxRowCount = tableRowCounts[r]
 		}
 	}
 
-	if maxRows < 1<<(16-logn) {
+	var logn byte
+	if len(tables) > 0 {
+		// bits.Len is effectively calculating log2(n)+1.
+		// We need log2(n), so subtract 1.
+		n := uint(len(tables))
+		logn = byte(bits.Len(n)) - 1
+	}
+	if maxRowCount < 1<<(16-logn) {
 		return 2
 	}
 	return 4
 }
 
-func stringHeapIndexSize(heapSizes uint8) uint32 {
-	if (heapSizes & 1) == 1 {
-		return 4
+// heapIndexSize calculates the size of indexes into the various heaps.
+// The heapSizes field is a bitvector that encodes the width of indexes
+// into the various heaps as retrieved from the #~ stream header.
+// Algorithm defined in §II.24.2.6.
+func heapIndexSize(heapSizes uint8) (strs uint8, guid uint8, blob uint8) {
+	// If bit 0 is set, indexes into the “#String” heap are 4 bytes wide; if bit 1 is set, indexes into the “#GUID” heap are
+	// 4 bytes wide; if bit 2 is set, indexes into the “#Blob” heap are 4 bytes wide. Conversely, if the
+	// HeapSize bit for a particular heap is not set, indexes into that heap are 2 bytes wide.
+	const (
+		heapSizesStringBit = 1 << iota
+		heapSizesGUIDBit
+		heapSizesBlobBit
+	)
+	sizefn := func(bit uint8) uint8 {
+		if heapSizes&bit != 0 {
+			return 4
+		}
+		return 2
 	}
-	return 2
-}
-
-func guidHeapIndexSize(heapSizes uint8) uint32 {
-	if (heapSizes >> 1 & 1) == 1 {
-		return 4
-	}
-	return 2
-}
-
-func blobHeapIndexSize(heapSizes uint8) uint32 {
-	if (heapSizes >> 2 & 1) == 1 {
-		return 4
-	}
-	return 2
+	return sizefn(heapSizesStringBit), sizefn(heapSizesGUIDBit), sizefn(heapSizesBlobBit)
 }

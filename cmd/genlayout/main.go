@@ -27,6 +27,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"sort"
 	"strings"
 )
 
@@ -60,7 +61,10 @@ func formatSource(d []byte) []byte {
 		// The user can compile the output to see the error.
 		log.Printf("warning: internal error: invalid Go generated: %s", err)
 		log.Printf("warning: compile the package to analyze the error")
-		log.Fatal(string(d))
+		err := os.WriteFile("zlayout.go.reject", src, 0644)
+		if err != nil {
+			log.Fatalf("writing rejected output: %s", err)
+		}
 	}
 	return src
 }
@@ -82,12 +86,31 @@ import (
 }
 
 func writeTableValues(w io.Writer, tables []tableInfo) {
-	fmt.Fprintf(w, "// Define table values\n")
+	// Sort tables by its code so the table
+	// values are defined in a nice-looking increasing order.
+	sorted := make([]struct {
+		name  string
+		value uint8
+	}, len(tables))
+	for i, t := range tables {
+		sorted[i].name = t.tableName
+		sorted[i].value = t.code
+	}
+	sort.Slice(sorted, func(i, j int) bool {
+		return sorted[i].value < sorted[j].value
+	})
+
+	fmt.Fprintf(w, "// Define table enum\n")
+	fmt.Fprintf(w, "\n")
+	fmt.Fprintf(w, "type table uint8\n")
 	fmt.Fprintf(w, "\n")
 	fmt.Fprintf(w, "const (\n")
-	for _, t := range tables {
-		fmt.Fprintf(w, "\t%s table = %d\n", t.tableName, t.code)
+	for _, t := range sorted {
+		fmt.Fprintf(w, "\t%s table = %d\n", t.name, t.value)
 	}
+	fmt.Fprintf(w, "\n")
+	fmt.Fprintf(w, "\ttableMax = %s + 1\n", sorted[len(sorted)-1].name)
+	fmt.Fprintf(w, "\ttableNone = tableMax\n")
 	fmt.Fprintf(w, ")\n")
 }
 
