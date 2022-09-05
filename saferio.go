@@ -5,6 +5,9 @@ package winmd
 
 import "io"
 
+// Copied from "internal/saferio".
+// https://github.com/golang/go/blob/bd56cb90a72e6725eddb9622e93a0806c1d1f105/src/internal/saferio/io.go
+
 const chunk = 10 << 20 // 10M
 
 // readData reads n bytes from the input stream, but avoids allocating
@@ -14,8 +17,6 @@ const chunk = 10 << 20 // 10M
 // The error is io.EOF only if no bytes were read.
 // If an io.EOF happens after reading some but not all the bytes,
 // ReadData returns io.ErrUnexpectedEOF.
-//
-// Copied from "internal/saferio".
 func readData(r io.Reader, n uint64) ([]byte, error) {
 	if int64(n) < 0 || n != uint64(int(n)) {
 		// n is too large to fit in int, so we can't allocate
