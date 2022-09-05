@@ -80,7 +80,7 @@ func (c CodedIndex) IsNull() bool {
 // BlobIndex is an index to a #Blob heap.
 type BlobIndex uint32
 
-// GuidIndex is an index to a #GUID heap.
+// GUIDIndex is an index to a #GUID heap.
 type GUIDIndex uint32
 
 // Slice indexes the range of records [Start,End) on the table T.
@@ -112,10 +112,11 @@ func (t Table[T]) Record(row Index) (*T, error) {
 	}
 	// instantiate and decode the record
 	r := recordReader{
-		data: t.tables.data[offset : offset+(int(info.width)*int(info.rows-uint32(row)))], strings: t.tables.strings,
-		layout: &t.tables.layout,
+		data:    t.tables.data[offset : offset+(int(info.width)*int(info.rows-uint32(row)))],
+		strings: t.tables.strings,
+		layout:  &t.tables.layout,
 	}
-	err := (any)(&rec).(interface{ decode(r recordReader) error }).decode(r)
+	err := any(&rec).(interface{ decode(r recordReader) error }).decode(r)
 	if err != nil {
 		return nil, err
 	}

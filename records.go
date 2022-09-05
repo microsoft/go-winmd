@@ -18,7 +18,7 @@ type recordReader struct {
 	layout  *layout
 }
 
-func (r *recordReader) coded(coded coded) (ci CodedIndex) {
+func (r *recordReader) coded(coded coded) (_ CodedIndex) {
 	if r.err != nil {
 		return
 	}
