@@ -21,16 +21,13 @@ type layout struct {
 
 type tableInfo struct {
 	rowCount uint32
-	width    uint32
+	width    uint8
 	offset   int
 }
 
-func (t tableInfo) rowOffset(row uint32) int {
-	return t.offset + int(t.width)*int(row)
-}
-
 // generateLayout generates the bit-accurate layout for the given heapSizes and tableRowCounts.
-func generateLayout(heapSizes uint8, tableRowCounts [tableMax]uint32) (la layout) {
+func generateLayout(heapSizes uint8, tableRowCounts [tableMax]uint32) *layout {
+	var la layout
 	// String, GUID, and blob index column sizes only depend on the heapSize.
 	la.stringSize, la.guidSize, la.blobSize = heapIndexSize(heapSizes)
 
@@ -55,11 +52,11 @@ func generateLayout(heapSizes uint8, tableRowCounts [tableMax]uint32) (la layout
 			rowCount: rowCount,
 			offset:   offset,
 		}
-		info.width += uint32(t.width(&la))
+		info.width += t.width(&la)
 		la.tables[t] = info
-		offset += int(info.width * rowCount)
+		offset += int(info.width) * int(rowCount)
 	}
-	return la
+	return &la
 }
 
 // simpleIndexSize calculates the size of the simple index e.

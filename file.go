@@ -370,11 +370,7 @@ func readTablesHeap(h *heap, stringHeap StringHeap) (*Tables, error) {
 	if err != nil {
 		return nil, fmt.Errorf("fail to read tables stream: %v", err)
 	}
-	tables := &Tables{
-		data:    buf[24+4*tablesCount:],
-		strings: stringHeap,
-	}
-	tables.layout = generateLayout(heapSizes, tableRowCounts)
-	initTables(tables)
+	layout := generateLayout(heapSizes, tableRowCounts)
+	tables := newTables(buf[24+4*tablesCount:], stringHeap, layout)
 	return tables, nil
 }

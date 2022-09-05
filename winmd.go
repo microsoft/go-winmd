@@ -25,15 +25,6 @@ func New(pefile *pe.File) (*Metadata, error) {
 	return newMetadata(pefile)
 }
 
-// Tables provides access to the tables and records stored in the #~ stream
-// as defined in §II.24.2.6
-type Tables struct {
-	tables
-	data    []byte
-	strings StringHeap
-	layout  layout
-}
-
 // GUIDHeap provides access to the #GUID heap as defined in §II.24.2.5.
 type GUIDHeap []byte
 
@@ -60,7 +51,7 @@ func (sh StringHeap) String(start uint32) (string, error) {
 
 // Record is an item in a metadata table
 type Record interface {
-	table() table
+	decode(r recordReader) error
 }
 
 // Index indexes a record in a table.
@@ -91,34 +82,53 @@ type Slice struct {
 
 // Table is a record container as defined in §II.22.
 type Table[T Record] struct {
-	Len    uint32
-	tables *Tables
+	Len uint32
+
+	width   uint8
+	data    []byte
+	strings StringHeap
+	layout  *layout
+	newFn   func() T
 }
 
-func newTable[T Record](t *Tables, table table) Table[T] {
-	return Table[T]{t.layout.tables[table].rowCount, t}
+func newTable[T Record](data []byte, stringHeap StringHeap, layout *layout, table table, newFn func() T) Table[T] {
+	info := layout.tables[table]
+	return Table[T]{
+		Len:     info.rowCount,
+		width:   uint8(info.width),
+		data:    data[info.offset : info.offset+int(info.width)*int(info.rowCount)],
+		strings: stringHeap,
+		layout:  layout,
+		newFn:   newFn,
+	}
 }
 
 // Record returns the record at row.
-func (t Table[T]) Record(row Index) (*T, error) {
+func (t Table[T]) Record(row Index) (T, error) {
 	if uint32(row) >= t.Len {
-		return nil, fmt.Errorf("row %d is beyond the end of the table", row)
+		var rec T
+		return rec, fmt.Errorf("row %d is beyond the end of the table", row)
 	}
-	var rec T
-	info := t.tables.layout.tables[rec.table()]
-	offset := info.rowOffset(uint32(row))
-	if offset+int(info.width) >= len(t.tables.data) {
-		return nil, io.ErrUnexpectedEOF
+	offset := int(t.width) * int(row)
+	if offset+int(t.width) > len(t.data) {
+		var rec T
+		return rec, io.ErrUnexpectedEOF
 	}
-	// instantiate and decode the record
 	r := recordReader{
-		data:    t.tables.data[offset : offset+(int(info.width)*int(info.rowCount-uint32(row)))],
-		strings: t.tables.strings,
-		layout:  &t.tables.layout,
+		data:    t.data,
+		i:       offset,
+		strings: t.strings,
+		layout:  t.layout,
 	}
-	err := any(&rec).(interface{ decode(r recordReader) error }).decode(r)
+	// Ideally, we would instantiate rec using `var rec T`,
+	// but T is a pointer type, so its default value is nil and it would
+	// panic when calling decode().
+	// With the newFn approach we avoid importing reflect package,
+	// which is another way to instantiate generic pointer types.
+	rec := t.newFn()
+	err := rec.decode(r)
 	if err != nil {
-		return nil, err
+		return rec, err
 	}
-	return &rec, err
+	return rec, err
 }

@@ -41,11 +41,10 @@ func main() {
 	// write
 	w := new(bytes.Buffer)
 	writePrelude(w)
+	writeTablesStruct(w, tables)
 	writeCodedTable(w, tables)
 	writeTableValues(w, tables)
 	writeTableWidth(w, tables)
-	writeTableImpl(w, tables)
-	writeTablesStruct(w, tables)
 	writeTableEncoding(w, tables)
 
 	src := formatSource(w.Bytes())
@@ -116,15 +115,6 @@ func writeTableValues(w io.Writer, tables []tableInfo) {
 	fmt.Fprintf(w, ")\n")
 }
 
-func writeTableImpl(w io.Writer, tables []tableInfo) {
-	fmt.Fprintf(w, "// Implement table interface\n")
-	fmt.Fprintf(w, "\n")
-	for _, t := range tables {
-		fmt.Fprintf(w, "func (%s) table() table { return %s }\n", t.name, t.tableName)
-		fmt.Fprintf(w, "\n")
-	}
-}
-
 func writeTableWidth(w io.Writer, tables []tableInfo) {
 	fmt.Fprintf(w, "// Define table width\n")
 	fmt.Fprintf(w, "\n")
@@ -169,7 +159,7 @@ func writeCodedTable(w io.Writer, tables []tableInfo) {
 			continue
 		}
 		fmt.Fprintf(w, "\tcase %s:\n", t.tableName)
-		fmt.Fprintf(w, "\t\treturn (*Table[Record])(&t.%s)\n", t.name)
+		fmt.Fprintf(w, "\t\treturn any(&t.%s).(*Table[Record])\n", t.name)
 	}
 	fmt.Fprintf(w, "\tdefault:\n")
 	fmt.Fprintf(w, "\t\treturn nil\n")
@@ -180,22 +170,29 @@ func writeCodedTable(w io.Writer, tables []tableInfo) {
 func writeTablesStruct(w io.Writer, tables []tableInfo) {
 	fmt.Fprintf(w, "// Define tables struct\n")
 	fmt.Fprintf(w, "\n")
-	fmt.Fprintf(w, "type tables struct {\n")
+	fmt.Fprintf(w, "// Tables provides access to the tables and records stored in the #~ stream\n")
+	fmt.Fprintf(w, "// as defined in §II.24.2.6\n")
+	fmt.Fprintf(w, "type Tables struct {\n")
 	for _, t := range tables {
 		if !t.exported {
 			continue
 		}
-		fmt.Fprintf(w, "\t%s Table[%s]\n", t.name, t.name)
+		fmt.Fprintf(w, "\t%s Table[*%s]\n", t.name, t.name)
 	}
 	fmt.Fprintf(w, "}\n")
 	fmt.Fprintf(w, "\n")
-	fmt.Fprintf(w, "func initTables(t *Tables) {\n")
+	fmt.Fprintf(w, "func newTables(data []byte, stringHeap StringHeap, layout *layout) *Tables {\n")
+	fmt.Fprintf(w, "\tvar t Tables\n")
 	for _, t := range tables {
 		if !t.exported {
 			continue
 		}
-		fmt.Fprintf(w, "\tt.%s = newTable[%s](t, %s)\n", t.name, t.name, t.tableName)
+		fmt.Fprintf(w,
+			"\tt.%s = newTable(data, stringHeap, layout, %s, func() *%s { return new(%s) })\n",
+			t.name, t.tableName, t.name, t.name,
+		)
 	}
+	fmt.Fprintf(w, "\treturn &t\n")
 	fmt.Fprintf(w, "}\n")
 }
 
