@@ -337,7 +337,7 @@ func readTablesHeap(h *heap, stringHeap StringHeap) (*Tables, error) {
 		return err == nil
 	}
 
-	// Parse #~ stream top-level structure, §II.24.2.6.
+	// parse #~ stream top-level structure, §II.24.2.6.
 	var (
 		padding6  [6]byte
 		heapSizes uint8
@@ -348,29 +348,33 @@ func readTablesHeap(h *heap, stringHeap StringHeap) (*Tables, error) {
 	if !read(&padding6) || !read(&heapSizes) || !read(&padding1) || !read(&valid) || !read(&sorted) {
 		return nil, fmt.Errorf("fail to read the tables stream header: %v", err)
 	}
-	nrows := bits.OnesCount64(valid)
-	validrows := make([]uint32, nrows)
-	if err = binary.Read(r, binary.LittleEndian, validrows); err != nil {
+	tablesCount := bits.OnesCount64(valid)
+	if tablesCount >= int(tableMax) {
+		return nil, fmt.Errorf("invalid bit vector of present tables: %d", tablesCount)
+	}
+	// read an array of tablesCount 4-byte unsigned integers indicating the number of
+	// rows for each present table.
+	rows := make([]uint32, tablesCount)
+	if !read(rows) {
 		return nil, fmt.Errorf("fail to read tables stream rows: %v", err)
 	}
-	var rows [tableMax]uint32
-	for j, i := 0, 0; i < len(rows); i++ {
+	var tableRowCounts [tableMax]uint32
+	for j, i := 0, 0; i < len(tableRowCounts); i++ {
 		if (valid >> i & 1) == 0 {
 			continue
 		}
-		rows[i] = validrows[j]
+		tableRowCounts[i] = rows[j]
 		j++
 	}
-	baseOffset := int64(24 + 4*nrows)
 	buf, err := readData(h.Open(), uint64(h.Size))
 	if err != nil {
 		return nil, fmt.Errorf("fail to read tables stream: %v", err)
 	}
 	tables := &Tables{
-		data:    buf[baseOffset:],
+		data:    buf[24+4*tablesCount:],
 		strings: stringHeap,
 	}
-	tables.layout = generateLayout(heapSizes, rows)
+	tables.layout = generateLayout(heapSizes, tableRowCounts)
 	initTables(tables)
 	return tables, nil
 }
