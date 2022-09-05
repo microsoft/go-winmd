@@ -2,10 +2,10 @@
 // Licensed under the MIT License.
 
 // genlayout generates static layout information and
-// decoding method for all the table structs defined
-// defined in the tables.go file of the working directory.
+// a decoding method for all the table structs defined
+// in the tables.go file of the working directory.
 //
-// There necessary information is taken using the following rules:
+// The necessary information is taken using the following rules:
 //
 // - All structs defined in tables.go will be mapped to a WinMD table
 // - The table code is taken from the struct doc line starting with `// @table=$code`

@@ -27,12 +27,12 @@ type heap struct {
 	name string
 }
 
-// Data reads and returns the contents of the stream s.
+// Data reads and returns the contents of the heap h.
 func (h *heap) Data() ([]byte, error) {
 	return readData(h.Open(), uint64(h.Size))
 }
 
-// Open returns a new ReadSeeker reading the stream s.
+// Open returns a new ReadSeeker reading the heap h.
 func (s *heap) Open() io.ReadSeeker {
 	return io.NewSectionReader(s.sr, 0, 1<<63-1)
 }
@@ -337,6 +337,7 @@ func readTablesHeap(h *heap, stringHeap StringHeap) (*Tables, error) {
 		return err == nil
 	}
 
+	// Parse #~ stream top-level structure, §II.24.2.6.
 	var (
 		padding6  [6]byte
 		heapSizes uint8
@@ -352,7 +353,7 @@ func readTablesHeap(h *heap, stringHeap StringHeap) (*Tables, error) {
 	if err = binary.Read(r, binary.LittleEndian, validrows); err != nil {
 		return nil, fmt.Errorf("fail to read tables stream rows: %v", err)
 	}
-	var rows [45]uint32
+	var rows [tableMax]uint32
 	for j, i := 0, 0; i < len(rows); i++ {
 		if (valid >> i & 1) == 0 {
 			continue
