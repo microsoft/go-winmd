@@ -442,8 +442,8 @@ func staticTableInfo(tbl table) []columnInfo {
 			{columnType: columnTypeString},
 			{columnType: columnTypeString},
 			{columnType: columnTypeCodedIndex, coded: codedTypeDefOrRef},
-			{columnType: columnTypeIndex, table: tableField},
-			{columnType: columnTypeIndex, table: tableMethodDef},
+			{columnType: columnTypeSlice, table: tableField},
+			{columnType: columnTypeSlice, table: tableMethodDef},
 		}
 	case tableTypeRef:
 		return []columnInfo{
@@ -796,8 +796,8 @@ func (rec *TypeDef) decode(r recordReader) error {
 	rec.Name = r.string()
 	rec.Namespace = r.string()
 	rec.Extends = r.coded(codedTypeDefOrRef)
-	rec.FieldList = r.index(tableField)
-	rec.MethodList = r.index(tableMethodDef)
+	rec.FieldList = r.slice(tableTypeDef, tableField)
+	rec.MethodList = r.slice(tableTypeDef, tableMethodDef)
 	return r.err
 }
 

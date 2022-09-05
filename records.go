@@ -40,39 +40,45 @@ func (r *recordReader) coded(coded coded) (_ CodedIndex) {
 	}
 }
 
-func (r *recordReader) slice(tbl, target table) (sl Slice) {
+// slice reads a Slice from r.
+// ownTable is the table code of the table being read.
+// targetTable is the table code of the table being referenced.
+func (r *recordReader) slice(ownTable, targetTable table) Slice {
 	if r.err != nil {
-		return
+		return Slice{}
 	}
-	width := int(r.layout.tables[tbl].width)
-	nrowsref := Index(r.layout.tables[target].rowCount)
-	validIdx := func(i Index) bool {
-		return i <= nrowsref
+	ownWidth := int(r.layout.tables[ownTable].width)
+	var sl Slice
+	// read first end of the slice so r.i+ownWidth
+	// points at the same column of the next row.
+	sl.End = r.peekIndex(ownWidth, targetTable)
+	sl.Start = r.index(targetTable)
+	if r.err == nil && sl.Start > sl.End {
+		r.err = fmt.Errorf("invalid slice end: value=%d, max=%d", sl.End, sl.Start)
+		return Slice{}
 	}
-	base := r.i
-	sl.Start = r.index(target)
-	if !validIdx(sl.Start) {
-		r.err = fmt.Errorf("invalid slice start: value=%d, min=1, max=%d", sl.Start, nrowsref)
-		return
+	if sl.Start == sl.End {
+		// this is a valid situation which means range is null.
+		return Slice{}
 	}
-	if r.i+width > len(r.data) {
+	return sl
+}
+
+// peekIndex reads an index at r.i+offset without advancing r.i.
+// It returns the number of rows in target if r.i+offset is greater than len(r.data).
+func (r *recordReader) peekIndex(offset int, target table) Index {
+	if r.err != nil {
+		return 0
+	}
+	if r.i+offset > len(r.data) {
 		// we are reading the last row
-		sl.End = nrowsref
-	} else {
-		// read the same column in the next row
-		r.i = base + width
-		sl.End = r.index(target)
-		r.i -= width
-		if !validIdx(sl.End) || sl.Start > sl.End {
-			r.err = fmt.Errorf("invalid slice end: value=%d, min=%d, max=%d", sl.End, sl.Start, nrowsref)
-			return
-		}
-		if sl.Start == sl.End {
-			// range is not defined
-			return
-		}
+		return Index(r.layout.tables[target].rowCount)
 	}
-	return
+	baseOffset := r.i
+	r.i += offset
+	v := r.index(target)
+	r.i = baseOffset
+	return v
 }
 
 func (r *recordReader) uint8() uint8 {
@@ -125,15 +131,22 @@ func (r *recordReader) guid() (v GUIDIndex) {
 	return GUIDIndex(r.uint(r.layout.guidSize))
 }
 
-func (r *recordReader) index(tbl table) (v Index) {
+func (r *recordReader) index(tbl table) Index {
 	if r.err != nil {
 		return 0
 	}
-	v = Index(r.uint(r.layout.simpleSizes[tbl]))
+	v := r.uint(r.layout.simpleSizes[tbl])
 	if v == 0 {
 		r.err = errors.New("record index must be greater than 0")
+		return 0
 	}
-	return v - 1
+	// ECMA-335 table indices are 1-based, but we follow Go notation instead.
+	v -= 1
+	if max := r.layout.tables[tbl].rowCount; v > max {
+		r.err = fmt.Errorf("record index %d must be smaller than %d", v, max)
+		return 0
+	}
+	return Index(v)
 }
 
 func (r *recordReader) uint(size uint8) uint32 {

@@ -1,5 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
+//
 //go:generate genlayout
 package winmd
 
@@ -308,8 +309,8 @@ type TypeDef struct {
 	Name       string
 	Namespace  string
 	Extends    CodedIndex // @code=TypeDefOrRef
-	FieldList  Index      // @ref=Field
-	MethodList Index      // @ref=MethodDef
+	FieldList  Slice      // @ref=Field
+	MethodList Slice      // @ref=MethodDef
 }
 
 // TypeRef is defined in §II.22.38.
