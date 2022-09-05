@@ -28,6 +28,7 @@ import (
 	"log"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -42,8 +43,8 @@ func main() {
 	writePrelude(w)
 	writeCodedTable(w, tables)
 	writeTableValues(w, tables)
+	writeTableWidth(w, tables)
 	writeTableImpl(w, tables)
-	writeTableStaticInfo(w, tables)
 	writeTablesStruct(w, tables)
 	writeTableEncoding(w, tables)
 
@@ -61,7 +62,7 @@ func formatSource(d []byte) []byte {
 		// The user can compile the output to see the error.
 		log.Printf("warning: internal error: invalid Go generated: %s", err)
 		log.Printf("warning: compile the package to analyze the error")
-		err := os.WriteFile("zlayout.go.reject", src, 0644)
+		err := os.WriteFile("zlayout.go.reject", d, 0644)
 		if err != nil {
 			log.Fatalf("writing rejected output: %s", err)
 		}
@@ -82,6 +83,7 @@ import (
 	"fmt"
 	"github.com/microsoft/go-winmd/flags"
 )
+
 `)
 }
 
@@ -123,33 +125,37 @@ func writeTableImpl(w io.Writer, tables []tableInfo) {
 	}
 }
 
-func writeTableStaticInfo(w io.Writer, tables []tableInfo) {
-	fmt.Fprintf(w, "// Define static info\n")
+func writeTableWidth(w io.Writer, tables []tableInfo) {
+	fmt.Fprintf(w, "// Define table width\n")
 	fmt.Fprintf(w, "\n")
-	fmt.Fprintf(w, "func staticTableInfo(tbl table) []columnInfo {\n")
-	fmt.Fprintf(w, "\tswitch tbl {\n")
+	fmt.Fprintf(w, "func (t table) width(la *layout) (uint8) {\n")
+	fmt.Fprintf(w, "\tswitch t {\n")
 	for _, t := range tables {
 		fmt.Fprintf(w, "\tcase %s:\n", t.tableName)
-		fmt.Fprintf(w, "\t\treturn []columnInfo{\n")
-		for _, c := range t.fields {
-			fmt.Fprintf(w, "\t\t\t{columnType: %s", c.columnType)
-			if c.size != 0 {
-				fmt.Fprintf(w, ", size: %d", c.size)
+		width := make([]string, len(t.fields))
+		for i, c := range t.fields {
+			switch c.columnType {
+			case columnTypeCodedIndex:
+				width[i] = "la.codedSizes[coded" + c.coded + "]"
+			case columnTypeIndex, columnTypeSlice:
+				width[i] = "la.simpleSizes[" + c.tableName + "]"
+			case columnTypeString:
+				width[i] = "la.stringSize"
+			case columnTypeGUID:
+				width[i] = "la.guidSize"
+			case columnTypeBlob:
+				width[i] = "la.blobSize"
+			case columnTypeUint:
+				width[i] = strconv.Itoa(c.size)
 			}
-			if c.tableName != "" {
-				fmt.Fprintf(w, ", table: %s", c.tableName)
-			}
-			if c.coded != "" {
-				fmt.Fprintf(w, ", coded: coded%s", c.coded)
-			}
-			fmt.Fprintf(w, "},\n")
 		}
-		fmt.Fprintf(w, "\t\t}\n")
+		fmt.Fprintf(w, "\t\treturn %s\n", strings.Join(width, " + "))
 	}
 	fmt.Fprintf(w, "\tdefault:\n")
-	fmt.Fprintf(w, "\t\tpanic(fmt.Sprintf(\"table %%v not supported\", tbl))\n")
+	fmt.Fprintf(w, "\t\tpanic(fmt.Sprintf(\"table %%v not supported\", t))\n")
 	fmt.Fprintf(w, "\t}\n")
 	fmt.Fprintf(w, "}\n")
+	fmt.Fprintf(w, "\n")
 }
 
 func writeCodedTable(w io.Writer, tables []tableInfo) {

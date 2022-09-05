@@ -136,6 +136,91 @@ const (
 	tableNone = tableMax
 )
 
+// Define table width
+
+func (t table) width(la *layout) uint8 {
+	switch t {
+	case tableAssembly:
+		return 4 + 2 + 2 + 2 + 2 + 4 + la.blobSize + la.stringSize + la.stringSize
+	case tableAssemblyOS:
+		return 4 + 4 + 4
+	case tableAssemblyProcessor:
+		return 4
+	case tableAssemblyRef:
+		return 2 + 2 + 2 + 2 + 4 + la.blobSize + la.stringSize + la.stringSize + la.blobSize
+	case tableAssemblyRefOS:
+		return 4 + 4 + 4 + la.simpleSizes[tableAssemblyRef]
+	case tableAssemblyRefProcessor:
+		return 4 + la.simpleSizes[tableAssemblyRef]
+	case tableClassLayout:
+		return 2 + 4 + la.simpleSizes[tableTypeDef]
+	case tableConstant:
+		return 1 + 1 + la.codedSizes[codedHasConstant] + la.blobSize
+	case tableCustomAttribute:
+		return la.codedSizes[codedHasCustomAttribute] + la.codedSizes[codedCustomAttributeType] + la.blobSize
+	case tableDeclSecurity:
+		return 2 + la.codedSizes[codedHasDeclSecurity] + la.blobSize
+	case tableEventMap:
+		return la.simpleSizes[tableTypeDef] + la.simpleSizes[tableEvent]
+	case tableEvent:
+		return 2 + la.stringSize + la.codedSizes[codedTypeDefOrRef]
+	case tableExportedType:
+		return 4 + 4 + la.stringSize + la.stringSize + la.codedSizes[codedImplementation]
+	case tableField:
+		return 2 + la.stringSize + la.blobSize
+	case tableFieldLayout:
+		return 4 + la.simpleSizes[tableField]
+	case tableFieldMarshal:
+		return la.codedSizes[codedHasFieldMarshal] + la.blobSize
+	case tableFieldRVA:
+		return 4 + la.simpleSizes[tableField]
+	case tableFile:
+		return 2 + la.stringSize + la.blobSize
+	case tableGenericParam:
+		return 2 + 2 + la.codedSizes[codedTypeOrMethodDef] + la.stringSize
+	case tableGenericParamConstraint:
+		return la.simpleSizes[tableGenericParam] + la.codedSizes[codedTypeDefOrRef]
+	case tableImplMap:
+		return 2 + la.codedSizes[codedMemberForwarded] + la.stringSize + la.simpleSizes[tableModuleRef]
+	case tableInterfaceImpl:
+		return la.simpleSizes[tableTypeDef] + la.codedSizes[codedTypeDefOrRef]
+	case tableManifestResource:
+		return 4 + 4 + la.stringSize + la.codedSizes[codedImplementation]
+	case tableMemberRef:
+		return la.codedSizes[codedMemberRefParent] + la.stringSize + la.blobSize
+	case tableMethodDef:
+		return 4 + 2 + 2 + la.stringSize + la.blobSize + la.simpleSizes[tableParam]
+	case tableMethodImpl:
+		return la.simpleSizes[tableTypeDef] + la.codedSizes[codedMethodDefOrRef] + la.codedSizes[codedMethodDefOrRef]
+	case tableMethodSemantics:
+		return 2 + la.simpleSizes[tableMethodDef] + la.codedSizes[codedHasSemantics]
+	case tableMethodSpec:
+		return la.codedSizes[codedMethodDefOrRef] + la.blobSize
+	case tableModule:
+		return 2 + la.stringSize + la.guidSize + la.guidSize + la.guidSize
+	case tableModuleRef:
+		return la.stringSize
+	case tableNestedClass:
+		return la.simpleSizes[tableTypeDef] + la.simpleSizes[tableTypeDef]
+	case tableParam:
+		return 2 + 2 + la.stringSize
+	case tableProperty:
+		return 2 + la.stringSize + la.blobSize
+	case tablePropertyMap:
+		return la.simpleSizes[tableTypeDef] + la.simpleSizes[tableProperty]
+	case tableStandAloneSig:
+		return la.blobSize
+	case tableTypeDef:
+		return 4 + la.stringSize + la.stringSize + la.codedSizes[codedTypeDefOrRef] + la.simpleSizes[tableField] + la.simpleSizes[tableMethodDef]
+	case tableTypeRef:
+		return la.codedSizes[codedResolutionScope] + la.stringSize + la.stringSize
+	case tableTypeSpec:
+		return la.blobSize
+	default:
+		panic(fmt.Sprintf("table %v not supported", t))
+	}
+}
+
 // Implement table interface
 
 func (Assembly) table() table { return tableAssembly }
@@ -213,252 +298,6 @@ func (TypeDef) table() table { return tableTypeDef }
 func (TypeRef) table() table { return tableTypeRef }
 
 func (TypeSpec) table() table { return tableTypeSpec }
-
-// Define static info
-
-func staticTableInfo(tbl table) []columnInfo {
-	switch tbl {
-	case tableAssembly:
-		return []columnInfo{
-			{columnType: columnTypeUint, size: 4},
-			{columnType: columnTypeUint, size: 2},
-			{columnType: columnTypeUint, size: 2},
-			{columnType: columnTypeUint, size: 2},
-			{columnType: columnTypeUint, size: 2},
-			{columnType: columnTypeUint, size: 4},
-			{columnType: columnTypeBlob},
-			{columnType: columnTypeString},
-			{columnType: columnTypeString},
-		}
-	case tableAssemblyOS:
-		return []columnInfo{
-			{columnType: columnTypeUint, size: 4},
-			{columnType: columnTypeUint, size: 4},
-			{columnType: columnTypeUint, size: 4},
-		}
-	case tableAssemblyProcessor:
-		return []columnInfo{
-			{columnType: columnTypeUint, size: 4},
-		}
-	case tableAssemblyRef:
-		return []columnInfo{
-			{columnType: columnTypeUint, size: 2},
-			{columnType: columnTypeUint, size: 2},
-			{columnType: columnTypeUint, size: 2},
-			{columnType: columnTypeUint, size: 2},
-			{columnType: columnTypeUint, size: 4},
-			{columnType: columnTypeBlob},
-			{columnType: columnTypeString},
-			{columnType: columnTypeString},
-			{columnType: columnTypeBlob},
-		}
-	case tableAssemblyRefOS:
-		return []columnInfo{
-			{columnType: columnTypeUint, size: 4},
-			{columnType: columnTypeUint, size: 4},
-			{columnType: columnTypeUint, size: 4},
-			{columnType: columnTypeIndex, table: tableAssemblyRef},
-		}
-	case tableAssemblyRefProcessor:
-		return []columnInfo{
-			{columnType: columnTypeUint, size: 4},
-			{columnType: columnTypeIndex, table: tableAssemblyRef},
-		}
-	case tableClassLayout:
-		return []columnInfo{
-			{columnType: columnTypeUint, size: 2},
-			{columnType: columnTypeUint, size: 4},
-			{columnType: columnTypeIndex, table: tableTypeDef},
-		}
-	case tableConstant:
-		return []columnInfo{
-			{columnType: columnTypeUint, size: 1},
-			{columnType: columnTypeUint, size: 1},
-			{columnType: columnTypeCodedIndex, coded: codedHasConstant},
-			{columnType: columnTypeBlob},
-		}
-	case tableCustomAttribute:
-		return []columnInfo{
-			{columnType: columnTypeCodedIndex, coded: codedHasCustomAttribute},
-			{columnType: columnTypeCodedIndex, coded: codedCustomAttributeType},
-			{columnType: columnTypeBlob},
-		}
-	case tableDeclSecurity:
-		return []columnInfo{
-			{columnType: columnTypeUint, size: 2},
-			{columnType: columnTypeCodedIndex, coded: codedHasDeclSecurity},
-			{columnType: columnTypeBlob},
-		}
-	case tableEventMap:
-		return []columnInfo{
-			{columnType: columnTypeIndex, table: tableTypeDef},
-			{columnType: columnTypeSlice, table: tableEvent},
-		}
-	case tableEvent:
-		return []columnInfo{
-			{columnType: columnTypeUint, size: 2},
-			{columnType: columnTypeString},
-			{columnType: columnTypeCodedIndex, coded: codedTypeDefOrRef},
-		}
-	case tableExportedType:
-		return []columnInfo{
-			{columnType: columnTypeUint, size: 4},
-			{columnType: columnTypeUint, size: 4},
-			{columnType: columnTypeString},
-			{columnType: columnTypeString},
-			{columnType: columnTypeCodedIndex, coded: codedImplementation},
-		}
-	case tableField:
-		return []columnInfo{
-			{columnType: columnTypeUint, size: 2},
-			{columnType: columnTypeString},
-			{columnType: columnTypeBlob},
-		}
-	case tableFieldLayout:
-		return []columnInfo{
-			{columnType: columnTypeUint, size: 4},
-			{columnType: columnTypeIndex, table: tableField},
-		}
-	case tableFieldMarshal:
-		return []columnInfo{
-			{columnType: columnTypeCodedIndex, coded: codedHasFieldMarshal},
-			{columnType: columnTypeBlob},
-		}
-	case tableFieldRVA:
-		return []columnInfo{
-			{columnType: columnTypeUint, size: 4},
-			{columnType: columnTypeIndex, table: tableField},
-		}
-	case tableFile:
-		return []columnInfo{
-			{columnType: columnTypeUint, size: 2},
-			{columnType: columnTypeString},
-			{columnType: columnTypeBlob},
-		}
-	case tableGenericParam:
-		return []columnInfo{
-			{columnType: columnTypeUint, size: 2},
-			{columnType: columnTypeUint, size: 2},
-			{columnType: columnTypeCodedIndex, coded: codedTypeOrMethodDef},
-			{columnType: columnTypeString},
-		}
-	case tableGenericParamConstraint:
-		return []columnInfo{
-			{columnType: columnTypeIndex, table: tableGenericParam},
-			{columnType: columnTypeCodedIndex, coded: codedTypeDefOrRef},
-		}
-	case tableImplMap:
-		return []columnInfo{
-			{columnType: columnTypeUint, size: 2},
-			{columnType: columnTypeCodedIndex, coded: codedMemberForwarded},
-			{columnType: columnTypeString},
-			{columnType: columnTypeIndex, table: tableModuleRef},
-		}
-	case tableInterfaceImpl:
-		return []columnInfo{
-			{columnType: columnTypeIndex, table: tableTypeDef},
-			{columnType: columnTypeCodedIndex, coded: codedTypeDefOrRef},
-		}
-	case tableManifestResource:
-		return []columnInfo{
-			{columnType: columnTypeUint, size: 4},
-			{columnType: columnTypeUint, size: 4},
-			{columnType: columnTypeString},
-			{columnType: columnTypeCodedIndex, coded: codedImplementation},
-		}
-	case tableMemberRef:
-		return []columnInfo{
-			{columnType: columnTypeCodedIndex, coded: codedMemberRefParent},
-			{columnType: columnTypeString},
-			{columnType: columnTypeBlob},
-		}
-	case tableMethodDef:
-		return []columnInfo{
-			{columnType: columnTypeUint, size: 4},
-			{columnType: columnTypeUint, size: 2},
-			{columnType: columnTypeUint, size: 2},
-			{columnType: columnTypeString},
-			{columnType: columnTypeBlob},
-			{columnType: columnTypeSlice, table: tableParam},
-		}
-	case tableMethodImpl:
-		return []columnInfo{
-			{columnType: columnTypeIndex, table: tableTypeDef},
-			{columnType: columnTypeCodedIndex, coded: codedMethodDefOrRef},
-			{columnType: columnTypeCodedIndex, coded: codedMethodDefOrRef},
-		}
-	case tableMethodSemantics:
-		return []columnInfo{
-			{columnType: columnTypeUint, size: 2},
-			{columnType: columnTypeIndex, table: tableMethodDef},
-			{columnType: columnTypeCodedIndex, coded: codedHasSemantics},
-		}
-	case tableMethodSpec:
-		return []columnInfo{
-			{columnType: columnTypeCodedIndex, coded: codedMethodDefOrRef},
-			{columnType: columnTypeBlob},
-		}
-	case tableModule:
-		return []columnInfo{
-			{columnType: columnTypeUint, size: 2},
-			{columnType: columnTypeString},
-			{columnType: columnTypeGUID},
-			{columnType: columnTypeGUID},
-			{columnType: columnTypeGUID},
-		}
-	case tableModuleRef:
-		return []columnInfo{
-			{columnType: columnTypeString},
-		}
-	case tableNestedClass:
-		return []columnInfo{
-			{columnType: columnTypeIndex, table: tableTypeDef},
-			{columnType: columnTypeIndex, table: tableTypeDef},
-		}
-	case tableParam:
-		return []columnInfo{
-			{columnType: columnTypeUint, size: 2},
-			{columnType: columnTypeUint, size: 2},
-			{columnType: columnTypeString},
-		}
-	case tableProperty:
-		return []columnInfo{
-			{columnType: columnTypeUint, size: 2},
-			{columnType: columnTypeString},
-			{columnType: columnTypeBlob},
-		}
-	case tablePropertyMap:
-		return []columnInfo{
-			{columnType: columnTypeIndex, table: tableTypeDef},
-			{columnType: columnTypeSlice, table: tableProperty},
-		}
-	case tableStandAloneSig:
-		return []columnInfo{
-			{columnType: columnTypeBlob},
-		}
-	case tableTypeDef:
-		return []columnInfo{
-			{columnType: columnTypeUint, size: 4},
-			{columnType: columnTypeString},
-			{columnType: columnTypeString},
-			{columnType: columnTypeCodedIndex, coded: codedTypeDefOrRef},
-			{columnType: columnTypeSlice, table: tableField},
-			{columnType: columnTypeSlice, table: tableMethodDef},
-		}
-	case tableTypeRef:
-		return []columnInfo{
-			{columnType: columnTypeCodedIndex, coded: codedResolutionScope},
-			{columnType: columnTypeString},
-			{columnType: columnTypeString},
-		}
-	case tableTypeSpec:
-		return []columnInfo{
-			{columnType: columnTypeBlob},
-		}
-	default:
-		panic(fmt.Sprintf("table %v not supported", tbl))
-	}
-}
 
 // Define tables struct
 

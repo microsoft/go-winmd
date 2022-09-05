@@ -24,25 +24,6 @@ func (t tableInfo) rowOffset(row uint32) int {
 	return t.offset + int(t.width)*int(row)
 }
 
-type columnType uint8
-
-const (
-	columnTypeIndex columnType = iota
-	columnTypeUint
-	columnTypeString
-	columnTypeGUID
-	columnTypeBlob
-	columnTypeCodedIndex
-	columnTypeSlice
-)
-
-type columnInfo struct {
-	size       uint8
-	columnType columnType
-	table      table
-	coded      coded
-}
-
 // generateLayout generates the bit-accurate layout for the given heapSizes and tableRowCounts.
 func generateLayout(heapSizes uint8, tableRowCounts [tableMax]uint32) (la layout) {
 	// String, GUID, and blob index column sizes only depend on the heapSize.
@@ -65,30 +46,11 @@ func generateLayout(heapSizes uint8, tableRowCounts [tableMax]uint32) (la layout
 		if rowCount == 0 {
 			continue
 		}
-		staticColInfo := staticTableInfo(t)
 		info := tableInfo{
 			rowCount: rowCount,
 			offset:   offset,
 		}
-		for j := 0; j < len(staticColInfo); j++ {
-			c := staticColInfo[j]
-			var size uint8
-			switch c.columnType {
-			case columnTypeCodedIndex:
-				size = la.codedSizes[c.coded]
-			case columnTypeIndex, columnTypeSlice:
-				size = la.simpleSizes[c.table]
-			case columnTypeString:
-				size = la.stringSize
-			case columnTypeGUID:
-				size = la.guidSize
-			case columnTypeBlob:
-				size = la.blobSize
-			default:
-				size = c.size
-			}
-			info.width += uint32(size)
-		}
+		info.width += uint32(t.width(&la))
 		la.tables[t] = info
 		offset += int(info.width * rowCount)
 	}
