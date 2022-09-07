@@ -49,6 +49,7 @@ const (
 	MethodDefOrRef_MethodDef = iota
 	MethodDefOrRef_MemberRef
 )
+
 const (
 	MemberForwarded_Field = iota
 	MemberForwarded_MethodDef
