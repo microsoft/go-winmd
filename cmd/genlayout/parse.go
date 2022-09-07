@@ -150,10 +150,8 @@ func parseTable(pkg *packages.Package, spec *ast.TypeSpec) (info tableInfo) {
 					log.Panicf("Slices %s requires @ref comment", tp.String())
 				}
 				col.tableName = tableName(name)
-			case "BlobIndex":
-				col.columnType = columnTypeBlob
-			case "GUIDIndex":
-				col.columnType = columnTypeGUID
+			case "String":
+				col.columnType = columnTypeString
 			default:
 				if obj.Pkg().Name() == "flags" {
 					col.columnType = columnTypeUint
@@ -165,11 +163,7 @@ func parseTable(pkg *packages.Package, spec *ast.TypeSpec) (info tableInfo) {
 						col.size = 2
 					case types.Uint32:
 						col.size = 4
-					default:
-						log.Panicf("unsupported type %s", tp.String())
 					}
-				} else {
-					log.Panicf("unsupported named type %s", tp.String())
 				}
 			}
 		case *types.Basic:
@@ -184,11 +178,16 @@ func parseTable(pkg *packages.Package, spec *ast.TypeSpec) (info tableInfo) {
 			case types.Uint32:
 				col.columnType = columnTypeUint
 				col.size = 4
-			case types.String:
-				col.columnType = columnTypeString
-			default:
-				log.Panicf("unsupported type %s", tp.String())
 			}
+		case *types.Array:
+			if tp.Len() == 16 {
+				col.columnType = columnTypeGUID
+			}
+		case *types.Slice:
+			col.columnType = columnTypeBlob
+		}
+		if col.columnType == "" {
+			log.Panicf("unsupported type %s", tp.String())
 		}
 		info.fields = append(info.fields, col)
 	}

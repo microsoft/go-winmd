@@ -124,8 +124,8 @@ type recordReader struct {
 	i    int
 	err  error
 
-	strings StringHeap
-	layout  *layout
+	heaps  heaps
+	layout *layout
 }
 
 func (r *recordReader) coded(coded coded) (_ CodedIndex) {
@@ -218,27 +218,35 @@ func (r *recordReader) uint32() uint32 {
 	return v
 }
 
-func (r *recordReader) string() (v string) {
+func (r *recordReader) string() (v String) {
 	if r.err != nil {
-		return ""
+		return
 	}
 	idx := r.uint(r.layout.stringSize)
-	v, r.err = r.strings.String(idx)
+	v, r.err = r.heaps.strs.String(idx)
 	return
 }
 
-func (r *recordReader) blob() (v BlobIndex) {
+func (r *recordReader) blob() (v []byte) {
 	if r.err != nil {
-		return 0
+		return
 	}
-	return BlobIndex(r.uint(r.layout.blobSize))
+	idx := r.uint(r.layout.blobSize)
+	v, r.err = r.heaps.blobs.Bytes(idx)
+	return
 }
 
-func (r *recordReader) guid() (v GUIDIndex) {
+func (r *recordReader) guid() (v [16]byte) {
 	if r.err != nil {
-		return 0
+		return
 	}
-	return GUIDIndex(r.uint(r.layout.guidSize))
+	idx := r.uint(r.layout.guidSize)
+	if idx == 0 {
+		return
+	}
+	// ECMA-335 GUID indices are 1-based, but we follow Go notation instead.
+	v, r.err = r.heaps.guids.GUID(idx - 1)
+	return
 }
 
 func (r *recordReader) index(tbl table) Index {

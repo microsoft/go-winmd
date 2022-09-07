@@ -4,7 +4,6 @@
 package winmd
 
 import (
-	"bytes"
 	"debug/pe"
 	"fmt"
 	"io"
@@ -25,30 +24,6 @@ func New(pefile *pe.File) (*Metadata, error) {
 	return newMetadata(pefile)
 }
 
-// GUIDHeap provides access to the #GUID heap as defined in §II.24.2.5.
-type GUIDHeap []byte
-
-// USHeap provides access to the #US heap as defined in §II.24.2.4.
-type USHeap []byte
-
-// BlobHeap provides access to the #Blob heap as defined in §II.24.2.4.
-type BlobHeap []byte
-
-// StringHeap provides access to #Strings heap as defined in §II.24.2.3.
-type StringHeap []byte
-
-// String extracts string from the string heap st at offset start.
-func (sh StringHeap) String(start uint32) (string, error) {
-	if int(start) >= len(sh) {
-		return "", fmt.Errorf("offset %d is beyond the end of string heap", start)
-	}
-	end := bytes.IndexByte(sh[start:], '\x00')
-	if end == -1 {
-		return "", fmt.Errorf("offset %d is not null-terminated", start)
-	}
-	return string(sh[start : int(start)+end]), nil
-}
-
 // Record is an item in a metadata table
 type Record interface {
 	decode(r recordReader) error
@@ -63,11 +38,16 @@ type CodedIndex struct {
 	Tag   int8
 }
 
-// BlobIndex is an index to a #Blob heap.
-type BlobIndex uint32
+// String is complete UTF8 string from the #String heap
+// It does not contain the null-terminated character.
+//
+// It is used as an optimization to avoid allocating
+// when reading from the #Strings heap.
+type String []byte
 
-// GUIDIndex is an index to a #GUID heap.
-type GUIDIndex uint32
+func (s String) String() string {
+	return string(s)
+}
 
 // Slice indexes the range of records [Start,End) on the table T.
 type Slice struct {
@@ -79,22 +59,22 @@ type Slice struct {
 type Table[T Record] struct {
 	Len uint32
 
-	width   uint8
-	data    []byte
-	strings StringHeap
-	layout  *layout
-	newFn   func() T
+	width  uint8
+	data   []byte
+	heaps  heaps
+	layout *layout
+	newFn  func() T
 }
 
-func newTable[T Record](data []byte, stringHeap StringHeap, layout *layout, table table, newFn func() T) Table[T] {
+func newTable[T Record](data []byte, hps heaps, layout *layout, table table, newFn func() T) Table[T] {
 	info := layout.tables[table]
 	return Table[T]{
-		Len:     info.rowCount,
-		width:   uint8(info.width),
-		data:    data[info.offset : info.offset+int(info.width)*int(info.rowCount)],
-		strings: stringHeap,
-		layout:  layout,
-		newFn:   newFn,
+		Len:    info.rowCount,
+		width:  uint8(info.width),
+		data:   data[info.offset : info.offset+int(info.width)*int(info.rowCount)],
+		heaps:  hps,
+		layout: layout,
+		newFn:  newFn,
 	}
 }
 
@@ -110,10 +90,10 @@ func (t Table[T]) Record(row Index) (T, error) {
 		return rec, io.ErrUnexpectedEOF
 	}
 	r := recordReader{
-		data:    t.data,
-		i:       offset,
-		strings: t.strings,
-		layout:  t.layout,
+		data:   t.data,
+		i:      offset,
+		heaps:  t.heaps,
+		layout: t.layout,
 	}
 	// Ideally, we would instantiate rec using `var rec T`,
 	// but T is a pointer type, so its default value is nil and it would

@@ -15,9 +15,9 @@ type Assembly struct {
 	BuildNumber    uint16
 	RevisionNumber uint16
 	Flags          flags.AssemblyFlags
-	PublicKey      BlobIndex
-	Name           string
-	Culture        string
+	PublicKey      []byte
+	Name           String
+	Culture        String
 }
 
 // assemblyOS is defined in §II.22.3.
@@ -46,10 +46,10 @@ type AssemblyRef struct {
 	BuildNumber      uint16
 	RevisionNumber   uint16
 	Flags            flags.AssemblyFlags
-	PublicKeyOrToken BlobIndex
-	Name             string
-	Culture          string
-	HashValue        BlobIndex
+	PublicKeyOrToken []byte
+	Name             String
+	Culture          String
+	HashValue        []byte
 }
 
 // assemblyRefOS is defined in §II.22.6.
@@ -86,7 +86,7 @@ type Constant struct {
 	Type    flags.ElementType
 	Padding byte       // 1-byte padding zero
 	Parent  CodedIndex // @code=HasConstant
-	Value   BlobIndex
+	Value   []byte
 }
 
 // CustomAttribute is defined in §II.22.10.
@@ -94,7 +94,7 @@ type Constant struct {
 type CustomAttribute struct {
 	Parent CodedIndex // @code=HasCustomAttribute
 	Type   CodedIndex // @code=CustomAttributeType
-	Value  BlobIndex
+	Value  []byte
 }
 
 // DeclSecurity is defined in §II.22.11.
@@ -102,7 +102,7 @@ type CustomAttribute struct {
 type DeclSecurity struct {
 	Action        uint16
 	Parent        CodedIndex // @code=HasDeclSecurity
-	PermissionSet BlobIndex
+	PermissionSet []byte
 }
 
 // EventMap is defined in §II.22.12.
@@ -116,7 +116,7 @@ type EventMap struct {
 // @table=0x14
 type Event struct {
 	EventFlags flags.EventAttributes
-	Name       string
+	Name       String
 	EventType  CodedIndex // @code=TypeDefOrRef
 }
 
@@ -125,8 +125,8 @@ type Event struct {
 type ExportedType struct {
 	Flags          flags.TypeAttributes
 	TypeDefID      uint32 // index into a TypeDef table, used as hint only
-	Name           string
-	Namespace      string
+	Name           String
+	Namespace      String
 	Implementation CodedIndex // @code=Implementation
 }
 
@@ -134,8 +134,8 @@ type ExportedType struct {
 // @table=0x04
 type Field struct {
 	Flags     flags.FieldAttributes
-	Name      string
-	Signature BlobIndex
+	Name      String
+	Signature []byte
 }
 
 // FieldLayout is defined in §II.22.16.
@@ -149,7 +149,7 @@ type FieldLayout struct {
 // @table=0x0D
 type FieldMarshal struct {
 	Parent     CodedIndex // @code=HasFieldMarshal
-	NativeType BlobIndex
+	NativeType []byte
 }
 
 // FieldRVA is defined in §II.22.18.
@@ -163,8 +163,8 @@ type FieldRVA struct {
 // @table=0x26
 type File struct {
 	Flags     flags.FileAttributes
-	Name      string
-	HashValue BlobIndex
+	Name      String
+	HashValue []byte
 }
 
 // GenericParam is defined in §II.22.20.
@@ -173,7 +173,7 @@ type GenericParam struct {
 	Number uint16
 	Flags  flags.GenericParamAttributes
 	Owner  CodedIndex // @code=TypeOrMethodDef
-	Name   string
+	Name   String
 }
 
 // GenericParam is defined in §II.22.21.
@@ -188,7 +188,7 @@ type GenericParamConstraint struct {
 type ImplMap struct {
 	MappingFlags    flags.PInvokeAttributes
 	MemberForwarded CodedIndex // @code=MemberForwarded
-	ImportName      string
+	ImportName      String
 	ImportScope     Index // @ref=ModuleRef
 }
 
@@ -204,7 +204,7 @@ type InterfaceImpl struct {
 type ManifestResource struct {
 	Offset         uint32
 	Flags          flags.ManifestResourceAttributes
-	Name           string
+	Name           String
 	Implementation CodedIndex // @code=Implementation
 }
 
@@ -212,8 +212,8 @@ type ManifestResource struct {
 // @table=0x0A
 type MemberRef struct {
 	Class     CodedIndex // @code=MemberRefParent
-	Name      string
-	Signature BlobIndex
+	Name      String
+	Signature []byte
 }
 
 // MethodDef is defined in §II.22.26.
@@ -222,8 +222,8 @@ type MethodDef struct {
 	RVA       uint32
 	ImplFlags flags.MethodImplAttributes
 	Flags     flags.MethodAttributes
-	Name      string
-	Signature BlobIndex
+	Name      String
+	Signature []byte
 	ParamList Slice // @ref=Param
 }
 
@@ -247,23 +247,23 @@ type MethodSemantics struct {
 // @table=0x2B
 type MethodSpec struct {
 	Method        CodedIndex // @code=MethodDefOrRef
-	Instantiation BlobIndex
+	Instantiation []byte
 }
 
 // Module is defined in §II.22.30.
 // @table=0x00
 type Module struct {
 	Generation uint16
-	Name       string
-	Mvid       GUIDIndex
-	EncID      GUIDIndex
-	EncBaseID  GUIDIndex
+	Name       String
+	Mvid       [16]byte
+	EncID      [16]byte
+	EncBaseID  [16]byte
 }
 
 // ModuleRef is defined in §II.22.31.
 // @table=0x1A
 type ModuleRef struct {
-	Name string
+	Name String
 }
 
 // NestedClass is defined in §II.22.32.
@@ -278,15 +278,15 @@ type NestedClass struct {
 type Param struct {
 	Flags    flags.ParamAttributes
 	Sequence uint16
-	Name     string
+	Name     String
 }
 
 // Property is defined in §II.22.34.
 // @table=0x17
 type Property struct {
 	Flags flags.PropertyAttributes
-	Name  string
-	Type  BlobIndex
+	Name  String
+	Type  []byte
 }
 
 // PropertyMap is defined in §II.22.35.
@@ -299,15 +299,15 @@ type PropertyMap struct {
 // StandAloneSig is defined in §II.22.36.
 // @table=0x11
 type StandAloneSig struct {
-	Signature BlobIndex
+	Signature []byte
 }
 
 // TypeDef is defined in §II.22.37.
 // @table=0x02
 type TypeDef struct {
 	Flags      flags.TypeAttributes
-	Name       string
-	Namespace  string
+	Name       String
+	Namespace  String
 	Extends    CodedIndex // @code=TypeDefOrRef
 	FieldList  Slice      // @ref=Field
 	MethodList Slice      // @ref=MethodDef
@@ -317,12 +317,12 @@ type TypeDef struct {
 // @table=0x01
 type TypeRef struct {
 	ResolutionScope CodedIndex // @code=ResolutionScope
-	Name            string
-	Namespace       string
+	Name            String
+	Namespace       String
 }
 
 // TypeSpec is defined in §II.22.39.
 // @table=0x1B
 type TypeSpec struct {
-	Signature BlobIndex
+	Signature []byte
 }

@@ -62,7 +62,7 @@ func newMetadata(pefile *pe.File) (*Metadata, error) {
 	if err != nil {
 		return nil, err
 	}
-	version, heaps, err := readMetadata(pefile, dir.VirtualAddress)
+	version, rawHeaps, err := readMetadata(pefile, dir.VirtualAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +70,7 @@ func newMetadata(pefile *pe.File) (*Metadata, error) {
 		Version: version,
 	}
 	var tableHeap *heap
-	for _, h := range heaps {
+	for _, h := range rawHeaps {
 		switch h.name {
 		case "#Strings":
 			f.Strings, err = readStringHeap(h)
@@ -88,7 +88,7 @@ func newMetadata(pefile *pe.File) (*Metadata, error) {
 		}
 	}
 	if tableHeap != nil {
-		f.Tables, err = readTablesHeap(tableHeap, f.Strings)
+		f.Tables, err = readTablesHeap(tableHeap, heaps{f.Strings, f.Blob, f.GUID})
 		if err != nil {
 			return nil, err
 		}
@@ -327,9 +327,9 @@ func readStringHeap(r *heap) (StringHeap, error) {
 	return StringHeap(buf), nil
 }
 
-func readTablesHeap(h *heap, stringHeap StringHeap) (*Tables, error) {
+func readTablesHeap(tableHeap *heap, hps heaps) (*Tables, error) {
 	// The #~ stream can be huge, we better don't call ds.Data()
-	r := h.Open()
+	r := tableHeap.Open()
 
 	var err error
 	read := func(data any) bool {
@@ -366,11 +366,11 @@ func readTablesHeap(h *heap, stringHeap StringHeap) (*Tables, error) {
 		tableRowCounts[i] = rows[j]
 		j++
 	}
-	buf, err := readData(h.Open(), uint64(h.Size))
+	buf, err := readData(tableHeap.Open(), uint64(tableHeap.Size))
 	if err != nil {
 		return nil, fmt.Errorf("fail to read tables stream: %v", err)
 	}
 	layout := generateLayout(heapSizes, tableRowCounts)
-	tables := newTables(buf[24+4*tablesCount:], stringHeap, layout)
+	tables := newTables(buf[24+4*tablesCount:], hps, layout)
 	return tables, nil
 }
