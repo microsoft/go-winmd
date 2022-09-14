@@ -101,7 +101,7 @@ func codedIndexSize(e coded, tableRowCounts [tableMax]uint32) uint8 {
 // The heapSizes field is a bitvector that encodes the width of indexes
 // into the various heaps as retrieved from the #~ stream header.
 // Algorithm defined in §II.24.2.6.
-func heapIndexSize(heapSizes uint8) (strs uint8, guid uint8, blob uint8) {
+func heapIndexSize(heapSizes uint8) (strings uint8, guids uint8, blobs uint8) {
 	// If bit 0 is set, indexes into the “#String” heap are 4 bytes wide; if bit 1 is set, indexes into the “#GUID” heap are
 	// 4 bytes wide; if bit 2 is set, indexes into the “#Blob” heap are 4 bytes wide. Conversely, if the
 	// HeapSize bit for a particular heap is not set, indexes into that heap are 2 bytes wide.

@@ -85,7 +85,7 @@ func (bh BlobHeap) Bytes(start uint32) ([]byte, error) {
 	if int(uint32(start)+size) >= len(bh) {
 		return nil, io.ErrUnexpectedEOF
 	}
-	return bh[start : uint32(start)+size], nil
+	return bh[start : uint32(start)+size : uint32(start)+size], nil
 }
 
 type heaps struct {

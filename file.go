@@ -350,7 +350,7 @@ func readTablesHeap(tableHeap *heap, hps heaps) (*Tables, error) {
 	}
 	tablesCount := bits.OnesCount64(valid)
 	if tablesCount >= int(tableMax) {
-		return nil, fmt.Errorf("invalid bit vector of present tables: %d", tablesCount)
+		return nil, fmt.Errorf("invalid bit vector of present tables: 0b%b", tablesCount)
 	}
 	// read an array of tablesCount 4-byte unsigned integers indicating the number of
 	// rows for each present table.
