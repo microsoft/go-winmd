@@ -158,10 +158,22 @@ func (r *recordReader) slice(ownTable, targetTable table) Slice {
 		return Slice{}
 	}
 	ownWidth := int(r.layout.tables[ownTable].width)
+
 	var sl Slice
 	// read first end of the slice so r.i+ownWidth
 	// points at the same column of the next row.
-	sl.End = r.peekIndex(ownWidth, targetTable)
+	if r.i+ownWidth > len(r.data) {
+		// there is not enough data to read another row from the current table,
+		// so we are peeking from its last row.
+		// the spec says that in this case the slice should span until the
+		// end of the target table.
+		sl.End = Index(r.layout.tables[targetTable].rowCount)
+	} else {
+		baseOffset := r.i
+		r.i += ownWidth
+		sl.End = r.index(targetTable)
+		r.i = baseOffset
+	}
 	sl.Start = r.index(targetTable)
 	if r.err == nil && sl.Start > sl.End {
 		r.err = fmt.Errorf("invalid slice end: value=%d, max=%d", sl.End, sl.Start)
@@ -172,23 +184,6 @@ func (r *recordReader) slice(ownTable, targetTable table) Slice {
 		return Slice{}
 	}
 	return sl
-}
-
-// peekIndex reads an index at r.i+offset without advancing r.i.
-// It returns the number of rows in target if r.i+offset is greater than len(r.data).
-func (r *recordReader) peekIndex(offset int, target table) Index {
-	if r.err != nil {
-		return 0
-	}
-	if r.i+offset > len(r.data) {
-		// we are reading the last row
-		return Index(r.layout.tables[target].rowCount)
-	}
-	baseOffset := r.i
-	r.i += offset
-	v := r.index(target)
-	r.i = baseOffset
-	return v
 }
 
 func (r *recordReader) uint8() uint8 {
