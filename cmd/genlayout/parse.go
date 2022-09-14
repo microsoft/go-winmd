@@ -129,27 +129,16 @@ func parseTable(pkg *packages.Package, spec *ast.TypeSpec) (info tableInfo) {
 		case *types.Named:
 			obj := tp.Obj()
 			col.typeName = obj.Name()
-			switch obj.Name() {
+			switch objName := obj.Name(); objName {
 			case "Index":
 				col.columnType = columnTypeIndex
-				name := strings.TrimPrefix(fieldComment(spec, i), "// @ref=")
-				if name == "" {
-					log.Panicf("Index %s requires @ref comment", tp.String())
-				}
-				col.tableName = tableName(name)
+				col.tableName = tableName(fieldComment(spec, i, objName, tp.String(), "@ref"))
 			case "CodedIndex":
 				col.columnType = columnTypeCodedIndex
-				col.coded = strings.TrimPrefix(fieldComment(spec, i), "// @code=")
-				if col.coded == "" {
-					log.Panicf("CodedIndex %s requires @coded comment", tp.String())
-				}
+				col.coded = fieldComment(spec, i, objName, tp.String(), "@code")
 			case "Slice":
 				col.columnType = columnTypeSlice
-				name := strings.TrimPrefix(fieldComment(spec, i), "// @ref=")
-				if name == "" {
-					log.Panicf("Slices %s requires @ref comment", tp.String())
-				}
-				col.tableName = tableName(name)
+				col.tableName = tableName(fieldComment(spec, i, objName, tp.String(), "@ref"))
 			case "String":
 				col.columnType = columnTypeString
 			default:
@@ -194,6 +183,17 @@ func parseTable(pkg *packages.Package, spec *ast.TypeSpec) (info tableInfo) {
 	return
 }
 
+func fieldComment(spec *ast.TypeSpec, i int, t, tp, marker string) (v string) {
+	comment := spec.Type.(*ast.StructType).Fields.List[i].Comment
+	if comment != nil && len(comment.List) == 1 {
+		v = strings.TrimPrefix(comment.List[0].Text, "// "+marker+"=")
+	}
+	if v == "" {
+		log.Panicf("%s %s requires %s comment", t, tp, marker)
+	}
+	return v
+}
+
 func tableCode(decl *ast.GenDecl) uint8 {
 	for _, c := range decl.Doc.List {
 		const tablePrefix = "// @table="
@@ -207,14 +207,6 @@ func tableCode(decl *ast.GenDecl) uint8 {
 	}
 	log.Panic("table code not found")
 	return 0
-}
-
-func fieldComment(spec *ast.TypeSpec, i int) string {
-	comment := spec.Type.(*ast.StructType).Fields.List[i].Comment
-	if comment != nil && len(comment.List) == 1 {
-		return comment.List[0].Text
-	}
-	return ""
 }
 
 func tableName(s string) string {

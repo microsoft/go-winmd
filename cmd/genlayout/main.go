@@ -112,6 +112,7 @@ func writeTableValues(w io.Writer, tables []tableInfo) {
 	fmt.Fprintf(w, "\ttableMax = %s + 1\n", sorted[len(sorted)-1].name)
 	fmt.Fprintf(w, "\ttableNone = tableMax\n")
 	fmt.Fprintf(w, ")\n")
+	fmt.Fprintf(w, "\n")
 }
 
 func writeTableWidth(w io.Writer, tables []tableInfo) {
@@ -174,6 +175,7 @@ func writeTablesStruct(w io.Writer, tables []tableInfo) {
 	}
 	fmt.Fprintf(w, "\treturn &t\n")
 	fmt.Fprintf(w, "}\n")
+	fmt.Fprintf(w, "\n")
 }
 
 func writeTableEncoding(w io.Writer, tables []tableInfo) {
