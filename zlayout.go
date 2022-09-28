@@ -15,78 +15,78 @@ import (
 // Tables provides access to the tables and records stored in the #~ stream
 // as defined in §II.24.2.6
 type Tables struct {
-	Assembly               Table[*Assembly]
-	AssemblyRef            Table[*AssemblyRef]
-	ClassLayout            Table[*ClassLayout]
-	Constant               Table[*Constant]
-	CustomAttribute        Table[*CustomAttribute]
-	DeclSecurity           Table[*DeclSecurity]
-	EventMap               Table[*EventMap]
-	Event                  Table[*Event]
-	ExportedType           Table[*ExportedType]
-	Field                  Table[*Field]
-	FieldLayout            Table[*FieldLayout]
-	FieldMarshal           Table[*FieldMarshal]
-	FieldRVA               Table[*FieldRVA]
-	File                   Table[*File]
-	GenericParam           Table[*GenericParam]
-	GenericParamConstraint Table[*GenericParamConstraint]
-	ImplMap                Table[*ImplMap]
-	InterfaceImpl          Table[*InterfaceImpl]
-	ManifestResource       Table[*ManifestResource]
-	MemberRef              Table[*MemberRef]
-	MethodDef              Table[*MethodDef]
-	MethodImpl             Table[*MethodImpl]
-	MethodSemantics        Table[*MethodSemantics]
-	MethodSpec             Table[*MethodSpec]
-	Module                 Table[*Module]
-	ModuleRef              Table[*ModuleRef]
-	NestedClass            Table[*NestedClass]
-	Param                  Table[*Param]
-	Property               Table[*Property]
-	PropertyMap            Table[*PropertyMap]
-	StandAloneSig          Table[*StandAloneSig]
-	TypeDef                Table[*TypeDef]
-	TypeRef                Table[*TypeRef]
-	TypeSpec               Table[*TypeSpec]
+	Assembly               Table[Assembly, *Assembly]
+	AssemblyRef            Table[AssemblyRef, *AssemblyRef]
+	ClassLayout            Table[ClassLayout, *ClassLayout]
+	Constant               Table[Constant, *Constant]
+	CustomAttribute        Table[CustomAttribute, *CustomAttribute]
+	DeclSecurity           Table[DeclSecurity, *DeclSecurity]
+	EventMap               Table[EventMap, *EventMap]
+	Event                  Table[Event, *Event]
+	ExportedType           Table[ExportedType, *ExportedType]
+	Field                  Table[Field, *Field]
+	FieldLayout            Table[FieldLayout, *FieldLayout]
+	FieldMarshal           Table[FieldMarshal, *FieldMarshal]
+	FieldRVA               Table[FieldRVA, *FieldRVA]
+	File                   Table[File, *File]
+	GenericParam           Table[GenericParam, *GenericParam]
+	GenericParamConstraint Table[GenericParamConstraint, *GenericParamConstraint]
+	ImplMap                Table[ImplMap, *ImplMap]
+	InterfaceImpl          Table[InterfaceImpl, *InterfaceImpl]
+	ManifestResource       Table[ManifestResource, *ManifestResource]
+	MemberRef              Table[MemberRef, *MemberRef]
+	MethodDef              Table[MethodDef, *MethodDef]
+	MethodImpl             Table[MethodImpl, *MethodImpl]
+	MethodSemantics        Table[MethodSemantics, *MethodSemantics]
+	MethodSpec             Table[MethodSpec, *MethodSpec]
+	Module                 Table[Module, *Module]
+	ModuleRef              Table[ModuleRef, *ModuleRef]
+	NestedClass            Table[NestedClass, *NestedClass]
+	Param                  Table[Param, *Param]
+	Property               Table[Property, *Property]
+	PropertyMap            Table[PropertyMap, *PropertyMap]
+	StandAloneSig          Table[StandAloneSig, *StandAloneSig]
+	TypeDef                Table[TypeDef, *TypeDef]
+	TypeRef                Table[TypeRef, *TypeRef]
+	TypeSpec               Table[TypeSpec, *TypeSpec]
 }
 
 func newTables(data []byte, hps heaps, layout *layout) *Tables {
 	var t Tables
-	t.Assembly = newTable(data, hps, layout, tableAssembly, func() *Assembly { return new(Assembly) })
-	t.AssemblyRef = newTable(data, hps, layout, tableAssemblyRef, func() *AssemblyRef { return new(AssemblyRef) })
-	t.ClassLayout = newTable(data, hps, layout, tableClassLayout, func() *ClassLayout { return new(ClassLayout) })
-	t.Constant = newTable(data, hps, layout, tableConstant, func() *Constant { return new(Constant) })
-	t.CustomAttribute = newTable(data, hps, layout, tableCustomAttribute, func() *CustomAttribute { return new(CustomAttribute) })
-	t.DeclSecurity = newTable(data, hps, layout, tableDeclSecurity, func() *DeclSecurity { return new(DeclSecurity) })
-	t.EventMap = newTable(data, hps, layout, tableEventMap, func() *EventMap { return new(EventMap) })
-	t.Event = newTable(data, hps, layout, tableEvent, func() *Event { return new(Event) })
-	t.ExportedType = newTable(data, hps, layout, tableExportedType, func() *ExportedType { return new(ExportedType) })
-	t.Field = newTable(data, hps, layout, tableField, func() *Field { return new(Field) })
-	t.FieldLayout = newTable(data, hps, layout, tableFieldLayout, func() *FieldLayout { return new(FieldLayout) })
-	t.FieldMarshal = newTable(data, hps, layout, tableFieldMarshal, func() *FieldMarshal { return new(FieldMarshal) })
-	t.FieldRVA = newTable(data, hps, layout, tableFieldRVA, func() *FieldRVA { return new(FieldRVA) })
-	t.File = newTable(data, hps, layout, tableFile, func() *File { return new(File) })
-	t.GenericParam = newTable(data, hps, layout, tableGenericParam, func() *GenericParam { return new(GenericParam) })
-	t.GenericParamConstraint = newTable(data, hps, layout, tableGenericParamConstraint, func() *GenericParamConstraint { return new(GenericParamConstraint) })
-	t.ImplMap = newTable(data, hps, layout, tableImplMap, func() *ImplMap { return new(ImplMap) })
-	t.InterfaceImpl = newTable(data, hps, layout, tableInterfaceImpl, func() *InterfaceImpl { return new(InterfaceImpl) })
-	t.ManifestResource = newTable(data, hps, layout, tableManifestResource, func() *ManifestResource { return new(ManifestResource) })
-	t.MemberRef = newTable(data, hps, layout, tableMemberRef, func() *MemberRef { return new(MemberRef) })
-	t.MethodDef = newTable(data, hps, layout, tableMethodDef, func() *MethodDef { return new(MethodDef) })
-	t.MethodImpl = newTable(data, hps, layout, tableMethodImpl, func() *MethodImpl { return new(MethodImpl) })
-	t.MethodSemantics = newTable(data, hps, layout, tableMethodSemantics, func() *MethodSemantics { return new(MethodSemantics) })
-	t.MethodSpec = newTable(data, hps, layout, tableMethodSpec, func() *MethodSpec { return new(MethodSpec) })
-	t.Module = newTable(data, hps, layout, tableModule, func() *Module { return new(Module) })
-	t.ModuleRef = newTable(data, hps, layout, tableModuleRef, func() *ModuleRef { return new(ModuleRef) })
-	t.NestedClass = newTable(data, hps, layout, tableNestedClass, func() *NestedClass { return new(NestedClass) })
-	t.Param = newTable(data, hps, layout, tableParam, func() *Param { return new(Param) })
-	t.Property = newTable(data, hps, layout, tableProperty, func() *Property { return new(Property) })
-	t.PropertyMap = newTable(data, hps, layout, tablePropertyMap, func() *PropertyMap { return new(PropertyMap) })
-	t.StandAloneSig = newTable(data, hps, layout, tableStandAloneSig, func() *StandAloneSig { return new(StandAloneSig) })
-	t.TypeDef = newTable(data, hps, layout, tableTypeDef, func() *TypeDef { return new(TypeDef) })
-	t.TypeRef = newTable(data, hps, layout, tableTypeRef, func() *TypeRef { return new(TypeRef) })
-	t.TypeSpec = newTable(data, hps, layout, tableTypeSpec, func() *TypeSpec { return new(TypeSpec) })
+	t.Assembly = newTable[Assembly](data, hps, layout, tableAssembly)
+	t.AssemblyRef = newTable[AssemblyRef](data, hps, layout, tableAssemblyRef)
+	t.ClassLayout = newTable[ClassLayout](data, hps, layout, tableClassLayout)
+	t.Constant = newTable[Constant](data, hps, layout, tableConstant)
+	t.CustomAttribute = newTable[CustomAttribute](data, hps, layout, tableCustomAttribute)
+	t.DeclSecurity = newTable[DeclSecurity](data, hps, layout, tableDeclSecurity)
+	t.EventMap = newTable[EventMap](data, hps, layout, tableEventMap)
+	t.Event = newTable[Event](data, hps, layout, tableEvent)
+	t.ExportedType = newTable[ExportedType](data, hps, layout, tableExportedType)
+	t.Field = newTable[Field](data, hps, layout, tableField)
+	t.FieldLayout = newTable[FieldLayout](data, hps, layout, tableFieldLayout)
+	t.FieldMarshal = newTable[FieldMarshal](data, hps, layout, tableFieldMarshal)
+	t.FieldRVA = newTable[FieldRVA](data, hps, layout, tableFieldRVA)
+	t.File = newTable[File](data, hps, layout, tableFile)
+	t.GenericParam = newTable[GenericParam](data, hps, layout, tableGenericParam)
+	t.GenericParamConstraint = newTable[GenericParamConstraint](data, hps, layout, tableGenericParamConstraint)
+	t.ImplMap = newTable[ImplMap](data, hps, layout, tableImplMap)
+	t.InterfaceImpl = newTable[InterfaceImpl](data, hps, layout, tableInterfaceImpl)
+	t.ManifestResource = newTable[ManifestResource](data, hps, layout, tableManifestResource)
+	t.MemberRef = newTable[MemberRef](data, hps, layout, tableMemberRef)
+	t.MethodDef = newTable[MethodDef](data, hps, layout, tableMethodDef)
+	t.MethodImpl = newTable[MethodImpl](data, hps, layout, tableMethodImpl)
+	t.MethodSemantics = newTable[MethodSemantics](data, hps, layout, tableMethodSemantics)
+	t.MethodSpec = newTable[MethodSpec](data, hps, layout, tableMethodSpec)
+	t.Module = newTable[Module](data, hps, layout, tableModule)
+	t.ModuleRef = newTable[ModuleRef](data, hps, layout, tableModuleRef)
+	t.NestedClass = newTable[NestedClass](data, hps, layout, tableNestedClass)
+	t.Param = newTable[Param](data, hps, layout, tableParam)
+	t.Property = newTable[Property](data, hps, layout, tableProperty)
+	t.PropertyMap = newTable[PropertyMap](data, hps, layout, tablePropertyMap)
+	t.StandAloneSig = newTable[StandAloneSig](data, hps, layout, tableStandAloneSig)
+	t.TypeDef = newTable[TypeDef](data, hps, layout, tableTypeDef)
+	t.TypeRef = newTable[TypeRef](data, hps, layout, tableTypeRef)
+	t.TypeSpec = newTable[TypeSpec](data, hps, layout, tableTypeSpec)
 	return &t
 }
 

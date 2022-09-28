@@ -158,7 +158,7 @@ func writeTablesStruct(w io.Writer, tables []tableInfo) {
 		if !t.exported {
 			continue
 		}
-		fmt.Fprintf(w, "\t%s Table[*%s]\n", t.name, t.name)
+		fmt.Fprintf(w, "\t%s Table[%s, *%s]\n", t.name, t.name, t.name)
 	}
 	fmt.Fprintf(w, "}\n")
 	fmt.Fprintf(w, "\n")
@@ -168,10 +168,7 @@ func writeTablesStruct(w io.Writer, tables []tableInfo) {
 		if !t.exported {
 			continue
 		}
-		fmt.Fprintf(w,
-			"\tt.%s = newTable(data, hps, layout, %s, func() *%s { return new(%s) })\n",
-			t.name, t.tableName, t.name, t.name,
-		)
+		fmt.Fprintf(w, "\tt.%s = newTable[%s](data, hps, layout, %s)\n", t.name, t.name, t.tableName)
 	}
 	fmt.Fprintf(w, "\treturn &t\n")
 	fmt.Fprintf(w, "}\n")

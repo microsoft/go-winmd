@@ -120,17 +120,16 @@ func heapIndexSize(heapSizes uint8) (strings uint8, guids uint8, blobs uint8) {
 }
 
 type recordReader struct {
-	data []byte
-	i    int
-	err  error
-
+	data   []byte
 	heaps  heaps
 	layout *layout
+
+	err error
 }
 
-func (r *recordReader) coded(coded coded) (_ CodedIndex) {
+func (r *recordReader) coded(coded coded) CodedIndex {
 	if r.err != nil {
-		return
+		return CodedIndex{}
 	}
 	tagbits := codedTagBits(coded)
 	bitmask := (1 << tagbits) - 1
@@ -142,7 +141,7 @@ func (r *recordReader) coded(coded coded) (_ CodedIndex) {
 	_, ok := codedTable(coded, uint8(tag))
 	if !ok {
 		r.err = fmt.Errorf("unknown coded %d tag %d", coded, tag)
-		return
+		return CodedIndex{}
 	}
 	return CodedIndex{
 		Index: Index(row),
@@ -162,17 +161,17 @@ func (r *recordReader) slice(ownTable, targetTable table) Slice {
 	var sl Slice
 	// read first end of the slice so r.i+ownWidth
 	// points at the same column of the next row.
-	if r.i+ownWidth > len(r.data) {
+	if ownWidth > len(r.data) {
 		// there is not enough data to read another row from the current table,
 		// so we are peeking from its last row.
 		// the spec says that in this case the slice should span until the
 		// end of the target table.
 		sl.End = Index(r.layout.tables[targetTable].rowCount)
 	} else {
-		baseOffset := r.i
-		r.i += ownWidth
+		baseData := r.data
+		r.data = r.data[ownWidth:]
 		sl.End = r.index(targetTable)
-		r.i = baseOffset
+		r.data = baseData
 	}
 	sl.Start = r.index(targetTable)
 	if r.err == nil && sl.Start > sl.End {
@@ -190,8 +189,8 @@ func (r *recordReader) uint8() uint8 {
 	if r.err != nil {
 		return 0
 	}
-	v := r.data[r.i]
-	r.i += 1
+	v := r.data[0]
+	r.data = r.data[1:]
 	return v
 }
 
@@ -199,8 +198,8 @@ func (r *recordReader) uint16() uint16 {
 	if r.err != nil {
 		return 0
 	}
-	v := binary.LittleEndian.Uint16(r.data[r.i:])
-	r.i += 2
+	v := binary.LittleEndian.Uint16(r.data)
+	r.data = r.data[2:]
 	return v
 }
 
@@ -208,8 +207,8 @@ func (r *recordReader) uint32() uint32 {
 	if r.err != nil {
 		return 0
 	}
-	v := binary.LittleEndian.Uint32(r.data[r.i:])
-	r.i += 4
+	v := binary.LittleEndian.Uint32(r.data)
+	r.data = r.data[4:]
 	return v
 }
 

@@ -24,9 +24,10 @@ func New(pefile *pe.File) (*Metadata, error) {
 	return newMetadata(pefile)
 }
 
-// Record is an item in a metadata table
-type Record interface {
+// Record is an item in a metadata table.
+type Record[T any] interface {
 	decode(r recordReader) error
+	*T
 }
 
 // Index indexes a record in a table.
@@ -56,54 +57,44 @@ type Slice struct {
 }
 
 // Table is a record container as defined in §II.22.
-type Table[T Record] struct {
+type Table[T any, TP Record[T]] struct {
 	Len uint32
 
 	width  uint8
 	data   []byte
 	heaps  heaps
 	layout *layout
-	newFn  func() T
 }
 
-func newTable[T Record](data []byte, hps heaps, layout *layout, table table, newFn func() T) Table[T] {
+func newTable[T any, TP Record[T]](data []byte, hps heaps, layout *layout, table table) Table[T, TP] {
 	info := layout.tables[table]
-	return Table[T]{
+	return Table[T, TP]{
 		Len:    info.rowCount,
 		width:  uint8(info.width),
 		data:   data[info.offset : info.offset+int(info.width)*int(info.rowCount)],
 		heaps:  hps,
 		layout: layout,
-		newFn:  newFn,
 	}
 }
 
 // Record returns the record at row.
-func (t Table[T]) Record(row Index) (T, error) {
+func (t Table[T, TP]) Record(row Index) (TP, error) {
 	if uint32(row) >= t.Len {
-		var rec T
-		return rec, fmt.Errorf("row %d is beyond the end of the table", row)
+		return nil, fmt.Errorf("row %d is beyond the end of the table", row)
 	}
 	offset := int(t.width) * int(row)
 	if offset+int(t.width) > len(t.data) {
-		var rec T
-		return rec, io.ErrUnexpectedEOF
+		return nil, io.ErrUnexpectedEOF
 	}
 	r := recordReader{
-		data:   t.data,
-		i:      offset,
+		data:   t.data[offset:],
 		heaps:  t.heaps,
 		layout: t.layout,
 	}
-	// Ideally, we would instantiate rec using `var rec T`,
-	// but T is a pointer type, so its default value is nil and it would
-	// panic when calling decode().
-	// With the newFn approach we avoid importing reflect package,
-	// which is another way to instantiate generic pointer types.
-	rec := t.newFn()
+	rec := TP(new(T))
 	err := rec.decode(r)
 	if err != nil {
-		return rec, err
+		return nil, err
 	}
 	return rec, err
 }

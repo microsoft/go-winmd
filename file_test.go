@@ -60,7 +60,7 @@ func TestNew(t *testing.T) {
 	testLen(t, f.Tables.NestedClass, 1744)
 }
 
-func testLen[T winmd.Record](t *testing.T, table winmd.Table[T], size uint32) {
+func testLen[T any, TP winmd.Record[T]](t *testing.T, table winmd.Table[T, TP], size uint32) {
 	t.Helper()
 	if table.Len != size {
 		t.Errorf("len = %v, want %v", table.Len, size)
