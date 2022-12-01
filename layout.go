@@ -407,8 +407,7 @@ func (r *recordReader) decodeType() (v Type) {
 	//	v.Kind |= flags.ElementType_GENERICINST
 	//	v.Value = r.genericInst()
 
-	case
-		flags.ElementType_CLASS,
+	case flags.ElementType_CLASS,
 		flags.ElementType_VALUETYPE:
 		v.Kind = b
 		v.Value = r.typeHandle()
@@ -417,8 +416,7 @@ func (r *recordReader) decodeType() (v Type) {
 		v.Kind = b
 		v.Value = r.decodeType()
 
-	case
-		flags.ElementType_BOOLEAN,
+	case flags.ElementType_BOOLEAN,
 		flags.ElementType_CHAR,
 		flags.ElementType_I1,
 		flags.ElementType_U1,
@@ -431,7 +429,9 @@ func (r *recordReader) decodeType() (v Type) {
 		flags.ElementType_R4,
 		flags.ElementType_R8,
 		flags.ElementType_I,
-		flags.ElementType_U:
+		flags.ElementType_U,
+		flags.ElementType_OBJECT,
+		flags.ElementType_STRING:
 		v.Kind = b
 
 	default:
