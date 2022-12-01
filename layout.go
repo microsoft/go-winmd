@@ -8,6 +8,9 @@ import (
 	"errors"
 	"fmt"
 	"math/bits"
+
+	"github.com/microsoft/go-winmd/flags"
+	"github.com/microsoft/go-winmd/internal/ecma335encoding"
 )
 
 type layout struct {
@@ -149,6 +152,23 @@ func (r *recordReader) coded(coded coded) CodedIndex {
 	}
 }
 
+func parseCoded(coded coded, code uint32) (CodedIndex, error) {
+	tagbits := codedTagBits(coded)
+	bitmask := (1 << tagbits) - 1
+	if code < 1 {
+		return CodedIndex{Tag: -1}, nil
+	}
+	row, tag := code>>tagbits-1, code&uint32(bitmask)
+	_, ok := codedTable(coded, uint8(tag))
+	if !ok {
+		return CodedIndex{}, fmt.Errorf("unknown coded %d tag %d", coded, tag)
+	}
+	return CodedIndex{
+		Index: Index(row),
+		Tag:   int8(tag),
+	}, nil
+}
+
 // slice reads a Slice from r.
 // ownTable is the table code of the table being read.
 // targetTable is the table code of the table being referenced.
@@ -243,6 +263,183 @@ func (r *recordReader) guid() (v [16]byte) {
 	return
 }
 
+func (r *recordReader) methodDefSig() (v MethodDefSig) {
+	if r.err != nil {
+		return
+	}
+	// TODO: Split off a signature reader into its own type and split off common reading methods into another type. Having one reader for two distinct types of streams leads to a confusing API.
+	// Create new record reader with the same heap and layout as r (to read CodedIndex values) but
+	// point it at the signature data to read.
+	sigR := *r
+	sigR.data = r.blob()
+	if r.err != nil {
+		return
+	}
+
+	fail := func() bool {
+		r.err = sigR.err
+		return r.err != nil
+	}
+
+	firstByte := sigR.uint8()
+	if fail() {
+		return
+	}
+	kind := firstByte & 0xF
+	if kind > uint8(flags.SigKind_VARARG) {
+		r.err = fmt.Errorf("signature kind is not a method def signature: %v", kind)
+		return
+	}
+	thisiness := firstByte & 0xF0
+	v.HasThis = thisiness&uint8(flags.SigAttributes_HASTHIS) != 0
+	v.ExplicitThis = thisiness&uint8(flags.SigAttributes_EXPLICITTHIS) != 0
+	if thisiness&uint8(flags.SigAttributes_GENERIC) != 0 {
+		v.Generic = sigR.compressedUint32()
+		if fail() {
+			return
+		}
+	}
+	paramCount := sigR.compressedUint32()
+	if fail() {
+		return
+	}
+
+	v.RetType = sigR.retType()
+	if fail() {
+		return
+	}
+	for i := uint32(0); i < paramCount; i++ {
+		v.Param = append(v.Param, sigR.param())
+		if fail() {
+			return
+		}
+	}
+	return
+}
+
+func (r *recordReader) param() (v SigParam) {
+	if r.err != nil {
+		return
+	}
+	v.Type = r.decodeType()
+	switch v.Type.Kind {
+	case flags.ElementType_BYREF:
+		v.Kind = ParamKind_ByRef
+	case flags.ElementType_TYPEDBYREF:
+		v.Kind = ParamKind_TypedByRef
+	default:
+		v.Kind = ParamKind_ByValue
+	}
+	return
+}
+
+func (r *recordReader) retType() (v RetType) {
+	if r.err != nil {
+		return
+	}
+	v.Type = r.decodeType()
+	switch v.Type.Kind {
+	case flags.ElementType_BYREF:
+		v.Kind = RetTypeKind_ByRef
+	case flags.ElementType_TYPEDBYREF:
+		v.Kind = RetTypeKind_ByRef
+	case flags.ElementType_VOID:
+		v.Kind = RetTypeKind_Void
+	default:
+		v.Kind = RetTypeKind_ByValue
+	}
+	return
+}
+
+func (r *recordReader) customModOpt() (v CustomMod) {
+	v.Kind = CustomModKind_Opt
+	v.Index = r.typeHandle()
+	return
+}
+
+func (r *recordReader) customModReqd() (v CustomMod) {
+	v.Kind = CustomModKind_Reqd
+	v.Index = r.typeHandle()
+	return
+}
+
+// typeHandle reads a type handle (a TypeDefOrRefOrSpecEncoded).
+func (r *recordReader) typeHandle() (v CodedIndex) {
+	if r.err != nil {
+		return
+	}
+	value := r.compressedUint32()
+	if r.err != nil {
+		return
+	}
+	// Once we decompress the uint32, we could reverse the encoding steps listed in §II.23.2.8, but
+	// the coded index algorithm has the same result if we define codedTypeDefOrRefOrSpec.
+	v, r.err = parseCoded(codedTypeDefOrRefOrSpec, value)
+	return
+}
+
+func (r *recordReader) decodeType() (v Type) {
+	if r.err != nil {
+		return
+	}
+	switch b := flags.ElementType(r.compressedUint32()); b {
+	// Use recursion to collect the full list of mods, like the System.Reflection.Metadata impl.
+	case flags.ElementType_CMOD_OPT:
+		mod := r.customModOpt()
+		v = r.decodeType()
+		v.Mod = append(v.Mod, mod)
+	case flags.ElementType_CMOD_REQD:
+		mod := r.customModReqd()
+		v = r.decodeType()
+		v.Mod = append(v.Mod, mod)
+
+	case flags.ElementType_BYREF:
+		v.Kind = b
+		v.Value = r.decodeType()
+
+	// TypedByRef and Void have no Type afterwards.
+	case flags.ElementType_TYPEDBYREF:
+		v.Kind = flags.ElementType_TYPEDBYREF
+	case flags.ElementType_VOID:
+		v.Kind = flags.ElementType_VOID
+
+	//case flags.ElementType_GENERICINST:
+	//	v.Kind |= flags.ElementType_GENERICINST
+	//	v.Value = r.genericInst()
+
+	case
+		flags.ElementType_CLASS,
+		flags.ElementType_VALUETYPE:
+		v.Kind = b
+		v.Value = r.typeHandle()
+
+	case flags.ElementType_PTR:
+		v.Kind = b
+		v.Value = r.decodeType()
+
+	case
+		flags.ElementType_BOOLEAN,
+		flags.ElementType_CHAR,
+		flags.ElementType_I1,
+		flags.ElementType_U1,
+		flags.ElementType_I2,
+		flags.ElementType_U2,
+		flags.ElementType_I4,
+		flags.ElementType_U4,
+		flags.ElementType_I8,
+		flags.ElementType_U8,
+		flags.ElementType_R4,
+		flags.ElementType_R8,
+		flags.ElementType_I,
+		flags.ElementType_U:
+		v.Kind = b
+
+	default:
+		r.err = fmt.Errorf("unsupported element type: %v", b)
+	}
+	return
+}
+
 func (r *recordReader) index(tbl table) Index {
 	if r.err != nil {
 		return 0
@@ -272,4 +469,17 @@ func (r *recordReader) uint(size uint8) uint32 {
 	default:
 		panic(fmt.Errorf("columns size %d is not supported", size))
 	}
+}
+
+func (r *recordReader) compressedUint32() (v uint32) {
+	if r.err != nil {
+		return
+	}
+	var n int
+	v, n, r.err = ecma335encoding.DecodeCompressedUint32(r.data)
+	if r.err != nil {
+		return
+	}
+	r.data = r.data[n:]
+	return
 }

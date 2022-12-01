@@ -19,13 +19,14 @@ const tablesFile = "tables.go"
 type columnType string
 
 const (
-	columnTypeIndex      columnType = "columnTypeIndex"
-	columnTypeUint       columnType = "columnTypeUint"
-	columnTypeString     columnType = "columnTypeString"
-	columnTypeGUID       columnType = "columnTypeGUID"
-	columnTypeBlob       columnType = "columnTypeBlob"
-	columnTypeCodedIndex columnType = "columnTypeCodedIndex"
-	columnTypeSlice      columnType = "columnTypeSlice"
+	columnTypeIndex        columnType = "columnTypeIndex"
+	columnTypeUint         columnType = "columnTypeUint"
+	columnTypeString       columnType = "columnTypeString"
+	columnTypeGUID         columnType = "columnTypeGUID"
+	columnTypeBlob         columnType = "columnTypeBlob"
+	columnTypeCodedIndex   columnType = "columnTypeCodedIndex"
+	columnTypeSlice        columnType = "columnTypeSlice"
+	columnTypeMethodDefSig columnType = "columnTypeMethodDefSig"
 )
 
 type tableInfo struct {
@@ -141,6 +142,8 @@ func parseTable(pkg *packages.Package, spec *ast.TypeSpec) (info tableInfo) {
 				col.tableName = tableName(fieldComment(spec, i, objName, tp.String(), "@ref"))
 			case "String":
 				col.columnType = columnTypeString
+			case "MethodDefSig":
+				col.columnType = columnTypeMethodDefSig
 			default:
 				if obj.Pkg().Name() == "flags" {
 					col.columnType = columnTypeUint

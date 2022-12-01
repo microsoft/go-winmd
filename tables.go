@@ -223,7 +223,7 @@ type MethodDef struct {
 	ImplFlags flags.MethodImplAttributes
 	Flags     flags.MethodAttributes
 	Name      String
-	Signature []byte
+	Signature MethodDefSig
 	ParamList Slice // @ref=Param
 }
 

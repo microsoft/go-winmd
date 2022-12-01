@@ -21,11 +21,14 @@ const (
 	codedResolutionScope
 	codedTypeOrMethodDef
 	codedHasCustomAttribute
+	// codedTypeDefOrRefOrSpec is for signature decoding, defined in §II.23.2.8.
+	codedTypeDefOrRefOrSpec
 	codedMax
 )
 
-// codedMap is taken from §II.24.2.6.
+// codedMap maps each coded type to the list of table types that it may encode, in order.
 var codedMap = [codedMax][]table{
+	// The following entries are taken from §II.24.2.6.
 	codedTypeDefOrRef:        {tableTypeDef, tableTypeRef, tableTypeSpec},
 	codedHasConstant:         {tableField, tableParam, tableProperty},
 	codedHasFieldMarshal:     {tableField, tableParam},
@@ -62,6 +65,9 @@ var codedMap = [codedMax][]table{
 		tableGenericParamConstraint,
 		tableMethodSpec,
 	},
+	// codedTypeDefOrRefOrSpec is for signature decoding, defined in §II.23.2.8. It isn't
+	// technically called a coded index by the spec, but it's encoded like one.
+	codedTypeDefOrRefOrSpec: {tableTypeDef, tableTypeRef, tableTypeSpec},
 }
 
 // codedTagBits returns the minimum number of bits
