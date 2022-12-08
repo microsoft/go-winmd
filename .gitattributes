@@ -1,0 +1,2 @@
+# Always check out test data files with LF line endings to simplify comparisons.
+**/testdata/** text eol=lf
