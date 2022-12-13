@@ -25,6 +25,11 @@ import (
 // required. (mkwinsyscall has defaults that may be acceptable.) It is recommended to read the
 // DllImport pseudo-attribute (§II.21.2.1) to determine this value.
 func WriteMethod(w io.StringWriter, metadata *winmd.Metadata, method *winmd.MethodDef, moduleName, goName string) error {
+	sig, err := metadata.MethodDefSignature(method.Signature)
+	if err != nil {
+		return err
+	}
+
 	w.WriteString("//sys\t")
 	w.WriteString(goName)
 	w.WriteString("(")
@@ -57,19 +62,19 @@ func WriteMethod(w io.StringWriter, metadata *winmd.Metadata, method *winmd.Meth
 		writeParam(w, param)
 		w.WriteString(" ")
 
-		if int(i) >= len(method.Signature.Param) {
-			return fmt.Errorf("param record Sequence value %v is out of range of parsed signature params, length %v", i, len(method.Signature.Param))
+		if int(i) >= len(sig.Param) {
+			return fmt.Errorf("param record Sequence value %v is out of range of parsed signature params, length %v", i, len(sig.Param))
 		}
-		if err := writeType(w, metadata, method.Signature.Param[i].Type); err != nil {
+		if err := writeType(w, metadata, sig.Param[i].Type); err != nil {
 			return fmt.Errorf("failed to interpret type of param %v of method %v: %w", i, method.Name, err)
 		}
 	}
 	w.WriteString(")")
 
 	// Write return value, if one exists.
-	if method.Signature.RetType.Kind != winmd.RetTypeKind_Void {
+	if sig.RetType.Kind != winmd.RetTypeKind_Void {
 		w.WriteString(" (")
-		if err := writeType(w, metadata, method.Signature.RetType.Type); err != nil {
+		if err := writeType(w, metadata, sig.RetType.Type); err != nil {
 			return err
 		}
 		w.WriteString(")")
