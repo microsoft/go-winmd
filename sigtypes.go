@@ -19,6 +19,12 @@ const (
 	SigType_Method
 )
 
+type (
+	MethodDefSigBlob []byte
+	FieldSigBlob     []byte
+	PropertySigBlob  []byte
+)
+
 // MethodDefSig is defined in §II.23.2.1.
 type MethodDefSig struct {
 	HasThis      bool

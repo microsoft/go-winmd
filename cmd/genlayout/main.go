@@ -133,7 +133,7 @@ func writeTableWidth(w io.Writer, tables []tableInfo) {
 				width[i] = "la.stringSize"
 			case columnTypeGUID:
 				width[i] = "la.guidSize"
-			case columnTypeBlob, columnTypeMethodDefSig:
+			case columnTypeBlob:
 				width[i] = "la.blobSize"
 			case columnTypeUint:
 				width[i] = strconv.Itoa(c.size)
@@ -190,8 +190,6 @@ func writeTableEncoding(w io.Writer, tables []tableInfo) {
 				fmt.Fprintf(w, "\trec.%s = r.guid()\n", f.name)
 			case columnTypeString:
 				fmt.Fprintf(w, "\trec.%s = r.string()\n", f.name)
-			case columnTypeMethodDefSig:
-				fmt.Fprintf(w, "\trec.%s = r.methodDefSig()\n", f.name)
 			case columnTypeUint:
 				var fn string
 				switch f.size {

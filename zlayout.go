@@ -408,7 +408,7 @@ func (rec *MethodDef) decode(r recordReader) error {
 	rec.ImplFlags = flags.MethodImplAttributes(r.uint16())
 	rec.Flags = flags.MethodAttributes(r.uint16())
 	rec.Name = r.string()
-	rec.Signature = r.methodDefSig()
+	rec.Signature = r.blob()
 	rec.ParamList = r.slice(tableMethodDef, tableParam)
 	return r.err
 }

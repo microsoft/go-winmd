@@ -19,14 +19,13 @@ const tablesFile = "tables.go"
 type columnType string
 
 const (
-	columnTypeIndex        columnType = "columnTypeIndex"
-	columnTypeUint         columnType = "columnTypeUint"
-	columnTypeString       columnType = "columnTypeString"
-	columnTypeGUID         columnType = "columnTypeGUID"
-	columnTypeBlob         columnType = "columnTypeBlob"
-	columnTypeCodedIndex   columnType = "columnTypeCodedIndex"
-	columnTypeSlice        columnType = "columnTypeSlice"
-	columnTypeMethodDefSig columnType = "columnTypeMethodDefSig"
+	columnTypeIndex      columnType = "columnTypeIndex"
+	columnTypeUint       columnType = "columnTypeUint"
+	columnTypeString     columnType = "columnTypeString"
+	columnTypeGUID       columnType = "columnTypeGUID"
+	columnTypeBlob       columnType = "columnTypeBlob"
+	columnTypeCodedIndex columnType = "columnTypeCodedIndex"
+	columnTypeSlice      columnType = "columnTypeSlice"
 )
 
 type tableInfo struct {
@@ -142,10 +141,10 @@ func parseTable(pkg *packages.Package, spec *ast.TypeSpec) (info tableInfo) {
 				col.tableName = tableName(fieldComment(spec, i, objName, tp.String(), "@ref"))
 			case "String":
 				col.columnType = columnTypeString
-			case "MethodDefSig":
-				col.columnType = columnTypeMethodDefSig
 			default:
-				if obj.Pkg().Name() == "flags" {
+				if strings.HasSuffix(objName, "SigBlob") {
+					col.columnType = columnTypeBlob
+				} else if obj.Pkg().Name() == "flags" {
 					col.columnType = columnTypeUint
 					col.typeName = "flags." + col.typeName
 					switch tp.Underlying().(*types.Basic).Kind() {
