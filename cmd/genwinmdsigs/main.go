@@ -17,6 +17,7 @@ import (
 
 	"github.com/microsoft/go-winmd"
 	"github.com/microsoft/go-winmd/coded"
+	"github.com/microsoft/go-winmd/flags"
 	"github.com/microsoft/go-winmd/genwinsyscallproto"
 )
 
@@ -104,9 +105,19 @@ func writePrototypes(b *strings.Builder, f *winmd.Metadata, filterRegexp *regexp
 		return err
 	}
 
+	usedTypeDefs := make(map[winmd.Index]struct{})
+	usedTypeRefs := make(map[winmd.Index]struct{})
+	allTypeDefs := make(map[string]winmd.Index)
+
 	firstType := true
 	for i := uint32(0); i < f.Tables.TypeDef.Len; i++ {
-		r, _ := f.Tables.TypeDef.Record(winmd.Index(i))
+		r, err := f.Tables.TypeDef.Record(winmd.Index(i))
+		if err != nil {
+			return err
+		}
+
+		allTypeDefs[r.Namespace.String()+"::"+r.Name.String()] = winmd.Index(i)
+
 		if !strings.Contains(r.Name.String(), "Apis") {
 			continue
 		}
@@ -123,18 +134,17 @@ func writePrototypes(b *strings.Builder, f *winmd.Metadata, filterRegexp *regexp
 			}
 
 			// Find the DllImport pseudo-custom attribute (§II.21.2.1) for the module name.
-			implMap, ok := methodImplMap[j]
-			if !ok {
-				return fmt.Errorf("missing ImplMap for method %v, %v", j, md.Name)
-			}
-			// TODO: Map of parsed module refs?
-			mr, err := f.Tables.ModuleRef.Record(implMap.ImportScope)
-			if err != nil {
-				return err
-			}
-			moduleName := strings.ToLower(mr.Name.String())
-			if moduleName == "kernel32" {
-				moduleName = ""
+			var moduleName string
+			if implMap, ok := methodImplMap[j]; ok {
+				// TODO: Map of parsed module refs?
+				mr, err := f.Tables.ModuleRef.Record(implMap.ImportScope)
+				if err != nil {
+					return err
+				}
+				moduleName = strings.ToLower(mr.Name.String())
+				if moduleName == "kernel32" {
+					moduleName = ""
+				}
 			}
 			methodName := md.Name.String()
 
@@ -153,7 +163,22 @@ func writePrototypes(b *strings.Builder, f *winmd.Metadata, filterRegexp *regexp
 				b.WriteString("\n")
 			}
 
-			if err := genwinsyscallproto.WriteMethod(b, f, md, moduleName, methodName); err != nil {
+			sig, err := f.MethodDefSignature(md.Signature)
+			if err != nil {
+				return err
+			}
+			for _, p := range sig.Param {
+				switch p.Kind {
+				case winmd.ParamKind_ByValue:
+					if err := addUsedTypeRefs(usedTypeRefs, f, &p.Type); err != nil {
+						return err
+					}
+				default:
+					return fmt.Errorf("unexpected ParamKind for %v param %#v", spec, p)
+				}
+			}
+
+			if err := genwinsyscallproto.WriteMethod(b, f, md, &sig, moduleName, methodName); err != nil {
 				// Include context in the error for diag purposes.
 				// writeSys may have partially written into b. This is actually convenient for diag.
 				lines := strings.Split(b.String(), "\n")
@@ -166,6 +191,62 @@ func writePrototypes(b *strings.Builder, f *winmd.Metadata, filterRegexp *regexp
 					strings.Join(lines, "\n"), r.Namespace, methodName, err)
 			}
 		}
+	}
+
+	for i := range usedTypeRefs {
+		ref, err := f.Tables.TypeRef.Record(i)
+		if err != nil {
+			return err
+		}
+		switch ref.ResolutionScope.Tag {
+		case coded.ResolutionScope_Module:
+			// This TypeRef refers to the current module. We don't need to look at the Index.
+		default:
+			log.Printf("Skipping %v::%v: not defined in current module\n", ref.Namespace, ref.Name)
+			continue
+		}
+		if def, ok := allTypeDefs[ref.Namespace.String()+"::"+ref.Name.String()]; ok {
+			usedTypeDefs[def] = struct{}{}
+		} else {
+			return fmt.Errorf("TypeRef %v::%v has Module resolution scope, but is not found in the module", ref.Namespace, ref.Name)
+		}
+	}
+	if len(usedTypeDefs) > 0 {
+		b.WriteString("\n\n// Type defs used in generated APIs\n\n")
+	}
+	for i := range usedTypeDefs {
+		record, err := f.Tables.TypeDef.Record(i)
+		if err != nil {
+			return err
+		}
+		if err := genwinsyscallproto.WriteTypeDef(b, f, record); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func addUsedTypeRefs(used map[winmd.Index]struct{}, f *winmd.Metadata, t *winmd.Type) error {
+	switch t.Kind {
+	case flags.ElementType_PTR:
+		innerType := t.Value.(winmd.Type)
+		if err := addUsedTypeRefs(used, f, &innerType); err != nil {
+			return err
+		}
+	case flags.ElementType_VALUETYPE:
+		switch v := t.Value.(type) {
+		case winmd.CodedIndex:
+			switch v.Tag {
+			case coded.TypeDefOrRefOrSpec_TypeRef:
+				used[v.Index] = struct{}{}
+			default:
+				return fmt.Errorf("unexpected CodedIndex tag: %v", v.Tag)
+			}
+		default:
+			return fmt.Errorf("unexpected type for VALUETYPE value %#v", v)
+		}
+	case flags.ElementType_ARRAY:
+		return fmt.Errorf("not implemented: array parameter of type %#v", t)
 	}
 	return nil
 }

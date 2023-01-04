@@ -26,13 +26,12 @@ func New(pefile *pe.File) (*Metadata, error) {
 	return newMetadata(pefile)
 }
 
-func (m *Metadata) FieldSignature(bytes FieldSigBlob) (*FieldSig, error) {
+func (m *Metadata) FieldSignature(bytes FieldSigBlob) (FieldSig, error) {
 	r := m.sigReader(bytes)
-	_ = r
-	panic("not implemented")
+	return r.fieldSig(), r.err
 }
 
-func (m *Metadata) PropertySignature(data PropertySigBlob) (*PropertySig, error) {
+func (m *Metadata) PropertySignature(data PropertySigBlob) (PropertySig, error) {
 	r := m.sigReader(data)
 	_ = r
 	panic("not implemented")

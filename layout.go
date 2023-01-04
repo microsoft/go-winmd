@@ -271,6 +271,28 @@ func (r *recordReader) guid() (v [16]byte) {
 	return
 }
 
+func (r *sigReader) fieldSig() (v FieldSig) {
+	if r.err != nil {
+		return
+	}
+
+	firstByte := r.uint8()
+	if r.err != nil {
+		return
+	}
+	kind := firstByte & 0xF
+	if kind != uint8(flags.SigKind_FIELD) {
+		r.err = fmt.Errorf("signature kind is not a field signature: %v", kind)
+		return
+	}
+	if kind&0xF0 != 0 {
+		r.err = fmt.Errorf("unexpected data stored in first byte of field signature: %v", kind)
+		return
+	}
+	v.Type = r.decodeType()
+	return
+}
+
 func (r *sigReader) methodDefSig() (v MethodDefSig) {
 	if r.err != nil {
 		return
@@ -411,6 +433,10 @@ func (r *sigReader) decodeType() (v Type) {
 		v.Kind = b
 		v.Value = r.decodeType()
 
+	case flags.ElementType_ARRAY:
+		v.Kind = b
+		v.Value = Array{}
+
 	case flags.ElementType_BOOLEAN,
 		flags.ElementType_CHAR,
 		flags.ElementType_I1,
@@ -431,6 +457,29 @@ func (r *sigReader) decodeType() (v Type) {
 
 	default:
 		r.err = fmt.Errorf("unsupported element type: %v", b)
+	}
+	return
+}
+
+func (r *sigReader) array() (a Array) {
+	if r.err != nil {
+		return
+	}
+	a.Type = r.decodeType()
+	a.Rank = r.compressedUint32()
+	if r.err != nil {
+		return
+	}
+	a.Sizes = make([]uint32, r.compressedUint32())
+	for i := 0; i < len(a.Sizes); i++ {
+		a.Sizes[i] = r.compressedUint32()
+	}
+	if r.err != nil {
+		return
+	}
+	a.LowerBounds = make([]int32, r.compressedUint32())
+	for i := 0; i < len(a.LowerBounds); i++ {
+		a.LowerBounds[i] = r.compressedInt32()
 	}
 	return
 }
@@ -472,6 +521,19 @@ func (r *ecma335Reader) compressedUint32() (v uint32) {
 	}
 	var n int
 	v, n, r.err = ecma335encoding.DecodeCompressedUint32(r.data)
+	if r.err != nil {
+		return
+	}
+	r.data = r.data[n:]
+	return
+}
+
+func (r *ecma335Reader) compressedInt32() (v int32) {
+	if r.err != nil {
+		return
+	}
+	var n int
+	v, n, r.err = ecma335encoding.DecodeCompressedInt32(r.data)
 	if r.err != nil {
 		return
 	}

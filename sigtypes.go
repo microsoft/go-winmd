@@ -45,7 +45,6 @@ type MethodRefSig struct {
 
 // FieldSig is defined in §II.23.2.4.
 type FieldSig struct {
-	Mod  []CustomMod
 	Type Type
 }
 
