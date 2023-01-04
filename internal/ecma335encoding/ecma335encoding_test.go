@@ -2,7 +2,7 @@ package ecma335encoding
 
 import "testing"
 
-func Test_decodeCompressedUint32(t *testing.T) {
+func TestDecodeCompressedUint32(t *testing.T) {
 	type args struct {
 		bh []byte
 	}
@@ -36,6 +36,44 @@ func Test_decodeCompressedUint32(t *testing.T) {
 			}
 			if gotN != tt.wantN {
 				t.Errorf("DecodeCompressedUint32() gotN = %v, want %v", gotN, tt.wantN)
+			}
+		})
+	}
+}
+
+func TestDecodeCompressedInt32(t *testing.T) {
+	type args struct {
+		data []byte
+	}
+	tests := []struct {
+		name       string
+		args       args
+		wantResult int32
+		wantN      int
+		wantErr    bool
+	}{
+		// Test cases in §II.23.2.
+		{"1", args{[]byte{0x06}}, 3, 1, false},
+		{"2", args{[]byte{0x7B}}, -3, 1, false},
+		{"3", args{[]byte{0x80, 0x80}}, 64, 2, false},
+		{"4", args{[]byte{0x01}}, -64, 1, false},
+		{"5", args{[]byte{0xC0, 0x00, 0x40, 0x00}}, 8192, 4, false},
+		{"6", args{[]byte{0x80, 0x01}}, -8192, 2, false},
+		{"7", args{[]byte{0xDF, 0xFF, 0xFF, 0xFE}}, 268435455, 4, false},
+		{"8", args{[]byte{0xC0, 0x00, 0x00, 0x01}}, -268435456, 4, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotResult, gotN, err := DecodeCompressedInt32(tt.args.data)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("DecodeCompressedInt32() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if gotResult != tt.wantResult {
+				t.Errorf("DecodeCompressedInt32() gotResult = %v, want %v", gotResult, tt.wantResult)
+			}
+			if gotN != tt.wantN {
+				t.Errorf("DecodeCompressedInt32() gotN = %v, want %v", gotN, tt.wantN)
 			}
 		})
 	}

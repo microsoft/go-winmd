@@ -31,3 +31,29 @@ func DecodeCompressedUint32(data []byte) (result uint32, n int, err error) {
 	// All first three bits are 1. Not a valid compressed uint32.
 	return 0, 0, fmt.Errorf("unable to decompress uint32 due to invalid length: %d", v)
 }
+
+// DecodeCompressedInt32 converts 1-4 compressed bytes into one int32, as defined in §II.23.2.
+// Returns the result, the number of bytes read to obtain the result, or an error.
+func DecodeCompressedInt32(data []byte) (result int32, n int, err error) {
+	// Based on .NET System.Reflection.Metadata.BlobReader TryReadCompressedSignedInteger.
+	// https://github.com/dotnet/runtime/blob/582e522d6e164de6f9c961bc3cce226a241b11e5/src/libraries/System.Reflection.Metadata/src/System/Reflection/Metadata/BlobReader.cs#L490
+	u, n, err := DecodeCompressedUint32(data)
+	if err != nil {
+		return 0, 0, err
+	}
+	result = int32(u >> 1)
+	// If sign extend bit is 1.
+	if u&0x1 != 0 {
+		switch n {
+		case 1:
+			result |= ^int32(^uint32(0xffff_ffc0))
+		case 2:
+			result |= ^int32(^uint32(0xffff_e000))
+		case 4:
+			result |= ^int32(^uint32(0xf000_0000))
+		default:
+			return 0, 0, fmt.Errorf("unable to decompress int32 due to invalid length %d", n)
+		}
+	}
+	return result, n, nil
+}
