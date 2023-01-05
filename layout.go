@@ -129,15 +129,6 @@ type ecma335Reader struct {
 	err error
 }
 
-type sigReader struct {
-	ecma335Reader
-}
-
-type recordReader struct {
-	ecma335Reader
-	heaps heaps
-}
-
 func (r *ecma335Reader) coded(coded coded) CodedIndex {
 	if r.err != nil {
 		return CodedIndex{}
@@ -158,59 +149,6 @@ func (r *ecma335Reader) coded(coded coded) CodedIndex {
 		Index: Index(row),
 		Tag:   int8(tag),
 	}
-}
-
-func parseCoded(coded coded, code uint32) (CodedIndex, error) {
-	tagbits := codedTagBits(coded)
-	bitmask := (1 << tagbits) - 1
-	if code < 1 {
-		return CodedIndex{Tag: -1}, nil
-	}
-	row, tag := code>>tagbits-1, code&uint32(bitmask)
-	_, ok := codedTable(coded, uint8(tag))
-	if !ok {
-		return CodedIndex{}, fmt.Errorf("unknown coded %d tag %d", coded, tag)
-	}
-	return CodedIndex{
-		Index: Index(row),
-		Tag:   int8(tag),
-	}, nil
-}
-
-// slice reads a Slice from r.
-// ownTable is the table code of the table being read.
-// targetTable is the table code of the table being referenced.
-func (r *recordReader) slice(ownTable, targetTable table) Slice {
-	if r.err != nil {
-		return Slice{}
-	}
-	ownWidth := int(r.layout.tables[ownTable].width)
-
-	var sl Slice
-	// read first end of the slice so r.i+ownWidth
-	// points at the same column of the next row.
-	if ownWidth > len(r.data) {
-		// there is not enough data to read another row from the current table,
-		// so we are peeking from its last row.
-		// the spec says that in this case the slice should span until the
-		// end of the target table.
-		sl.End = Index(r.layout.tables[targetTable].rowCount)
-	} else {
-		baseData := r.data
-		r.data = r.data[ownWidth:]
-		sl.End = r.index(targetTable)
-		r.data = baseData
-	}
-	sl.Start = r.index(targetTable)
-	if r.err == nil && sl.Start > sl.End {
-		r.err = fmt.Errorf("invalid slice end: value=%d, max=%d", sl.End, sl.Start)
-		return Slice{}
-	}
-	if sl.Start == sl.End {
-		// this is a valid situation which means range is null.
-		return Slice{}
-	}
-	return sl
 }
 
 func (r *ecma335Reader) uint8() uint8 {
@@ -240,35 +178,65 @@ func (r *ecma335Reader) uint32() uint32 {
 	return v
 }
 
-func (r *recordReader) string() (v String) {
+func (r *ecma335Reader) index(tbl table) Index {
+	if r.err != nil {
+		return 0
+	}
+	v := r.uint(r.layout.simpleSizes[tbl])
+	if v == 0 {
+		r.err = errors.New("record index must be greater than 0")
+		return 0
+	}
+	// ECMA-335 table indices are 1-based, but we follow Go notation instead.
+	v -= 1
+	if max := r.layout.tables[tbl].rowCount; v > max {
+		r.err = fmt.Errorf("record index %d must be smaller than %d", v, max)
+		return 0
+	}
+	return Index(v)
+}
+
+func (r *ecma335Reader) uint(size uint8) uint32 {
+	switch size {
+	case 1:
+		return uint32(r.uint8())
+	case 2:
+		return uint32(r.uint16())
+	case 4:
+		return r.uint32()
+	default:
+		panic(fmt.Errorf("columns size %d is not supported", size))
+	}
+}
+
+func (r *ecma335Reader) compressedUint32() (v uint32) {
 	if r.err != nil {
 		return
 	}
-	idx := r.uint(r.layout.stringSize)
-	v, r.err = r.heaps.strs.String(idx)
+	var n int
+	v, n, r.err = ecma335.DecodeCompressedUint32(r.data)
+	if r.err != nil {
+		return
+	}
+	r.data = r.data[n:]
 	return
 }
 
-func (r *recordReader) blob() (v []byte) {
+func (r *ecma335Reader) compressedInt32() (v int32) {
 	if r.err != nil {
 		return
 	}
-	idx := r.uint(r.layout.blobSize)
-	v, r.err = r.heaps.blobs.Bytes(idx)
+	var n int
+	v, n, r.err = ecma335.DecodeCompressedInt32(r.data)
+	if r.err != nil {
+		return
+	}
+	r.data = r.data[n:]
 	return
 }
 
-func (r *recordReader) guid() (v [16]byte) {
-	if r.err != nil {
-		return
-	}
-	idx := r.uint(r.layout.guidSize)
-	if idx == 0 {
-		return
-	}
-	// ECMA-335 GUID indices are 1-based, but we follow Go notation instead.
-	v, r.err = r.heaps.guids.GUID(idx - 1)
-	return
+type sigReader struct {
+	ecma335Reader
 }
 
 func (r *sigReader) fieldSig() (v SigField) {
@@ -484,59 +452,74 @@ func (r *sigReader) array() (a SigArray) {
 	return
 }
 
-func (r *ecma335Reader) index(tbl table) Index {
+type recordReader struct {
+	ecma335Reader
+	heaps heaps
+}
+
+// slice reads a Slice from r.
+// ownTable is the table code of the table being read.
+// targetTable is the table code of the table being referenced.
+func (r *recordReader) slice(ownTable, targetTable table) Slice {
 	if r.err != nil {
-		return 0
+		return Slice{}
 	}
-	v := r.uint(r.layout.simpleSizes[tbl])
-	if v == 0 {
-		r.err = errors.New("record index must be greater than 0")
-		return 0
+	ownWidth := int(r.layout.tables[ownTable].width)
+
+	var sl Slice
+	// read first end of the slice so r.i+ownWidth
+	// points at the same column of the next row.
+	if ownWidth > len(r.data) {
+		// there is not enough data to read another row from the current table,
+		// so we are peeking from its last row.
+		// the spec says that in this case the slice should span until the
+		// end of the target table.
+		sl.End = Index(r.layout.tables[targetTable].rowCount)
+	} else {
+		baseData := r.data
+		r.data = r.data[ownWidth:]
+		sl.End = r.index(targetTable)
+		r.data = baseData
 	}
-	// ECMA-335 table indices are 1-based, but we follow Go notation instead.
-	v -= 1
-	if max := r.layout.tables[tbl].rowCount; v > max {
-		r.err = fmt.Errorf("record index %d must be smaller than %d", v, max)
-		return 0
+	sl.Start = r.index(targetTable)
+	if r.err == nil && sl.Start > sl.End {
+		r.err = fmt.Errorf("invalid slice end: value=%d, max=%d", sl.End, sl.Start)
+		return Slice{}
 	}
-	return Index(v)
+	if sl.Start == sl.End {
+		// this is a valid situation which means range is null.
+		return Slice{}
+	}
+	return sl
 }
 
-func (r *ecma335Reader) uint(size uint8) uint32 {
-	switch size {
-	case 1:
-		return uint32(r.uint8())
-	case 2:
-		return uint32(r.uint16())
-	case 4:
-		return r.uint32()
-	default:
-		panic(fmt.Errorf("columns size %d is not supported", size))
-	}
-}
-
-func (r *ecma335Reader) compressedUint32() (v uint32) {
+func (r *recordReader) string() (v String) {
 	if r.err != nil {
 		return
 	}
-	var n int
-	v, n, r.err = ecma335.DecodeCompressedUint32(r.data)
-	if r.err != nil {
-		return
-	}
-	r.data = r.data[n:]
+	idx := r.uint(r.layout.stringSize)
+	v, r.err = r.heaps.strs.String(idx)
 	return
 }
 
-func (r *ecma335Reader) compressedInt32() (v int32) {
+func (r *recordReader) blob() (v []byte) {
 	if r.err != nil {
 		return
 	}
-	var n int
-	v, n, r.err = ecma335.DecodeCompressedInt32(r.data)
+	idx := r.uint(r.layout.blobSize)
+	v, r.err = r.heaps.blobs.Bytes(idx)
+	return
+}
+
+func (r *recordReader) guid() (v [16]byte) {
 	if r.err != nil {
 		return
 	}
-	r.data = r.data[n:]
+	idx := r.uint(r.layout.guidSize)
+	if idx == 0 {
+		return
+	}
+	// ECMA-335 GUID indices are 1-based, but we follow Go notation instead.
+	v, r.err = r.heaps.guids.GUID(idx - 1)
 	return
 }

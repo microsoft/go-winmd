@@ -3,7 +3,10 @@
 
 package winmd
 
-import "math/bits"
+import (
+	"fmt"
+	"math/bits"
+)
 
 type coded uint8
 
@@ -84,4 +87,22 @@ func codedTable(c coded, tag uint8) (table, bool) {
 		return tbls[tag], true
 	}
 	return tableNone, false
+}
+
+// parseCoded parses an encoded CodedIndex.
+func parseCoded(coded coded, code uint32) (CodedIndex, error) {
+	tagbits := codedTagBits(coded)
+	bitmask := (1 << tagbits) - 1
+	if code < 1 {
+		return CodedIndex{Tag: -1}, nil
+	}
+	row, tag := code>>tagbits-1, code&uint32(bitmask)
+	_, ok := codedTable(coded, uint8(tag))
+	if !ok {
+		return CodedIndex{}, fmt.Errorf("unknown coded %d tag %d", coded, tag)
+	}
+	return CodedIndex{
+		Index: Index(row),
+		Tag:   int8(tag),
+	}, nil
 }
