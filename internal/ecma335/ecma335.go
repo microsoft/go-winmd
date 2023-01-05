@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-package ecma335encoding
+package ecma335
 
 import "fmt"
 

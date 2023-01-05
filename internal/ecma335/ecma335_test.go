@@ -1,4 +1,7 @@
-package ecma335encoding
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+package ecma335
 
 import "testing"
 

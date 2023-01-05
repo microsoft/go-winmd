@@ -10,7 +10,7 @@ import (
 	"math/bits"
 
 	"github.com/microsoft/go-winmd/flags"
-	"github.com/microsoft/go-winmd/internal/ecma335encoding"
+	"github.com/microsoft/go-winmd/internal/ecma335"
 )
 
 type layout struct {
@@ -520,7 +520,7 @@ func (r *ecma335Reader) compressedUint32() (v uint32) {
 		return
 	}
 	var n int
-	v, n, r.err = ecma335encoding.DecodeCompressedUint32(r.data)
+	v, n, r.err = ecma335.DecodeCompressedUint32(r.data)
 	if r.err != nil {
 		return
 	}
@@ -533,7 +533,7 @@ func (r *ecma335Reader) compressedInt32() (v int32) {
 		return
 	}
 	var n int
-	v, n, r.err = ecma335encoding.DecodeCompressedInt32(r.data)
+	v, n, r.err = ecma335.DecodeCompressedInt32(r.data)
 	if r.err != nil {
 		return
 	}

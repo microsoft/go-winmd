@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/microsoft/go-winmd/internal/ecma335encoding"
+	"github.com/microsoft/go-winmd/internal/ecma335"
 )
 
 // StringHeap provides access to #Strings heap as defined in §II.24.2.3.
@@ -52,7 +52,7 @@ func (bh BlobHeap) Bytes(start uint32) ([]byte, error) {
 	if int(start) >= len(bh) {
 		return nil, fmt.Errorf("offset %d is beyond the end of the heap", start)
 	}
-	size, n, err := ecma335encoding.DecodeCompressedUint32(bh[start:])
+	size, n, err := ecma335.DecodeCompressedUint32(bh[start:])
 	if err != nil {
 		return nil, err
 	}
