@@ -271,7 +271,7 @@ func (r *recordReader) guid() (v [16]byte) {
 	return
 }
 
-func (r *sigReader) fieldSig() (v FieldSig) {
+func (r *sigReader) fieldSig() (v SigField) {
 	if r.err != nil {
 		return
 	}
@@ -293,7 +293,7 @@ func (r *sigReader) fieldSig() (v FieldSig) {
 	return
 }
 
-func (r *sigReader) methodDefSig() (v MethodDefSig) {
+func (r *sigReader) methodDefSig() (v SigMethodDef) {
 	if r.err != nil {
 		return
 	}
@@ -341,41 +341,41 @@ func (r *sigReader) param() (v SigParam) {
 	v.Type = r.decodeType()
 	switch v.Type.Kind {
 	case flags.ElementType_BYREF:
-		v.Kind = ParamKind_ByRef
+		v.Kind = SigParamKind_ByRef
 	case flags.ElementType_TYPEDBYREF:
-		v.Kind = ParamKind_TypedByRef
+		v.Kind = SigParamKind_TypedByRef
 	default:
-		v.Kind = ParamKind_ByValue
+		v.Kind = SigParamKind_ByValue
 	}
 	return
 }
 
-func (r *sigReader) retType() (v RetType) {
+func (r *sigReader) retType() (v SigRetType) {
 	if r.err != nil {
 		return
 	}
 	v.Type = r.decodeType()
 	switch v.Type.Kind {
 	case flags.ElementType_BYREF:
-		v.Kind = RetTypeKind_ByRef
+		v.Kind = SigRetTypeKind_ByRef
 	case flags.ElementType_TYPEDBYREF:
-		v.Kind = RetTypeKind_ByRef
+		v.Kind = SigRetTypeKind_ByRef
 	case flags.ElementType_VOID:
-		v.Kind = RetTypeKind_Void
+		v.Kind = SigRetTypeKind_Void
 	default:
-		v.Kind = RetTypeKind_ByValue
+		v.Kind = SigRetTypeKind_ByValue
 	}
 	return
 }
 
-func (r *sigReader) customModOpt() (v CustomMod) {
-	v.Kind = CustomModKind_Opt
+func (r *sigReader) customModOpt() (v SigCustomMod) {
+	v.Kind = SigCustomModKind_Opt
 	v.Index = r.typeHandle()
 	return
 }
 
-func (r *sigReader) customModReqd() (v CustomMod) {
-	v.Kind = CustomModKind_Reqd
+func (r *sigReader) customModReqd() (v SigCustomMod) {
+	v.Kind = SigCustomModKind_Reqd
 	v.Index = r.typeHandle()
 	return
 }
@@ -395,7 +395,7 @@ func (r *sigReader) typeHandle() (v CodedIndex) {
 	return
 }
 
-func (r *sigReader) decodeType() (v Type) {
+func (r *sigReader) decodeType() (v SigType) {
 	if r.err != nil {
 		return
 	}
@@ -414,7 +414,7 @@ func (r *sigReader) decodeType() (v Type) {
 		v.Kind = b
 		v.Value = r.decodeType()
 
-	// TypedByRef and Void have no Type afterwards.
+	// TypedByRef and Void have no SigType afterwards.
 	case flags.ElementType_TYPEDBYREF:
 		v.Kind = flags.ElementType_TYPEDBYREF
 	case flags.ElementType_VOID:
@@ -461,7 +461,7 @@ func (r *sigReader) decodeType() (v Type) {
 	return
 }
 
-func (r *sigReader) array() (a Array) {
+func (r *sigReader) array() (a SigArray) {
 	if r.err != nil {
 		return
 	}

@@ -176,12 +176,12 @@ func writePrototypes(b *strings.Builder, f *winmd.Metadata, filterRegexp *regexp
 			}
 			for _, p := range sig.Param {
 				switch p.Kind {
-				case winmd.ParamKind_ByValue:
+				case winmd.SigParamKind_ByValue:
 					if err := addUsedTypeRefs(usedTypeRefs, f, &p.Type); err != nil {
 						return err
 					}
 				default:
-					return fmt.Errorf("unexpected ParamKind for %v param %#v", spec, p)
+					return fmt.Errorf("unexpected SigParamKind for %v param %#v", spec, p)
 				}
 			}
 
@@ -243,10 +243,10 @@ func writePrototypes(b *strings.Builder, f *winmd.Metadata, filterRegexp *regexp
 	return nil
 }
 
-func addUsedTypeRefs(used map[winmd.Index]struct{}, f *winmd.Metadata, t *winmd.Type) error {
+func addUsedTypeRefs(used map[winmd.Index]struct{}, f *winmd.Metadata, t *winmd.SigType) error {
 	switch t.Kind {
 	case flags.ElementType_PTR:
-		innerType := t.Value.(winmd.Type)
+		innerType := t.Value.(winmd.SigType)
 		if err := addUsedTypeRefs(used, f, &innerType); err != nil {
 			return err
 		}

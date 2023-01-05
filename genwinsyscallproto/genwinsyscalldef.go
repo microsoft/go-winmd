@@ -24,7 +24,7 @@ import (
 // moduleName should be the name of the module that contains the syscall, or empty string if none is
 // required. (mkwinsyscall has defaults that may be acceptable.) It is recommended to read the
 // DllImport pseudo-attribute (§II.21.2.1) to determine this value.
-func WriteMethod(w io.StringWriter, metadata *winmd.Metadata, method *winmd.MethodDef, sig *winmd.MethodDefSig, moduleName, goName string) error {
+func WriteMethod(w io.StringWriter, metadata *winmd.Metadata, method *winmd.MethodDef, sig *winmd.SigMethodDef, moduleName, goName string) error {
 	w.WriteString("//sys\t")
 	w.WriteString(goName)
 	w.WriteString("(")
@@ -67,7 +67,7 @@ func WriteMethod(w io.StringWriter, metadata *winmd.Metadata, method *winmd.Meth
 	w.WriteString(")")
 
 	// Write return value, if one exists.
-	if sig.RetType.Kind != winmd.RetTypeKind_Void {
+	if sig.RetType.Kind != winmd.SigRetTypeKind_Void {
 		w.WriteString(" (")
 		if err := writeType(w, metadata, &sig.RetType.Type); err != nil {
 			return err
@@ -92,10 +92,10 @@ func writeParam(w io.StringWriter, p *winmd.Param) {
 	w.WriteString(p.Name.String())
 }
 
-func writeType(b io.StringWriter, f *winmd.Metadata, p *winmd.Type) error {
+func writeType(b io.StringWriter, f *winmd.Metadata, p *winmd.SigType) error {
 	// Special case: *void is unsafe.Pointer
 	if p.Kind == flags.ElementType_PTR {
-		if t, ok := p.Value.(winmd.Type); ok {
+		if t, ok := p.Value.(winmd.SigType); ok {
 			if t.Kind == flags.ElementType_VOID {
 				b.WriteString("unsafe.Pointer")
 				return nil
@@ -176,9 +176,9 @@ func writeTypeValue(b io.StringWriter, f *winmd.Metadata, value any) error {
 		}
 
 	// Types can nest. A pointer to another type is a very common case.
-	case winmd.Type:
+	case winmd.SigType:
 		return writeType(b, f, &v)
-	case winmd.Array:
+	case winmd.SigArray:
 		b.WriteString("[]")
 		return writeType(b, f, &v.Type)
 
@@ -210,7 +210,7 @@ func writeTypeDefEnum(b io.StringWriter, f *winmd.Metadata, def *winmd.TypeDef) 
 	b.WriteString(def.Name.String())
 
 	// Per §I.8.5.2 CLS Rule 7, the underlying type is the type of the field "__value". Find it.
-	var underlyingType *winmd.Type
+	var underlyingType *winmd.SigType
 
 	type nameValuePair struct {
 		Name  string
@@ -273,7 +273,7 @@ func writeTypeDefStruct(b io.StringWriter, f *winmd.Metadata, def *winmd.TypeDef
 
 	type nameTypePair struct {
 		Name string
-		Type *winmd.Type
+		Type *winmd.SigType
 	}
 	fields := make([]nameTypePair, 0, def.FieldList.End-def.FieldList.Start)
 	maxNameLen := 0
