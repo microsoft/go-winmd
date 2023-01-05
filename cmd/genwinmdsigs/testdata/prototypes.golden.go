@@ -1,814 +1,814 @@
 // APIs for Windows.Win32.Storage.FileSystem
-//sys	SearchPathW(/*in*//*optional*/lpPath PWSTR, /*in*/lpFileName PWSTR, /*in*//*optional*/lpExtension PWSTR, /*in*/nBufferLength uint32, /*out*//*optional*/lpBuffer PWSTR, /*out*//*optional*/lpFilePart *PWSTR) (uint32)
-//sys	SearchPathA(/*in*//*optional*/lpPath PSTR, /*in*/lpFileName PSTR, /*in*//*optional*/lpExtension PSTR, /*in*/nBufferLength uint32, /*out*//*optional*/lpBuffer PSTR, /*out*//*optional*/lpFilePart *PSTR) (uint32)
-//sys	CompareFileTime(/*in*/lpFileTime1 *FILETIME, /*in*/lpFileTime2 *FILETIME) (int32)
-//sys	CreateDirectoryA(/*in*/lpPathName PSTR, /*in*//*optional*/lpSecurityAttributes *SECURITY_ATTRIBUTES) (BOOL)
-//sys	CreateDirectoryW(/*in*/lpPathName PWSTR, /*in*//*optional*/lpSecurityAttributes *SECURITY_ATTRIBUTES) (BOOL)
-//sys	CreateFileA(/*in*/lpFileName PSTR, /*in*/dwDesiredAccess FILE_ACCESS_FLAGS, /*in*/dwShareMode FILE_SHARE_MODE, /*in*//*optional*/lpSecurityAttributes *SECURITY_ATTRIBUTES, /*in*/dwCreationDisposition FILE_CREATION_DISPOSITION, /*in*/dwFlagsAndAttributes FILE_FLAGS_AND_ATTRIBUTES, /*in*//*optional*/hTemplateFile HANDLE) (HANDLE)
-//sys	CreateFileW(/*in*/lpFileName PWSTR, /*in*/dwDesiredAccess FILE_ACCESS_FLAGS, /*in*/dwShareMode FILE_SHARE_MODE, /*in*//*optional*/lpSecurityAttributes *SECURITY_ATTRIBUTES, /*in*/dwCreationDisposition FILE_CREATION_DISPOSITION, /*in*/dwFlagsAndAttributes FILE_FLAGS_AND_ATTRIBUTES, /*in*//*optional*/hTemplateFile HANDLE) (HANDLE)
-//sys	DefineDosDeviceW(/*in*/dwFlags DEFINE_DOS_DEVICE_FLAGS, /*in*/lpDeviceName PWSTR, /*in*//*optional*/lpTargetPath PWSTR) (BOOL)
-//sys	DeleteFileA(/*in*/lpFileName PSTR) (BOOL)
-//sys	DeleteFileW(/*in*/lpFileName PWSTR) (BOOL)
-//sys	DeleteVolumeMountPointW(/*in*/lpszVolumeMountPoint PWSTR) (BOOL)
-//sys	FileTimeToLocalFileTime(/*in*/lpFileTime *FILETIME, /*out*/lpLocalFileTime *FILETIME) (BOOL)
-//sys	FindClose(/*in*/hFindFile FindFileHandle) (BOOL)
-//sys	FindCloseChangeNotification(/*in*/hChangeHandle FindChangeNotificationHandle) (BOOL)
-//sys	FindFirstChangeNotificationA(/*in*/lpPathName PSTR, /*in*/bWatchSubtree BOOL, /*in*/dwNotifyFilter FILE_NOTIFY_CHANGE) (FindChangeNotificationHandle)
-//sys	FindFirstChangeNotificationW(/*in*/lpPathName PWSTR, /*in*/bWatchSubtree BOOL, /*in*/dwNotifyFilter FILE_NOTIFY_CHANGE) (FindChangeNotificationHandle)
-//sys	FindFirstFileA(/*in*/lpFileName PSTR, /*out*/lpFindFileData *WIN32_FIND_DATAA) (FindFileHandle)
-//sys	FindFirstFileW(/*in*/lpFileName PWSTR, /*out*/lpFindFileData *WIN32_FIND_DATAW) (FindFileHandle)
-//sys	FindFirstFileExA(/*in*/lpFileName PSTR, /*in*/fInfoLevelId FINDEX_INFO_LEVELS, /*out*/lpFindFileData unsafe.Pointer, /*in*/fSearchOp FINDEX_SEARCH_OPS, /*in*//*out*/lpSearchFilter unsafe.Pointer, /*in*/dwAdditionalFlags FIND_FIRST_EX_FLAGS) (FindFileHandle)
-//sys	FindFirstFileExW(/*in*/lpFileName PWSTR, /*in*/fInfoLevelId FINDEX_INFO_LEVELS, /*out*/lpFindFileData unsafe.Pointer, /*in*/fSearchOp FINDEX_SEARCH_OPS, /*in*//*out*/lpSearchFilter unsafe.Pointer, /*in*/dwAdditionalFlags FIND_FIRST_EX_FLAGS) (FindFileHandle)
-//sys	FindFirstVolumeW(/*out*/lpszVolumeName PWSTR, /*in*/cchBufferLength uint32) (FindVolumeHandle)
-//sys	FindNextChangeNotification(/*in*/hChangeHandle FindChangeNotificationHandle) (BOOL)
-//sys	FindNextFileA(/*in*/hFindFile FindFileHandle, /*out*/lpFindFileData *WIN32_FIND_DATAA) (BOOL)
-//sys	FindNextFileW(/*in*/hFindFile HANDLE, /*out*/lpFindFileData *WIN32_FIND_DATAW) (BOOL)
-//sys	FindNextVolumeW(/*in*/hFindVolume FindVolumeHandle, /*out*/lpszVolumeName PWSTR, /*in*/cchBufferLength uint32) (BOOL)
-//sys	FindVolumeClose(/*in*/hFindVolume FindVolumeHandle) (BOOL)
-//sys	FlushFileBuffers(/*in*/hFile HANDLE) (BOOL)
-//sys	GetDiskFreeSpaceA(/*in*//*optional*/lpRootPathName PSTR, /*out*//*optional*/lpSectorsPerCluster *uint32, /*out*//*optional*/lpBytesPerSector *uint32, /*out*//*optional*/lpNumberOfFreeClusters *uint32, /*out*//*optional*/lpTotalNumberOfClusters *uint32) (BOOL)
-//sys	GetDiskFreeSpaceW(/*in*//*optional*/lpRootPathName PWSTR, /*out*//*optional*/lpSectorsPerCluster *uint32, /*out*//*optional*/lpBytesPerSector *uint32, /*out*//*optional*/lpNumberOfFreeClusters *uint32, /*out*//*optional*/lpTotalNumberOfClusters *uint32) (BOOL)
-//sys	GetDiskFreeSpaceExA(/*in*//*optional*/lpDirectoryName PSTR, /*out*//*optional*/lpFreeBytesAvailableToCaller *ULARGE_INTEGER, /*out*//*optional*/lpTotalNumberOfBytes *ULARGE_INTEGER, /*out*//*optional*/lpTotalNumberOfFreeBytes *ULARGE_INTEGER) (BOOL)
-//sys	GetDiskFreeSpaceExW(/*in*//*optional*/lpDirectoryName PWSTR, /*out*//*optional*/lpFreeBytesAvailableToCaller *ULARGE_INTEGER, /*out*//*optional*/lpTotalNumberOfBytes *ULARGE_INTEGER, /*out*//*optional*/lpTotalNumberOfFreeBytes *ULARGE_INTEGER) (BOOL)
-//sys	GetDiskSpaceInformationA(/*in*//*optional*/rootPath PSTR, /*out*/diskSpaceInfo *DISK_SPACE_INFORMATION) (HRESULT)
-//sys	GetDiskSpaceInformationW(/*in*//*optional*/rootPath PWSTR, /*out*/diskSpaceInfo *DISK_SPACE_INFORMATION) (HRESULT)
-//sys	GetDriveTypeA(/*in*//*optional*/lpRootPathName PSTR) (uint32)
-//sys	GetDriveTypeW(/*in*//*optional*/lpRootPathName PWSTR) (uint32)
-//sys	GetFileAttributesA(/*in*/lpFileName PSTR) (uint32)
-//sys	GetFileAttributesW(/*in*/lpFileName PWSTR) (uint32)
-//sys	GetFileAttributesExA(/*in*/lpFileName PSTR, /*in*/fInfoLevelId GET_FILEEX_INFO_LEVELS, /*out*/lpFileInformation unsafe.Pointer) (BOOL)
-//sys	GetFileAttributesExW(/*in*/lpFileName PWSTR, /*in*/fInfoLevelId GET_FILEEX_INFO_LEVELS, /*out*/lpFileInformation unsafe.Pointer) (BOOL)
-//sys	GetFileInformationByHandle(/*in*/hFile HANDLE, /*out*/lpFileInformation *BY_HANDLE_FILE_INFORMATION) (BOOL)
-//sys	GetFileSize(/*in*/hFile HANDLE, /*out*//*optional*/lpFileSizeHigh *uint32) (uint32)
-//sys	GetFileSizeEx(/*in*/hFile HANDLE, /*out*/lpFileSize *LARGE_INTEGER) (BOOL)
-//sys	GetFileType(/*in*/hFile HANDLE) (uint32)
-//sys	GetFinalPathNameByHandleA(/*in*/hFile HANDLE, /*out*/lpszFilePath PSTR, /*in*/cchFilePath uint32, /*in*/dwFlags FILE_NAME) (uint32)
-//sys	GetFinalPathNameByHandleW(/*in*/hFile HANDLE, /*out*/lpszFilePath PWSTR, /*in*/cchFilePath uint32, /*in*/dwFlags FILE_NAME) (uint32)
-//sys	GetFileTime(/*in*/hFile HANDLE, /*out*//*optional*/lpCreationTime *FILETIME, /*out*//*optional*/lpLastAccessTime *FILETIME, /*out*//*optional*/lpLastWriteTime *FILETIME) (BOOL)
-//sys	GetFullPathNameW(/*in*/lpFileName PWSTR, /*in*/nBufferLength uint32, /*out*//*optional*/lpBuffer PWSTR, /*out*//*optional*/lpFilePart *PWSTR) (uint32)
-//sys	GetFullPathNameA(/*in*/lpFileName PSTR, /*in*/nBufferLength uint32, /*out*//*optional*/lpBuffer PSTR, /*out*//*optional*/lpFilePart *PSTR) (uint32)
+//sys	SearchPathW(lpPath PWSTR, lpFileName PWSTR, lpExtension PWSTR, nBufferLength uint32, lpBuffer PWSTR, lpFilePart *PWSTR) (uint32)
+//sys	SearchPathA(lpPath PSTR, lpFileName PSTR, lpExtension PSTR, nBufferLength uint32, lpBuffer PSTR, lpFilePart *PSTR) (uint32)
+//sys	CompareFileTime(lpFileTime1 *FILETIME, lpFileTime2 *FILETIME) (int32)
+//sys	CreateDirectoryA(lpPathName PSTR, lpSecurityAttributes *SECURITY_ATTRIBUTES) (BOOL)
+//sys	CreateDirectoryW(lpPathName PWSTR, lpSecurityAttributes *SECURITY_ATTRIBUTES) (BOOL)
+//sys	CreateFileA(lpFileName PSTR, dwDesiredAccess FILE_ACCESS_FLAGS, dwShareMode FILE_SHARE_MODE, lpSecurityAttributes *SECURITY_ATTRIBUTES, dwCreationDisposition FILE_CREATION_DISPOSITION, dwFlagsAndAttributes FILE_FLAGS_AND_ATTRIBUTES, hTemplateFile HANDLE) (HANDLE)
+//sys	CreateFileW(lpFileName PWSTR, dwDesiredAccess FILE_ACCESS_FLAGS, dwShareMode FILE_SHARE_MODE, lpSecurityAttributes *SECURITY_ATTRIBUTES, dwCreationDisposition FILE_CREATION_DISPOSITION, dwFlagsAndAttributes FILE_FLAGS_AND_ATTRIBUTES, hTemplateFile HANDLE) (HANDLE)
+//sys	DefineDosDeviceW(dwFlags DEFINE_DOS_DEVICE_FLAGS, lpDeviceName PWSTR, lpTargetPath PWSTR) (BOOL)
+//sys	DeleteFileA(lpFileName PSTR) (BOOL)
+//sys	DeleteFileW(lpFileName PWSTR) (BOOL)
+//sys	DeleteVolumeMountPointW(lpszVolumeMountPoint PWSTR) (BOOL)
+//sys	FileTimeToLocalFileTime(lpFileTime *FILETIME, lpLocalFileTime *FILETIME) (BOOL)
+//sys	FindClose(hFindFile FindFileHandle) (BOOL)
+//sys	FindCloseChangeNotification(hChangeHandle FindChangeNotificationHandle) (BOOL)
+//sys	FindFirstChangeNotificationA(lpPathName PSTR, bWatchSubtree BOOL, dwNotifyFilter FILE_NOTIFY_CHANGE) (FindChangeNotificationHandle)
+//sys	FindFirstChangeNotificationW(lpPathName PWSTR, bWatchSubtree BOOL, dwNotifyFilter FILE_NOTIFY_CHANGE) (FindChangeNotificationHandle)
+//sys	FindFirstFileA(lpFileName PSTR, lpFindFileData *WIN32_FIND_DATAA) (FindFileHandle)
+//sys	FindFirstFileW(lpFileName PWSTR, lpFindFileData *WIN32_FIND_DATAW) (FindFileHandle)
+//sys	FindFirstFileExA(lpFileName PSTR, fInfoLevelId FINDEX_INFO_LEVELS, lpFindFileData unsafe.Pointer, fSearchOp FINDEX_SEARCH_OPS, lpSearchFilter unsafe.Pointer, dwAdditionalFlags FIND_FIRST_EX_FLAGS) (FindFileHandle)
+//sys	FindFirstFileExW(lpFileName PWSTR, fInfoLevelId FINDEX_INFO_LEVELS, lpFindFileData unsafe.Pointer, fSearchOp FINDEX_SEARCH_OPS, lpSearchFilter unsafe.Pointer, dwAdditionalFlags FIND_FIRST_EX_FLAGS) (FindFileHandle)
+//sys	FindFirstVolumeW(lpszVolumeName PWSTR, cchBufferLength uint32) (FindVolumeHandle)
+//sys	FindNextChangeNotification(hChangeHandle FindChangeNotificationHandle) (BOOL)
+//sys	FindNextFileA(hFindFile FindFileHandle, lpFindFileData *WIN32_FIND_DATAA) (BOOL)
+//sys	FindNextFileW(hFindFile HANDLE, lpFindFileData *WIN32_FIND_DATAW) (BOOL)
+//sys	FindNextVolumeW(hFindVolume FindVolumeHandle, lpszVolumeName PWSTR, cchBufferLength uint32) (BOOL)
+//sys	FindVolumeClose(hFindVolume FindVolumeHandle) (BOOL)
+//sys	FlushFileBuffers(hFile HANDLE) (BOOL)
+//sys	GetDiskFreeSpaceA(lpRootPathName PSTR, lpSectorsPerCluster *uint32, lpBytesPerSector *uint32, lpNumberOfFreeClusters *uint32, lpTotalNumberOfClusters *uint32) (BOOL)
+//sys	GetDiskFreeSpaceW(lpRootPathName PWSTR, lpSectorsPerCluster *uint32, lpBytesPerSector *uint32, lpNumberOfFreeClusters *uint32, lpTotalNumberOfClusters *uint32) (BOOL)
+//sys	GetDiskFreeSpaceExA(lpDirectoryName PSTR, lpFreeBytesAvailableToCaller *ULARGE_INTEGER, lpTotalNumberOfBytes *ULARGE_INTEGER, lpTotalNumberOfFreeBytes *ULARGE_INTEGER) (BOOL)
+//sys	GetDiskFreeSpaceExW(lpDirectoryName PWSTR, lpFreeBytesAvailableToCaller *ULARGE_INTEGER, lpTotalNumberOfBytes *ULARGE_INTEGER, lpTotalNumberOfFreeBytes *ULARGE_INTEGER) (BOOL)
+//sys	GetDiskSpaceInformationA(rootPath PSTR, diskSpaceInfo *DISK_SPACE_INFORMATION) (HRESULT)
+//sys	GetDiskSpaceInformationW(rootPath PWSTR, diskSpaceInfo *DISK_SPACE_INFORMATION) (HRESULT)
+//sys	GetDriveTypeA(lpRootPathName PSTR) (uint32)
+//sys	GetDriveTypeW(lpRootPathName PWSTR) (uint32)
+//sys	GetFileAttributesA(lpFileName PSTR) (uint32)
+//sys	GetFileAttributesW(lpFileName PWSTR) (uint32)
+//sys	GetFileAttributesExA(lpFileName PSTR, fInfoLevelId GET_FILEEX_INFO_LEVELS, lpFileInformation unsafe.Pointer) (BOOL)
+//sys	GetFileAttributesExW(lpFileName PWSTR, fInfoLevelId GET_FILEEX_INFO_LEVELS, lpFileInformation unsafe.Pointer) (BOOL)
+//sys	GetFileInformationByHandle(hFile HANDLE, lpFileInformation *BY_HANDLE_FILE_INFORMATION) (BOOL)
+//sys	GetFileSize(hFile HANDLE, lpFileSizeHigh *uint32) (uint32)
+//sys	GetFileSizeEx(hFile HANDLE, lpFileSize *LARGE_INTEGER) (BOOL)
+//sys	GetFileType(hFile HANDLE) (uint32)
+//sys	GetFinalPathNameByHandleA(hFile HANDLE, lpszFilePath PSTR, cchFilePath uint32, dwFlags FILE_NAME) (uint32)
+//sys	GetFinalPathNameByHandleW(hFile HANDLE, lpszFilePath PWSTR, cchFilePath uint32, dwFlags FILE_NAME) (uint32)
+//sys	GetFileTime(hFile HANDLE, lpCreationTime *FILETIME, lpLastAccessTime *FILETIME, lpLastWriteTime *FILETIME) (BOOL)
+//sys	GetFullPathNameW(lpFileName PWSTR, nBufferLength uint32, lpBuffer PWSTR, lpFilePart *PWSTR) (uint32)
+//sys	GetFullPathNameA(lpFileName PSTR, nBufferLength uint32, lpBuffer PSTR, lpFilePart *PSTR) (uint32)
 //sys	GetLogicalDrives() (uint32)
-//sys	GetLogicalDriveStringsW(/*in*/nBufferLength uint32, /*out*//*optional*/lpBuffer PWSTR) (uint32)
-//sys	GetLongPathNameA(/*in*/lpszShortPath PSTR, /*out*//*optional*/lpszLongPath PSTR, /*in*/cchBuffer uint32) (uint32)
-//sys	GetLongPathNameW(/*in*/lpszShortPath PWSTR, /*out*//*optional*/lpszLongPath PWSTR, /*in*/cchBuffer uint32) (uint32)
-//sys	AreShortNamesEnabled(/*in*/Handle HANDLE, /*out*/Enabled *BOOL) (BOOL)
-//sys	GetShortPathNameW(/*in*/lpszLongPath PWSTR, /*out*//*optional*/lpszShortPath PWSTR, /*in*/cchBuffer uint32) (uint32)
-//sys	GetTempFileNameW(/*in*/lpPathName PWSTR, /*in*/lpPrefixString PWSTR, /*in*/uUnique uint32, /*out*/lpTempFileName PWSTR) (uint32)
-//sys	GetVolumeInformationByHandleW(/*in*/hFile HANDLE, /*out*//*optional*/lpVolumeNameBuffer PWSTR, /*in*/nVolumeNameSize uint32, /*out*//*optional*/lpVolumeSerialNumber *uint32, /*out*//*optional*/lpMaximumComponentLength *uint32, /*out*//*optional*/lpFileSystemFlags *uint32, /*out*//*optional*/lpFileSystemNameBuffer PWSTR, /*in*/nFileSystemNameSize uint32) (BOOL)
-//sys	GetVolumeInformationW(/*in*//*optional*/lpRootPathName PWSTR, /*out*//*optional*/lpVolumeNameBuffer PWSTR, /*in*/nVolumeNameSize uint32, /*out*//*optional*/lpVolumeSerialNumber *uint32, /*out*//*optional*/lpMaximumComponentLength *uint32, /*out*//*optional*/lpFileSystemFlags *uint32, /*out*//*optional*/lpFileSystemNameBuffer PWSTR, /*in*/nFileSystemNameSize uint32) (BOOL)
-//sys	GetVolumePathNameW(/*in*/lpszFileName PWSTR, /*out*/lpszVolumePathName PWSTR, /*in*/cchBufferLength uint32) (BOOL)
-//sys	LocalFileTimeToFileTime(/*in*/lpLocalFileTime *FILETIME, /*out*/lpFileTime *FILETIME) (BOOL)
-//sys	LockFile(/*in*/hFile HANDLE, /*in*/dwFileOffsetLow uint32, /*in*/dwFileOffsetHigh uint32, /*in*/nNumberOfBytesToLockLow uint32, /*in*/nNumberOfBytesToLockHigh uint32) (BOOL)
-//sys	LockFileEx(/*in*/hFile HANDLE, /*in*/dwFlags LOCK_FILE_FLAGS, /*in*/dwReserved uint32, /*in*/nNumberOfBytesToLockLow uint32, /*in*/nNumberOfBytesToLockHigh uint32, /*in*//*out*/lpOverlapped *OVERLAPPED) (BOOL)
-//sys	QueryDosDeviceW(/*in*//*optional*/lpDeviceName PWSTR, /*out*//*optional*/lpTargetPath PWSTR, /*in*/ucchMax uint32) (uint32)
-//sys	ReadFile(/*in*/hFile HANDLE, /*out*//*optional*/lpBuffer unsafe.Pointer, /*in*/nNumberOfBytesToRead uint32, /*out*//*optional*/lpNumberOfBytesRead *uint32, /*in*//*out*//*optional*/lpOverlapped *OVERLAPPED) (BOOL)
-//sys	ReadFileEx(/*in*/hFile HANDLE, /*out*//*optional*/lpBuffer unsafe.Pointer, /*in*/nNumberOfBytesToRead uint32, /*in*//*out*/lpOverlapped *OVERLAPPED, /*in*/lpCompletionRoutine LPOVERLAPPED_COMPLETION_ROUTINE) (BOOL)
-//sys	ReadFileScatter(/*in*/hFile HANDLE, /*in*/aSegmentArray *FILE_SEGMENT_ELEMENT, /*in*/nNumberOfBytesToRead uint32, /*in*//*out*/lpReserved *uint32, /*in*//*out*/lpOverlapped *OVERLAPPED) (BOOL)
-//sys	RemoveDirectoryA(/*in*/lpPathName PSTR) (BOOL)
-//sys	RemoveDirectoryW(/*in*/lpPathName PWSTR) (BOOL)
-//sys	SetEndOfFile(/*in*/hFile HANDLE) (BOOL)
-//sys	SetFileAttributesA(/*in*/lpFileName PSTR, /*in*/dwFileAttributes FILE_FLAGS_AND_ATTRIBUTES) (BOOL)
-//sys	SetFileAttributesW(/*in*/lpFileName PWSTR, /*in*/dwFileAttributes FILE_FLAGS_AND_ATTRIBUTES) (BOOL)
-//sys	SetFileInformationByHandle(/*in*/hFile HANDLE, /*in*/FileInformationClass FILE_INFO_BY_HANDLE_CLASS, /*in*/lpFileInformation unsafe.Pointer, /*in*/dwBufferSize uint32) (BOOL)
-//sys	SetFilePointer(/*in*/hFile HANDLE, /*in*/lDistanceToMove int32, /*in*//*out*//*optional*/lpDistanceToMoveHigh *int32, /*in*/dwMoveMethod SET_FILE_POINTER_MOVE_METHOD) (uint32)
-//sys	SetFilePointerEx(/*in*/hFile HANDLE, /*in*/liDistanceToMove LARGE_INTEGER, /*out*//*optional*/lpNewFilePointer *LARGE_INTEGER, /*in*/dwMoveMethod SET_FILE_POINTER_MOVE_METHOD) (BOOL)
-//sys	SetFileTime(/*in*/hFile HANDLE, /*in*//*optional*/lpCreationTime *FILETIME, /*in*//*optional*/lpLastAccessTime *FILETIME, /*in*//*optional*/lpLastWriteTime *FILETIME) (BOOL)
-//sys	SetFileValidData(/*in*/hFile HANDLE, /*in*/ValidDataLength int64) (BOOL)
-//sys	UnlockFile(/*in*/hFile HANDLE, /*in*/dwFileOffsetLow uint32, /*in*/dwFileOffsetHigh uint32, /*in*/nNumberOfBytesToUnlockLow uint32, /*in*/nNumberOfBytesToUnlockHigh uint32) (BOOL)
-//sys	UnlockFileEx(/*in*/hFile HANDLE, /*in*/dwReserved uint32, /*in*/nNumberOfBytesToUnlockLow uint32, /*in*/nNumberOfBytesToUnlockHigh uint32, /*in*//*out*/lpOverlapped *OVERLAPPED) (BOOL)
-//sys	WriteFile(/*in*/hFile HANDLE, /*in*//*optional*/lpBuffer unsafe.Pointer, /*in*/nNumberOfBytesToWrite uint32, /*out*//*optional*/lpNumberOfBytesWritten *uint32, /*in*//*out*//*optional*/lpOverlapped *OVERLAPPED) (BOOL)
-//sys	WriteFileEx(/*in*/hFile HANDLE, /*in*//*optional*/lpBuffer unsafe.Pointer, /*in*/nNumberOfBytesToWrite uint32, /*in*//*out*/lpOverlapped *OVERLAPPED, /*in*/lpCompletionRoutine LPOVERLAPPED_COMPLETION_ROUTINE) (BOOL)
-//sys	WriteFileGather(/*in*/hFile HANDLE, /*in*/aSegmentArray *FILE_SEGMENT_ELEMENT, /*in*/nNumberOfBytesToWrite uint32, /*in*//*out*/lpReserved *uint32, /*in*//*out*/lpOverlapped *OVERLAPPED) (BOOL)
-//sys	GetTempPathW(/*in*/nBufferLength uint32, /*out*//*optional*/lpBuffer PWSTR) (uint32)
-//sys	GetVolumeNameForVolumeMountPointW(/*in*/lpszVolumeMountPoint PWSTR, /*out*/lpszVolumeName PWSTR, /*in*/cchBufferLength uint32) (BOOL)
-//sys	GetVolumePathNamesForVolumeNameW(/*in*/lpszVolumeName PWSTR, /*out*//*optional*/lpszVolumePathNames PWSTR, /*in*/cchBufferLength uint32, /*out*/lpcchReturnLength *uint32) (BOOL)
-//sys	CreateFile2(/*in*/lpFileName PWSTR, /*in*/dwDesiredAccess FILE_ACCESS_FLAGS, /*in*/dwShareMode FILE_SHARE_MODE, /*in*/dwCreationDisposition FILE_CREATION_DISPOSITION, /*in*//*optional*/pCreateExParams *CREATEFILE2_EXTENDED_PARAMETERS) (HANDLE)
-//sys	SetFileIoOverlappedRange(/*in*/FileHandle HANDLE, /*in*/OverlappedRangeStart *uint8, /*in*/Length uint32) (BOOL)
-//sys	GetCompressedFileSizeA(/*in*/lpFileName PSTR, /*out*//*optional*/lpFileSizeHigh *uint32) (uint32)
-//sys	GetCompressedFileSizeW(/*in*/lpFileName PWSTR, /*out*//*optional*/lpFileSizeHigh *uint32) (uint32)
-//sys	FindFirstStreamW(/*in*/lpFileName PWSTR, /*in*/InfoLevel STREAM_INFO_LEVELS, /*out*/lpFindStreamData unsafe.Pointer, /*in*/dwFlags uint32) (FindStreamHandle)
-//sys	FindNextStreamW(/*in*/hFindStream FindStreamHandle, /*out*/lpFindStreamData unsafe.Pointer) (BOOL)
+//sys	GetLogicalDriveStringsW(nBufferLength uint32, lpBuffer PWSTR) (uint32)
+//sys	GetLongPathNameA(lpszShortPath PSTR, lpszLongPath PSTR, cchBuffer uint32) (uint32)
+//sys	GetLongPathNameW(lpszShortPath PWSTR, lpszLongPath PWSTR, cchBuffer uint32) (uint32)
+//sys	AreShortNamesEnabled(Handle HANDLE, Enabled *BOOL) (BOOL)
+//sys	GetShortPathNameW(lpszLongPath PWSTR, lpszShortPath PWSTR, cchBuffer uint32) (uint32)
+//sys	GetTempFileNameW(lpPathName PWSTR, lpPrefixString PWSTR, uUnique uint32, lpTempFileName PWSTR) (uint32)
+//sys	GetVolumeInformationByHandleW(hFile HANDLE, lpVolumeNameBuffer PWSTR, nVolumeNameSize uint32, lpVolumeSerialNumber *uint32, lpMaximumComponentLength *uint32, lpFileSystemFlags *uint32, lpFileSystemNameBuffer PWSTR, nFileSystemNameSize uint32) (BOOL)
+//sys	GetVolumeInformationW(lpRootPathName PWSTR, lpVolumeNameBuffer PWSTR, nVolumeNameSize uint32, lpVolumeSerialNumber *uint32, lpMaximumComponentLength *uint32, lpFileSystemFlags *uint32, lpFileSystemNameBuffer PWSTR, nFileSystemNameSize uint32) (BOOL)
+//sys	GetVolumePathNameW(lpszFileName PWSTR, lpszVolumePathName PWSTR, cchBufferLength uint32) (BOOL)
+//sys	LocalFileTimeToFileTime(lpLocalFileTime *FILETIME, lpFileTime *FILETIME) (BOOL)
+//sys	LockFile(hFile HANDLE, dwFileOffsetLow uint32, dwFileOffsetHigh uint32, nNumberOfBytesToLockLow uint32, nNumberOfBytesToLockHigh uint32) (BOOL)
+//sys	LockFileEx(hFile HANDLE, dwFlags LOCK_FILE_FLAGS, dwReserved uint32, nNumberOfBytesToLockLow uint32, nNumberOfBytesToLockHigh uint32, lpOverlapped *OVERLAPPED) (BOOL)
+//sys	QueryDosDeviceW(lpDeviceName PWSTR, lpTargetPath PWSTR, ucchMax uint32) (uint32)
+//sys	ReadFile(hFile HANDLE, lpBuffer unsafe.Pointer, nNumberOfBytesToRead uint32, lpNumberOfBytesRead *uint32, lpOverlapped *OVERLAPPED) (BOOL)
+//sys	ReadFileEx(hFile HANDLE, lpBuffer unsafe.Pointer, nNumberOfBytesToRead uint32, lpOverlapped *OVERLAPPED, lpCompletionRoutine LPOVERLAPPED_COMPLETION_ROUTINE) (BOOL)
+//sys	ReadFileScatter(hFile HANDLE, aSegmentArray *FILE_SEGMENT_ELEMENT, nNumberOfBytesToRead uint32, lpReserved *uint32, lpOverlapped *OVERLAPPED) (BOOL)
+//sys	RemoveDirectoryA(lpPathName PSTR) (BOOL)
+//sys	RemoveDirectoryW(lpPathName PWSTR) (BOOL)
+//sys	SetEndOfFile(hFile HANDLE) (BOOL)
+//sys	SetFileAttributesA(lpFileName PSTR, dwFileAttributes FILE_FLAGS_AND_ATTRIBUTES) (BOOL)
+//sys	SetFileAttributesW(lpFileName PWSTR, dwFileAttributes FILE_FLAGS_AND_ATTRIBUTES) (BOOL)
+//sys	SetFileInformationByHandle(hFile HANDLE, FileInformationClass FILE_INFO_BY_HANDLE_CLASS, lpFileInformation unsafe.Pointer, dwBufferSize uint32) (BOOL)
+//sys	SetFilePointer(hFile HANDLE, lDistanceToMove int32, lpDistanceToMoveHigh *int32, dwMoveMethod SET_FILE_POINTER_MOVE_METHOD) (uint32)
+//sys	SetFilePointerEx(hFile HANDLE, liDistanceToMove LARGE_INTEGER, lpNewFilePointer *LARGE_INTEGER, dwMoveMethod SET_FILE_POINTER_MOVE_METHOD) (BOOL)
+//sys	SetFileTime(hFile HANDLE, lpCreationTime *FILETIME, lpLastAccessTime *FILETIME, lpLastWriteTime *FILETIME) (BOOL)
+//sys	SetFileValidData(hFile HANDLE, ValidDataLength int64) (BOOL)
+//sys	UnlockFile(hFile HANDLE, dwFileOffsetLow uint32, dwFileOffsetHigh uint32, nNumberOfBytesToUnlockLow uint32, nNumberOfBytesToUnlockHigh uint32) (BOOL)
+//sys	UnlockFileEx(hFile HANDLE, dwReserved uint32, nNumberOfBytesToUnlockLow uint32, nNumberOfBytesToUnlockHigh uint32, lpOverlapped *OVERLAPPED) (BOOL)
+//sys	WriteFile(hFile HANDLE, lpBuffer unsafe.Pointer, nNumberOfBytesToWrite uint32, lpNumberOfBytesWritten *uint32, lpOverlapped *OVERLAPPED) (BOOL)
+//sys	WriteFileEx(hFile HANDLE, lpBuffer unsafe.Pointer, nNumberOfBytesToWrite uint32, lpOverlapped *OVERLAPPED, lpCompletionRoutine LPOVERLAPPED_COMPLETION_ROUTINE) (BOOL)
+//sys	WriteFileGather(hFile HANDLE, aSegmentArray *FILE_SEGMENT_ELEMENT, nNumberOfBytesToWrite uint32, lpReserved *uint32, lpOverlapped *OVERLAPPED) (BOOL)
+//sys	GetTempPathW(nBufferLength uint32, lpBuffer PWSTR) (uint32)
+//sys	GetVolumeNameForVolumeMountPointW(lpszVolumeMountPoint PWSTR, lpszVolumeName PWSTR, cchBufferLength uint32) (BOOL)
+//sys	GetVolumePathNamesForVolumeNameW(lpszVolumeName PWSTR, lpszVolumePathNames PWSTR, cchBufferLength uint32, lpcchReturnLength *uint32) (BOOL)
+//sys	CreateFile2(lpFileName PWSTR, dwDesiredAccess FILE_ACCESS_FLAGS, dwShareMode FILE_SHARE_MODE, dwCreationDisposition FILE_CREATION_DISPOSITION, pCreateExParams *CREATEFILE2_EXTENDED_PARAMETERS) (HANDLE)
+//sys	SetFileIoOverlappedRange(FileHandle HANDLE, OverlappedRangeStart *uint8, Length uint32) (BOOL)
+//sys	GetCompressedFileSizeA(lpFileName PSTR, lpFileSizeHigh *uint32) (uint32)
+//sys	GetCompressedFileSizeW(lpFileName PWSTR, lpFileSizeHigh *uint32) (uint32)
+//sys	FindFirstStreamW(lpFileName PWSTR, InfoLevel STREAM_INFO_LEVELS, lpFindStreamData unsafe.Pointer, dwFlags uint32) (FindStreamHandle)
+//sys	FindNextStreamW(hFindStream FindStreamHandle, lpFindStreamData unsafe.Pointer) (BOOL)
 //sys	AreFileApisANSI() (BOOL)
-//sys	GetTempPathA(/*in*/nBufferLength uint32, /*out*//*optional*/lpBuffer PSTR) (uint32)
-//sys	FindFirstFileNameW(/*in*/lpFileName PWSTR, /*in*/dwFlags uint32, /*in*//*out*/StringLength *uint32, /*out*/LinkName PWSTR) (FindFileNameHandle)
-//sys	FindNextFileNameW(/*in*/hFindStream FindFileNameHandle, /*in*//*out*/StringLength *uint32, /*out*/LinkName PWSTR) (BOOL)
-//sys	GetVolumeInformationA(/*in*//*optional*/lpRootPathName PSTR, /*out*//*optional*/lpVolumeNameBuffer PSTR, /*in*/nVolumeNameSize uint32, /*out*//*optional*/lpVolumeSerialNumber *uint32, /*out*//*optional*/lpMaximumComponentLength *uint32, /*out*//*optional*/lpFileSystemFlags *uint32, /*out*//*optional*/lpFileSystemNameBuffer PSTR, /*in*/nFileSystemNameSize uint32) (BOOL)
-//sys	GetTempFileNameA(/*in*/lpPathName PSTR, /*in*/lpPrefixString PSTR, /*in*/uUnique uint32, /*out*/lpTempFileName PSTR) (uint32)
+//sys	GetTempPathA(nBufferLength uint32, lpBuffer PSTR) (uint32)
+//sys	FindFirstFileNameW(lpFileName PWSTR, dwFlags uint32, StringLength *uint32, LinkName PWSTR) (FindFileNameHandle)
+//sys	FindNextFileNameW(hFindStream FindFileNameHandle, StringLength *uint32, LinkName PWSTR) (BOOL)
+//sys	GetVolumeInformationA(lpRootPathName PSTR, lpVolumeNameBuffer PSTR, nVolumeNameSize uint32, lpVolumeSerialNumber *uint32, lpMaximumComponentLength *uint32, lpFileSystemFlags *uint32, lpFileSystemNameBuffer PSTR, nFileSystemNameSize uint32) (BOOL)
+//sys	GetTempFileNameA(lpPathName PSTR, lpPrefixString PSTR, uUnique uint32, lpTempFileName PSTR) (uint32)
 //sys	SetFileApisToOEM()
 //sys	SetFileApisToANSI()
-//sys	GetTempPath2W(/*in*/BufferLength uint32, /*out*//*optional*/Buffer PWSTR) (uint32)
-//sys	GetTempPath2A(/*in*/BufferLength uint32, /*out*//*optional*/Buffer PSTR) (uint32)
-//sys	CopyFileFromAppW(/*in*/lpExistingFileName PWSTR, /*in*/lpNewFileName PWSTR, /*in*/bFailIfExists BOOL) (BOOL) = api-ms-win-core-file-fromapp-l1-1-0.CopyFileFromAppW
-//sys	CreateDirectoryFromAppW(/*in*/lpPathName PWSTR, /*in*//*optional*/lpSecurityAttributes *SECURITY_ATTRIBUTES) (BOOL) = api-ms-win-core-file-fromapp-l1-1-0.CreateDirectoryFromAppW
-//sys	CreateFileFromAppW(/*in*/lpFileName PWSTR, /*in*/dwDesiredAccess uint32, /*in*/dwShareMode uint32, /*in*//*optional*/lpSecurityAttributes *SECURITY_ATTRIBUTES, /*in*/dwCreationDisposition uint32, /*in*/dwFlagsAndAttributes uint32, /*in*//*optional*/hTemplateFile HANDLE) (HANDLE) = api-ms-win-core-file-fromapp-l1-1-0.CreateFileFromAppW
-//sys	CreateFile2FromAppW(/*in*/lpFileName PWSTR, /*in*/dwDesiredAccess uint32, /*in*/dwShareMode uint32, /*in*/dwCreationDisposition uint32, /*in*//*optional*/pCreateExParams *CREATEFILE2_EXTENDED_PARAMETERS) (HANDLE) = api-ms-win-core-file-fromapp-l1-1-0.CreateFile2FromAppW
-//sys	DeleteFileFromAppW(/*in*/lpFileName PWSTR) (BOOL) = api-ms-win-core-file-fromapp-l1-1-0.DeleteFileFromAppW
-//sys	FindFirstFileExFromAppW(/*in*/lpFileName PWSTR, /*in*/fInfoLevelId FINDEX_INFO_LEVELS, /*out*/lpFindFileData unsafe.Pointer, /*in*/fSearchOp FINDEX_SEARCH_OPS, /*in*//*out*/lpSearchFilter unsafe.Pointer, /*in*/dwAdditionalFlags uint32) (HANDLE) = api-ms-win-core-file-fromapp-l1-1-0.FindFirstFileExFromAppW
-//sys	GetFileAttributesExFromAppW(/*in*/lpFileName PWSTR, /*in*/fInfoLevelId GET_FILEEX_INFO_LEVELS, /*out*/lpFileInformation unsafe.Pointer) (BOOL) = api-ms-win-core-file-fromapp-l1-1-0.GetFileAttributesExFromAppW
-//sys	MoveFileFromAppW(/*in*/lpExistingFileName PWSTR, /*in*/lpNewFileName PWSTR) (BOOL) = api-ms-win-core-file-fromapp-l1-1-0.MoveFileFromAppW
-//sys	RemoveDirectoryFromAppW(/*in*/lpPathName PWSTR) (BOOL) = api-ms-win-core-file-fromapp-l1-1-0.RemoveDirectoryFromAppW
-//sys	ReplaceFileFromAppW(/*in*/lpReplacedFileName PWSTR, /*in*/lpReplacementFileName PWSTR, /*in*//*optional*/lpBackupFileName PWSTR, /*in*/dwReplaceFlags uint32, /*in*//*out*/lpExclude unsafe.Pointer, /*in*//*out*/lpReserved unsafe.Pointer) (BOOL) = api-ms-win-core-file-fromapp-l1-1-0.ReplaceFileFromAppW
-//sys	SetFileAttributesFromAppW(/*in*/lpFileName PWSTR, /*in*/dwFileAttributes uint32) (BOOL) = api-ms-win-core-file-fromapp-l1-1-0.SetFileAttributesFromAppW
-//sys	VerFindFileA(/*in*/uFlags VER_FIND_FILE_FLAGS, /*in*/szFileName PSTR, /*in*//*optional*/szWinDir PSTR, /*in*/szAppDir PSTR, /*out*/szCurDir PSTR, /*in*//*out*/puCurDirLen *uint32, /*out*/szDestDir PSTR, /*in*//*out*/puDestDirLen *uint32) (VER_FIND_FILE_STATUS) = version.VerFindFileA
-//sys	VerFindFileW(/*in*/uFlags VER_FIND_FILE_FLAGS, /*in*/szFileName PWSTR, /*in*//*optional*/szWinDir PWSTR, /*in*/szAppDir PWSTR, /*out*/szCurDir PWSTR, /*in*//*out*/puCurDirLen *uint32, /*out*/szDestDir PWSTR, /*in*//*out*/puDestDirLen *uint32) (VER_FIND_FILE_STATUS) = version.VerFindFileW
-//sys	VerInstallFileA(/*in*/uFlags VER_INSTALL_FILE_FLAGS, /*in*/szSrcFileName PSTR, /*in*/szDestFileName PSTR, /*in*/szSrcDir PSTR, /*in*/szDestDir PSTR, /*in*/szCurDir PSTR, /*out*/szTmpFile PSTR, /*in*//*out*/puTmpFileLen *uint32) (VER_INSTALL_FILE_STATUS) = version.VerInstallFileA
-//sys	VerInstallFileW(/*in*/uFlags VER_INSTALL_FILE_FLAGS, /*in*/szSrcFileName PWSTR, /*in*/szDestFileName PWSTR, /*in*/szSrcDir PWSTR, /*in*/szDestDir PWSTR, /*in*/szCurDir PWSTR, /*out*/szTmpFile PWSTR, /*in*//*out*/puTmpFileLen *uint32) (VER_INSTALL_FILE_STATUS) = version.VerInstallFileW
-//sys	GetFileVersionInfoSizeA(/*in*/lptstrFilename PSTR, /*out*//*optional*/lpdwHandle *uint32) (uint32) = version.GetFileVersionInfoSizeA
-//sys	GetFileVersionInfoSizeW(/*in*/lptstrFilename PWSTR, /*out*//*optional*/lpdwHandle *uint32) (uint32) = version.GetFileVersionInfoSizeW
-//sys	GetFileVersionInfoA(/*in*/lptstrFilename PSTR, /*in*/dwHandle uint32, /*in*/dwLen uint32, /*out*/lpData unsafe.Pointer) (BOOL) = version.GetFileVersionInfoA
-//sys	GetFileVersionInfoW(/*in*/lptstrFilename PWSTR, /*in*/dwHandle uint32, /*in*/dwLen uint32, /*out*/lpData unsafe.Pointer) (BOOL) = version.GetFileVersionInfoW
-//sys	GetFileVersionInfoSizeExA(/*in*/dwFlags GET_FILE_VERSION_INFO_FLAGS, /*in*/lpwstrFilename PSTR, /*out*/lpdwHandle *uint32) (uint32) = version.GetFileVersionInfoSizeExA
-//sys	GetFileVersionInfoSizeExW(/*in*/dwFlags GET_FILE_VERSION_INFO_FLAGS, /*in*/lpwstrFilename PWSTR, /*out*/lpdwHandle *uint32) (uint32) = version.GetFileVersionInfoSizeExW
-//sys	GetFileVersionInfoExA(/*in*/dwFlags GET_FILE_VERSION_INFO_FLAGS, /*in*/lpwstrFilename PSTR, /*in*/dwHandle uint32, /*in*/dwLen uint32, /*out*/lpData unsafe.Pointer) (BOOL) = version.GetFileVersionInfoExA
-//sys	GetFileVersionInfoExW(/*in*/dwFlags GET_FILE_VERSION_INFO_FLAGS, /*in*/lpwstrFilename PWSTR, /*in*/dwHandle uint32, /*in*/dwLen uint32, /*out*/lpData unsafe.Pointer) (BOOL) = version.GetFileVersionInfoExW
-//sys	VerLanguageNameA(/*in*/wLang uint32, /*out*/szLang PSTR, /*in*/cchLang uint32) (uint32)
-//sys	VerLanguageNameW(/*in*/wLang uint32, /*out*/szLang PWSTR, /*in*/cchLang uint32) (uint32)
-//sys	VerQueryValueA(/*in*/pBlock unsafe.Pointer, /*in*/lpSubBlock PSTR, /*out*/lplpBuffer *unsafe.Pointer, /*out*/puLen *uint32) (BOOL) = version.VerQueryValueA
-//sys	VerQueryValueW(/*in*/pBlock unsafe.Pointer, /*in*/lpSubBlock PWSTR, /*out*/lplpBuffer *unsafe.Pointer, /*out*/puLen *uint32) (BOOL) = version.VerQueryValueW
-//sys	LsnEqual(/*in*/plsn1 *CLS_LSN, /*in*/plsn2 *CLS_LSN) (BOOLEAN) = clfsw32.LsnEqual
-//sys	LsnLess(/*in*/plsn1 *CLS_LSN, /*in*/plsn2 *CLS_LSN) (BOOLEAN) = clfsw32.LsnLess
-//sys	LsnGreater(/*in*/plsn1 *CLS_LSN, /*in*/plsn2 *CLS_LSN) (BOOLEAN) = clfsw32.LsnGreater
-//sys	LsnNull(/*in*/plsn *CLS_LSN) (BOOLEAN) = clfsw32.LsnNull
-//sys	LsnContainer(/*in*/plsn *CLS_LSN) (uint32) = clfsw32.LsnContainer
-//sys	LsnCreate(/*in*/cidContainer uint32, /*in*/offBlock uint32, /*in*/cRecord uint32) (CLS_LSN) = clfsw32.LsnCreate
-//sys	LsnBlockOffset(/*in*/plsn *CLS_LSN) (uint32) = clfsw32.LsnBlockOffset
-//sys	LsnRecordSequence(/*in*/plsn *CLS_LSN) (uint32) = clfsw32.LsnRecordSequence
-//sys	LsnInvalid(/*in*/plsn *CLS_LSN) (BOOLEAN) = clfsw32.LsnInvalid
-//sys	LsnIncrement(/*in*/plsn *CLS_LSN) (CLS_LSN) = clfsw32.LsnIncrement
-//sys	CreateLogFile(/*in*/pszLogFileName PWSTR, /*in*/fDesiredAccess FILE_ACCESS_FLAGS, /*in*/dwShareMode FILE_SHARE_MODE, /*in*//*out*/psaLogFile *SECURITY_ATTRIBUTES, /*in*/fCreateDisposition FILE_CREATION_DISPOSITION, /*in*/fFlagsAndAttributes FILE_FLAGS_AND_ATTRIBUTES) (HANDLE) = clfsw32.CreateLogFile
-//sys	DeleteLogByHandle(/*in*/hLog HANDLE) (BOOL) = clfsw32.DeleteLogByHandle
-//sys	DeleteLogFile(/*in*/pszLogFileName PWSTR, /*in*//*out*/pvReserved unsafe.Pointer) (BOOL) = clfsw32.DeleteLogFile
-//sys	AddLogContainer(/*in*/hLog HANDLE, /*in*//*optional*/pcbContainer *uint64, /*in*/pwszContainerPath PWSTR, /*in*//*out*//*optional*/pReserved unsafe.Pointer) (BOOL) = clfsw32.AddLogContainer
-//sys	AddLogContainerSet(/*in*/hLog HANDLE, /*in*/cContainer uint16, /*in*//*optional*/pcbContainer *uint64, /*in*/rgwszContainerPath *PWSTR, /*in*//*out*//*optional*/pReserved unsafe.Pointer) (BOOL) = clfsw32.AddLogContainerSet
-//sys	RemoveLogContainer(/*in*/hLog HANDLE, /*in*/pwszContainerPath PWSTR, /*in*/fForce BOOL, /*in*//*out*//*optional*/pReserved unsafe.Pointer) (BOOL) = clfsw32.RemoveLogContainer
-//sys	RemoveLogContainerSet(/*in*/hLog HANDLE, /*in*/cContainer uint16, /*in*/rgwszContainerPath *PWSTR, /*in*/fForce BOOL, /*in*//*out*//*optional*/pReserved unsafe.Pointer) (BOOL) = clfsw32.RemoveLogContainerSet
-//sys	SetLogArchiveTail(/*in*/hLog HANDLE, /*in*//*out*/plsnArchiveTail *CLS_LSN, /*in*//*out*/pReserved unsafe.Pointer) (BOOL) = clfsw32.SetLogArchiveTail
-//sys	SetEndOfLog(/*in*/hLog HANDLE, /*in*//*out*/plsnEnd *CLS_LSN, /*in*//*out*/lpOverlapped *OVERLAPPED) (BOOL) = clfsw32.SetEndOfLog
-//sys	TruncateLog(/*in*/pvMarshal unsafe.Pointer, /*in*/plsnEnd *CLS_LSN, /*in*//*out*//*optional*/lpOverlapped *OVERLAPPED) (BOOL) = clfsw32.TruncateLog
-//sys	CreateLogContainerScanContext(/*in*/hLog HANDLE, /*in*/cFromContainer uint32, /*in*/cContainers uint32, /*in*/eScanMode uint8, /*in*//*out*/pcxScan *CLS_SCAN_CONTEXT, /*in*//*out*/pOverlapped *OVERLAPPED) (BOOL) = clfsw32.CreateLogContainerScanContext
-//sys	ScanLogContainers(/*in*//*out*/pcxScan *CLS_SCAN_CONTEXT, /*in*/eScanMode uint8, /*in*//*out*/pReserved unsafe.Pointer) (BOOL) = clfsw32.ScanLogContainers
-//sys	AlignReservedLog(/*in*//*out*/pvMarshal unsafe.Pointer, /*in*/cReservedRecords uint32, /*in*//*out*/rgcbReservation *int64, /*in*//*out*/pcbAlignReservation *int64) (BOOL) = clfsw32.AlignReservedLog
-//sys	AllocReservedLog(/*in*//*out*/pvMarshal unsafe.Pointer, /*in*/cReservedRecords uint32, /*in*//*out*/pcbAdjustment *int64) (BOOL) = clfsw32.AllocReservedLog
-//sys	FreeReservedLog(/*in*//*out*/pvMarshal unsafe.Pointer, /*in*/cReservedRecords uint32, /*in*//*out*/pcbAdjustment *int64) (BOOL) = clfsw32.FreeReservedLog
-//sys	GetLogFileInformation(/*in*/hLog HANDLE, /*in*//*out*/pinfoBuffer *CLS_INFORMATION, /*in*//*out*/cbBuffer *uint32) (BOOL) = clfsw32.GetLogFileInformation
-//sys	SetLogArchiveMode(/*in*/hLog HANDLE, /*in*/eMode CLFS_LOG_ARCHIVE_MODE) (BOOL) = clfsw32.SetLogArchiveMode
-//sys	ReadLogRestartArea(/*in*//*out*/pvMarshal unsafe.Pointer, /*in*//*out*/ppvRestartBuffer *unsafe.Pointer, /*in*//*out*/pcbRestartBuffer *uint32, /*in*//*out*/plsn *CLS_LSN, /*in*//*out*/ppvContext *unsafe.Pointer, /*in*//*out*/pOverlapped *OVERLAPPED) (BOOL) = clfsw32.ReadLogRestartArea
-//sys	ReadPreviousLogRestartArea(/*in*//*out*/pvReadContext unsafe.Pointer, /*in*//*out*/ppvRestartBuffer *unsafe.Pointer, /*in*//*out*/pcbRestartBuffer *uint32, /*in*//*out*/plsnRestart *CLS_LSN, /*in*//*out*/pOverlapped *OVERLAPPED) (BOOL) = clfsw32.ReadPreviousLogRestartArea
-//sys	WriteLogRestartArea(/*in*//*out*/pvMarshal unsafe.Pointer, /*in*//*out*/pvRestartBuffer unsafe.Pointer, /*in*/cbRestartBuffer uint32, /*in*//*out*/plsnBase *CLS_LSN, /*in*/fFlags CLFS_FLAG, /*in*//*out*/pcbWritten *uint32, /*in*//*out*/plsnNext *CLS_LSN, /*in*//*out*/pOverlapped *OVERLAPPED) (BOOL) = clfsw32.WriteLogRestartArea
-//sys	GetLogReservationInfo(/*in*/pvMarshal unsafe.Pointer, /*out*/pcbRecordNumber *uint32, /*out*/pcbUserReservation *int64, /*out*/pcbCommitReservation *int64) (BOOL) = clfsw32.GetLogReservationInfo
-//sys	AdvanceLogBase(/*in*//*out*/pvMarshal unsafe.Pointer, /*in*//*out*/plsnBase *CLS_LSN, /*in*/fFlags uint32, /*in*//*out*/pOverlapped *OVERLAPPED) (BOOL) = clfsw32.AdvanceLogBase
-//sys	CloseAndResetLogFile(/*in*/hLog HANDLE) (BOOL) = clfsw32.CloseAndResetLogFile
-//sys	CreateLogMarshallingArea(/*in*/hLog HANDLE, /*in*/pfnAllocBuffer CLFS_BLOCK_ALLOCATION, /*in*/pfnFreeBuffer CLFS_BLOCK_DEALLOCATION, /*in*//*out*/pvBlockAllocContext unsafe.Pointer, /*in*/cbMarshallingBuffer uint32, /*in*/cMaxWriteBuffers uint32, /*in*/cMaxReadBuffers uint32, /*in*//*out*/ppvMarshal *unsafe.Pointer) (BOOL) = clfsw32.CreateLogMarshallingArea
-//sys	DeleteLogMarshallingArea(/*in*//*out*/pvMarshal unsafe.Pointer) (BOOL) = clfsw32.DeleteLogMarshallingArea
-//sys	ReserveAndAppendLog(/*in*//*out*/pvMarshal unsafe.Pointer, /*in*//*out*/rgWriteEntries *CLS_WRITE_ENTRY, /*in*/cWriteEntries uint32, /*in*//*out*/plsnUndoNext *CLS_LSN, /*in*//*out*/plsnPrevious *CLS_LSN, /*in*/cReserveRecords uint32, /*in*//*out*/rgcbReservation *int64, /*in*/fFlags CLFS_FLAG, /*in*//*out*/plsn *CLS_LSN, /*in*//*out*/pOverlapped *OVERLAPPED) (BOOL) = clfsw32.ReserveAndAppendLog
-//sys	ReserveAndAppendLogAligned(/*in*//*out*/pvMarshal unsafe.Pointer, /*in*//*out*/rgWriteEntries *CLS_WRITE_ENTRY, /*in*/cWriteEntries uint32, /*in*/cbEntryAlignment uint32, /*in*//*out*/plsnUndoNext *CLS_LSN, /*in*//*out*/plsnPrevious *CLS_LSN, /*in*/cReserveRecords uint32, /*in*//*out*/rgcbReservation *int64, /*in*/fFlags CLFS_FLAG, /*in*//*out*/plsn *CLS_LSN, /*in*//*out*/pOverlapped *OVERLAPPED) (BOOL) = clfsw32.ReserveAndAppendLogAligned
-//sys	FlushLogBuffers(/*in*//*out*/pvMarshal unsafe.Pointer, /*in*//*out*/pOverlapped *OVERLAPPED) (BOOL) = clfsw32.FlushLogBuffers
-//sys	FlushLogToLsn(/*in*//*out*/pvMarshalContext unsafe.Pointer, /*in*//*out*/plsnFlush *CLS_LSN, /*in*//*out*/plsnLastFlushed *CLS_LSN, /*in*//*out*/pOverlapped *OVERLAPPED) (BOOL) = clfsw32.FlushLogToLsn
-//sys	ReadLogRecord(/*in*//*out*/pvMarshal unsafe.Pointer, /*in*//*out*/plsnFirst *CLS_LSN, /*in*/eContextMode CLFS_CONTEXT_MODE, /*in*//*out*/ppvReadBuffer *unsafe.Pointer, /*in*//*out*/pcbReadBuffer *uint32, /*in*//*out*/peRecordType *uint8, /*in*//*out*/plsnUndoNext *CLS_LSN, /*in*//*out*/plsnPrevious *CLS_LSN, /*in*//*out*/ppvReadContext *unsafe.Pointer, /*in*//*out*/pOverlapped *OVERLAPPED) (BOOL) = clfsw32.ReadLogRecord
-//sys	ReadNextLogRecord(/*in*//*out*/pvReadContext unsafe.Pointer, /*in*//*out*/ppvBuffer *unsafe.Pointer, /*in*//*out*/pcbBuffer *uint32, /*in*//*out*/peRecordType *uint8, /*in*//*out*/plsnUser *CLS_LSN, /*in*//*out*/plsnUndoNext *CLS_LSN, /*in*//*out*/plsnPrevious *CLS_LSN, /*in*//*out*/plsnRecord *CLS_LSN, /*in*//*out*/pOverlapped *OVERLAPPED) (BOOL) = clfsw32.ReadNextLogRecord
-//sys	TerminateReadLog(/*in*//*out*/pvCursorContext unsafe.Pointer) (BOOL) = clfsw32.TerminateReadLog
-//sys	PrepareLogArchive(/*in*/hLog HANDLE, /*in*//*out*/pszBaseLogFileName PWSTR, /*in*/cLen uint32, /*in*//*optional*/plsnLow *CLS_LSN, /*in*//*optional*/plsnHigh *CLS_LSN, /*out*//*optional*/pcActualLength *uint32, /*out*/poffBaseLogFileData *uint64, /*out*/pcbBaseLogFileLength *uint64, /*out*/plsnBase *CLS_LSN, /*out*/plsnLast *CLS_LSN, /*out*/plsnCurrentArchiveTail *CLS_LSN, /*out*/ppvArchiveContext *unsafe.Pointer) (BOOL) = clfsw32.PrepareLogArchive
-//sys	ReadLogArchiveMetadata(/*in*//*out*/pvArchiveContext unsafe.Pointer, /*in*/cbOffset uint32, /*in*/cbBytesToRead uint32, /*in*//*out*/pbReadBuffer *uint8, /*in*//*out*/pcbBytesRead *uint32) (BOOL) = clfsw32.ReadLogArchiveMetadata
-//sys	GetNextLogArchiveExtent(/*in*//*out*/pvArchiveContext unsafe.Pointer, /*in*//*out*/rgadExtent *CLS_ARCHIVE_DESCRIPTOR, /*in*/cDescriptors uint32, /*in*//*out*/pcDescriptorsReturned *uint32) (BOOL) = clfsw32.GetNextLogArchiveExtent
-//sys	TerminateLogArchive(/*in*//*out*/pvArchiveContext unsafe.Pointer) (BOOL) = clfsw32.TerminateLogArchive
-//sys	ValidateLog(/*in*/pszLogFileName PWSTR, /*in*//*out*/psaLogFile *SECURITY_ATTRIBUTES, /*in*//*out*/pinfoBuffer *CLS_INFORMATION, /*in*//*out*/pcbBuffer *uint32) (BOOL) = clfsw32.ValidateLog
-//sys	GetLogContainerName(/*in*/hLog HANDLE, /*in*/cidLogicalContainer uint32, /*in*/pwstrContainerName PWSTR, /*in*/cLenContainerName uint32, /*in*//*out*/pcActualLenContainerName *uint32) (BOOL) = clfsw32.GetLogContainerName
-//sys	GetLogIoStatistics(/*in*/hLog HANDLE, /*in*//*out*/pvStatsBuffer unsafe.Pointer, /*in*/cbStatsBuffer uint32, /*in*/eStatsClass CLFS_IOSTATS_CLASS, /*in*//*out*/pcbStatsWritten *uint32) (BOOL) = clfsw32.GetLogIoStatistics
-//sys	RegisterManageableLogClient(/*in*/hLog HANDLE, /*in*//*out*/pCallbacks *LOG_MANAGEMENT_CALLBACKS) (BOOL) = clfsw32.RegisterManageableLogClient
-//sys	DeregisterManageableLogClient(/*in*/hLog HANDLE) (BOOL) = clfsw32.DeregisterManageableLogClient
-//sys	ReadLogNotification(/*in*/hLog HANDLE, /*in*//*out*/pNotification *CLFS_MGMT_NOTIFICATION, /*in*//*out*/lpOverlapped *OVERLAPPED) (BOOL) = clfsw32.ReadLogNotification
-//sys	InstallLogPolicy(/*in*/hLog HANDLE, /*in*//*out*/pPolicy *CLFS_MGMT_POLICY) (BOOL) = clfsw32.InstallLogPolicy
-//sys	RemoveLogPolicy(/*in*/hLog HANDLE, /*in*/ePolicyType CLFS_MGMT_POLICY_TYPE) (BOOL) = clfsw32.RemoveLogPolicy
-//sys	QueryLogPolicy(/*in*/hLog HANDLE, /*in*/ePolicyType CLFS_MGMT_POLICY_TYPE, /*in*//*out*/pPolicyBuffer *CLFS_MGMT_POLICY, /*in*//*out*/pcbPolicyBuffer *uint32) (BOOL) = clfsw32.QueryLogPolicy
-//sys	SetLogFileSizeWithPolicy(/*in*/hLog HANDLE, /*in*//*out*/pDesiredSize *uint64, /*in*//*out*/pResultingSize *uint64) (BOOL) = clfsw32.SetLogFileSizeWithPolicy
-//sys	HandleLogFull(/*in*/hLog HANDLE) (BOOL) = clfsw32.HandleLogFull
-//sys	LogTailAdvanceFailure(/*in*/hLog HANDLE, /*in*/dwReason uint32) (BOOL) = clfsw32.LogTailAdvanceFailure
-//sys	RegisterForLogWriteNotification(/*in*/hLog HANDLE, /*in*/cbThreshold uint32, /*in*/fEnable BOOL) (BOOL) = clfsw32.RegisterForLogWriteNotification
-//sys	QueryUsersOnEncryptedFile(/*in*/lpFileName PWSTR, /*out*/pUsers **ENCRYPTION_CERTIFICATE_HASH_LIST) (uint32) = advapi32.QueryUsersOnEncryptedFile
-//sys	QueryRecoveryAgentsOnEncryptedFile(/*in*/lpFileName PWSTR, /*out*/pRecoveryAgents **ENCRYPTION_CERTIFICATE_HASH_LIST) (uint32) = advapi32.QueryRecoveryAgentsOnEncryptedFile
-//sys	RemoveUsersFromEncryptedFile(/*in*/lpFileName PWSTR, /*in*/pHashes *ENCRYPTION_CERTIFICATE_HASH_LIST) (uint32) = advapi32.RemoveUsersFromEncryptedFile
-//sys	AddUsersToEncryptedFile(/*in*/lpFileName PWSTR, /*in*/pEncryptionCertificates *ENCRYPTION_CERTIFICATE_LIST) (uint32) = advapi32.AddUsersToEncryptedFile
-//sys	SetUserFileEncryptionKey(/*in*//*optional*/pEncryptionCertificate *ENCRYPTION_CERTIFICATE) (uint32) = advapi32.SetUserFileEncryptionKey
-//sys	SetUserFileEncryptionKeyEx(/*in*//*optional*/pEncryptionCertificate *ENCRYPTION_CERTIFICATE, /*in*/dwCapabilities uint32, /*in*/dwFlags uint32, /*in*//*out*/pvReserved unsafe.Pointer) (uint32) = advapi32.SetUserFileEncryptionKeyEx
-//sys	FreeEncryptionCertificateHashList(/*in*/pUsers *ENCRYPTION_CERTIFICATE_HASH_LIST) = advapi32.FreeEncryptionCertificateHashList
-//sys	EncryptionDisable(/*in*/DirPath PWSTR, /*in*/Disable BOOL) (BOOL) = advapi32.EncryptionDisable
-//sys	DuplicateEncryptionInfoFile(/*in*/SrcFileName PWSTR, /*in*/DstFileName PWSTR, /*in*/dwCreationDistribution uint32, /*in*/dwAttributes uint32, /*in*//*optional*/lpSecurityAttributes *SECURITY_ATTRIBUTES) (uint32) = advapi32.DuplicateEncryptionInfoFile
-//sys	GetEncryptedFileMetadata(/*in*/lpFileName PWSTR, /*out*/pcbMetadata *uint32, /*out*/ppbMetadata **uint8) (uint32) = advapi32.GetEncryptedFileMetadata
-//sys	SetEncryptedFileMetadata(/*in*/lpFileName PWSTR, /*in*//*optional*/pbOldMetadata *uint8, /*in*/pbNewMetadata *uint8, /*in*/pOwnerHash *ENCRYPTION_CERTIFICATE_HASH, /*in*/dwOperation uint32, /*in*//*optional*/pCertificatesAdded *ENCRYPTION_CERTIFICATE_HASH_LIST) (uint32) = advapi32.SetEncryptedFileMetadata
-//sys	FreeEncryptedFileMetadata(/*in*/pbMetadata *uint8) = advapi32.FreeEncryptedFileMetadata
+//sys	GetTempPath2W(BufferLength uint32, Buffer PWSTR) (uint32)
+//sys	GetTempPath2A(BufferLength uint32, Buffer PSTR) (uint32)
+//sys	CopyFileFromAppW(lpExistingFileName PWSTR, lpNewFileName PWSTR, bFailIfExists BOOL) (BOOL) = api-ms-win-core-file-fromapp-l1-1-0.CopyFileFromAppW
+//sys	CreateDirectoryFromAppW(lpPathName PWSTR, lpSecurityAttributes *SECURITY_ATTRIBUTES) (BOOL) = api-ms-win-core-file-fromapp-l1-1-0.CreateDirectoryFromAppW
+//sys	CreateFileFromAppW(lpFileName PWSTR, dwDesiredAccess uint32, dwShareMode uint32, lpSecurityAttributes *SECURITY_ATTRIBUTES, dwCreationDisposition uint32, dwFlagsAndAttributes uint32, hTemplateFile HANDLE) (HANDLE) = api-ms-win-core-file-fromapp-l1-1-0.CreateFileFromAppW
+//sys	CreateFile2FromAppW(lpFileName PWSTR, dwDesiredAccess uint32, dwShareMode uint32, dwCreationDisposition uint32, pCreateExParams *CREATEFILE2_EXTENDED_PARAMETERS) (HANDLE) = api-ms-win-core-file-fromapp-l1-1-0.CreateFile2FromAppW
+//sys	DeleteFileFromAppW(lpFileName PWSTR) (BOOL) = api-ms-win-core-file-fromapp-l1-1-0.DeleteFileFromAppW
+//sys	FindFirstFileExFromAppW(lpFileName PWSTR, fInfoLevelId FINDEX_INFO_LEVELS, lpFindFileData unsafe.Pointer, fSearchOp FINDEX_SEARCH_OPS, lpSearchFilter unsafe.Pointer, dwAdditionalFlags uint32) (HANDLE) = api-ms-win-core-file-fromapp-l1-1-0.FindFirstFileExFromAppW
+//sys	GetFileAttributesExFromAppW(lpFileName PWSTR, fInfoLevelId GET_FILEEX_INFO_LEVELS, lpFileInformation unsafe.Pointer) (BOOL) = api-ms-win-core-file-fromapp-l1-1-0.GetFileAttributesExFromAppW
+//sys	MoveFileFromAppW(lpExistingFileName PWSTR, lpNewFileName PWSTR) (BOOL) = api-ms-win-core-file-fromapp-l1-1-0.MoveFileFromAppW
+//sys	RemoveDirectoryFromAppW(lpPathName PWSTR) (BOOL) = api-ms-win-core-file-fromapp-l1-1-0.RemoveDirectoryFromAppW
+//sys	ReplaceFileFromAppW(lpReplacedFileName PWSTR, lpReplacementFileName PWSTR, lpBackupFileName PWSTR, dwReplaceFlags uint32, lpExclude unsafe.Pointer, lpReserved unsafe.Pointer) (BOOL) = api-ms-win-core-file-fromapp-l1-1-0.ReplaceFileFromAppW
+//sys	SetFileAttributesFromAppW(lpFileName PWSTR, dwFileAttributes uint32) (BOOL) = api-ms-win-core-file-fromapp-l1-1-0.SetFileAttributesFromAppW
+//sys	VerFindFileA(uFlags VER_FIND_FILE_FLAGS, szFileName PSTR, szWinDir PSTR, szAppDir PSTR, szCurDir PSTR, puCurDirLen *uint32, szDestDir PSTR, puDestDirLen *uint32) (VER_FIND_FILE_STATUS) = version.VerFindFileA
+//sys	VerFindFileW(uFlags VER_FIND_FILE_FLAGS, szFileName PWSTR, szWinDir PWSTR, szAppDir PWSTR, szCurDir PWSTR, puCurDirLen *uint32, szDestDir PWSTR, puDestDirLen *uint32) (VER_FIND_FILE_STATUS) = version.VerFindFileW
+//sys	VerInstallFileA(uFlags VER_INSTALL_FILE_FLAGS, szSrcFileName PSTR, szDestFileName PSTR, szSrcDir PSTR, szDestDir PSTR, szCurDir PSTR, szTmpFile PSTR, puTmpFileLen *uint32) (VER_INSTALL_FILE_STATUS) = version.VerInstallFileA
+//sys	VerInstallFileW(uFlags VER_INSTALL_FILE_FLAGS, szSrcFileName PWSTR, szDestFileName PWSTR, szSrcDir PWSTR, szDestDir PWSTR, szCurDir PWSTR, szTmpFile PWSTR, puTmpFileLen *uint32) (VER_INSTALL_FILE_STATUS) = version.VerInstallFileW
+//sys	GetFileVersionInfoSizeA(lptstrFilename PSTR, lpdwHandle *uint32) (uint32) = version.GetFileVersionInfoSizeA
+//sys	GetFileVersionInfoSizeW(lptstrFilename PWSTR, lpdwHandle *uint32) (uint32) = version.GetFileVersionInfoSizeW
+//sys	GetFileVersionInfoA(lptstrFilename PSTR, dwHandle uint32, dwLen uint32, lpData unsafe.Pointer) (BOOL) = version.GetFileVersionInfoA
+//sys	GetFileVersionInfoW(lptstrFilename PWSTR, dwHandle uint32, dwLen uint32, lpData unsafe.Pointer) (BOOL) = version.GetFileVersionInfoW
+//sys	GetFileVersionInfoSizeExA(dwFlags GET_FILE_VERSION_INFO_FLAGS, lpwstrFilename PSTR, lpdwHandle *uint32) (uint32) = version.GetFileVersionInfoSizeExA
+//sys	GetFileVersionInfoSizeExW(dwFlags GET_FILE_VERSION_INFO_FLAGS, lpwstrFilename PWSTR, lpdwHandle *uint32) (uint32) = version.GetFileVersionInfoSizeExW
+//sys	GetFileVersionInfoExA(dwFlags GET_FILE_VERSION_INFO_FLAGS, lpwstrFilename PSTR, dwHandle uint32, dwLen uint32, lpData unsafe.Pointer) (BOOL) = version.GetFileVersionInfoExA
+//sys	GetFileVersionInfoExW(dwFlags GET_FILE_VERSION_INFO_FLAGS, lpwstrFilename PWSTR, dwHandle uint32, dwLen uint32, lpData unsafe.Pointer) (BOOL) = version.GetFileVersionInfoExW
+//sys	VerLanguageNameA(wLang uint32, szLang PSTR, cchLang uint32) (uint32)
+//sys	VerLanguageNameW(wLang uint32, szLang PWSTR, cchLang uint32) (uint32)
+//sys	VerQueryValueA(pBlock unsafe.Pointer, lpSubBlock PSTR, lplpBuffer *unsafe.Pointer, puLen *uint32) (BOOL) = version.VerQueryValueA
+//sys	VerQueryValueW(pBlock unsafe.Pointer, lpSubBlock PWSTR, lplpBuffer *unsafe.Pointer, puLen *uint32) (BOOL) = version.VerQueryValueW
+//sys	LsnEqual(plsn1 *CLS_LSN, plsn2 *CLS_LSN) (BOOLEAN) = clfsw32.LsnEqual
+//sys	LsnLess(plsn1 *CLS_LSN, plsn2 *CLS_LSN) (BOOLEAN) = clfsw32.LsnLess
+//sys	LsnGreater(plsn1 *CLS_LSN, plsn2 *CLS_LSN) (BOOLEAN) = clfsw32.LsnGreater
+//sys	LsnNull(plsn *CLS_LSN) (BOOLEAN) = clfsw32.LsnNull
+//sys	LsnContainer(plsn *CLS_LSN) (uint32) = clfsw32.LsnContainer
+//sys	LsnCreate(cidContainer uint32, offBlock uint32, cRecord uint32) (CLS_LSN) = clfsw32.LsnCreate
+//sys	LsnBlockOffset(plsn *CLS_LSN) (uint32) = clfsw32.LsnBlockOffset
+//sys	LsnRecordSequence(plsn *CLS_LSN) (uint32) = clfsw32.LsnRecordSequence
+//sys	LsnInvalid(plsn *CLS_LSN) (BOOLEAN) = clfsw32.LsnInvalid
+//sys	LsnIncrement(plsn *CLS_LSN) (CLS_LSN) = clfsw32.LsnIncrement
+//sys	CreateLogFile(pszLogFileName PWSTR, fDesiredAccess FILE_ACCESS_FLAGS, dwShareMode FILE_SHARE_MODE, psaLogFile *SECURITY_ATTRIBUTES, fCreateDisposition FILE_CREATION_DISPOSITION, fFlagsAndAttributes FILE_FLAGS_AND_ATTRIBUTES) (HANDLE) = clfsw32.CreateLogFile
+//sys	DeleteLogByHandle(hLog HANDLE) (BOOL) = clfsw32.DeleteLogByHandle
+//sys	DeleteLogFile(pszLogFileName PWSTR, pvReserved unsafe.Pointer) (BOOL) = clfsw32.DeleteLogFile
+//sys	AddLogContainer(hLog HANDLE, pcbContainer *uint64, pwszContainerPath PWSTR, pReserved unsafe.Pointer) (BOOL) = clfsw32.AddLogContainer
+//sys	AddLogContainerSet(hLog HANDLE, cContainer uint16, pcbContainer *uint64, rgwszContainerPath *PWSTR, pReserved unsafe.Pointer) (BOOL) = clfsw32.AddLogContainerSet
+//sys	RemoveLogContainer(hLog HANDLE, pwszContainerPath PWSTR, fForce BOOL, pReserved unsafe.Pointer) (BOOL) = clfsw32.RemoveLogContainer
+//sys	RemoveLogContainerSet(hLog HANDLE, cContainer uint16, rgwszContainerPath *PWSTR, fForce BOOL, pReserved unsafe.Pointer) (BOOL) = clfsw32.RemoveLogContainerSet
+//sys	SetLogArchiveTail(hLog HANDLE, plsnArchiveTail *CLS_LSN, pReserved unsafe.Pointer) (BOOL) = clfsw32.SetLogArchiveTail
+//sys	SetEndOfLog(hLog HANDLE, plsnEnd *CLS_LSN, lpOverlapped *OVERLAPPED) (BOOL) = clfsw32.SetEndOfLog
+//sys	TruncateLog(pvMarshal unsafe.Pointer, plsnEnd *CLS_LSN, lpOverlapped *OVERLAPPED) (BOOL) = clfsw32.TruncateLog
+//sys	CreateLogContainerScanContext(hLog HANDLE, cFromContainer uint32, cContainers uint32, eScanMode uint8, pcxScan *CLS_SCAN_CONTEXT, pOverlapped *OVERLAPPED) (BOOL) = clfsw32.CreateLogContainerScanContext
+//sys	ScanLogContainers(pcxScan *CLS_SCAN_CONTEXT, eScanMode uint8, pReserved unsafe.Pointer) (BOOL) = clfsw32.ScanLogContainers
+//sys	AlignReservedLog(pvMarshal unsafe.Pointer, cReservedRecords uint32, rgcbReservation *int64, pcbAlignReservation *int64) (BOOL) = clfsw32.AlignReservedLog
+//sys	AllocReservedLog(pvMarshal unsafe.Pointer, cReservedRecords uint32, pcbAdjustment *int64) (BOOL) = clfsw32.AllocReservedLog
+//sys	FreeReservedLog(pvMarshal unsafe.Pointer, cReservedRecords uint32, pcbAdjustment *int64) (BOOL) = clfsw32.FreeReservedLog
+//sys	GetLogFileInformation(hLog HANDLE, pinfoBuffer *CLS_INFORMATION, cbBuffer *uint32) (BOOL) = clfsw32.GetLogFileInformation
+//sys	SetLogArchiveMode(hLog HANDLE, eMode CLFS_LOG_ARCHIVE_MODE) (BOOL) = clfsw32.SetLogArchiveMode
+//sys	ReadLogRestartArea(pvMarshal unsafe.Pointer, ppvRestartBuffer *unsafe.Pointer, pcbRestartBuffer *uint32, plsn *CLS_LSN, ppvContext *unsafe.Pointer, pOverlapped *OVERLAPPED) (BOOL) = clfsw32.ReadLogRestartArea
+//sys	ReadPreviousLogRestartArea(pvReadContext unsafe.Pointer, ppvRestartBuffer *unsafe.Pointer, pcbRestartBuffer *uint32, plsnRestart *CLS_LSN, pOverlapped *OVERLAPPED) (BOOL) = clfsw32.ReadPreviousLogRestartArea
+//sys	WriteLogRestartArea(pvMarshal unsafe.Pointer, pvRestartBuffer unsafe.Pointer, cbRestartBuffer uint32, plsnBase *CLS_LSN, fFlags CLFS_FLAG, pcbWritten *uint32, plsnNext *CLS_LSN, pOverlapped *OVERLAPPED) (BOOL) = clfsw32.WriteLogRestartArea
+//sys	GetLogReservationInfo(pvMarshal unsafe.Pointer, pcbRecordNumber *uint32, pcbUserReservation *int64, pcbCommitReservation *int64) (BOOL) = clfsw32.GetLogReservationInfo
+//sys	AdvanceLogBase(pvMarshal unsafe.Pointer, plsnBase *CLS_LSN, fFlags uint32, pOverlapped *OVERLAPPED) (BOOL) = clfsw32.AdvanceLogBase
+//sys	CloseAndResetLogFile(hLog HANDLE) (BOOL) = clfsw32.CloseAndResetLogFile
+//sys	CreateLogMarshallingArea(hLog HANDLE, pfnAllocBuffer CLFS_BLOCK_ALLOCATION, pfnFreeBuffer CLFS_BLOCK_DEALLOCATION, pvBlockAllocContext unsafe.Pointer, cbMarshallingBuffer uint32, cMaxWriteBuffers uint32, cMaxReadBuffers uint32, ppvMarshal *unsafe.Pointer) (BOOL) = clfsw32.CreateLogMarshallingArea
+//sys	DeleteLogMarshallingArea(pvMarshal unsafe.Pointer) (BOOL) = clfsw32.DeleteLogMarshallingArea
+//sys	ReserveAndAppendLog(pvMarshal unsafe.Pointer, rgWriteEntries *CLS_WRITE_ENTRY, cWriteEntries uint32, plsnUndoNext *CLS_LSN, plsnPrevious *CLS_LSN, cReserveRecords uint32, rgcbReservation *int64, fFlags CLFS_FLAG, plsn *CLS_LSN, pOverlapped *OVERLAPPED) (BOOL) = clfsw32.ReserveAndAppendLog
+//sys	ReserveAndAppendLogAligned(pvMarshal unsafe.Pointer, rgWriteEntries *CLS_WRITE_ENTRY, cWriteEntries uint32, cbEntryAlignment uint32, plsnUndoNext *CLS_LSN, plsnPrevious *CLS_LSN, cReserveRecords uint32, rgcbReservation *int64, fFlags CLFS_FLAG, plsn *CLS_LSN, pOverlapped *OVERLAPPED) (BOOL) = clfsw32.ReserveAndAppendLogAligned
+//sys	FlushLogBuffers(pvMarshal unsafe.Pointer, pOverlapped *OVERLAPPED) (BOOL) = clfsw32.FlushLogBuffers
+//sys	FlushLogToLsn(pvMarshalContext unsafe.Pointer, plsnFlush *CLS_LSN, plsnLastFlushed *CLS_LSN, pOverlapped *OVERLAPPED) (BOOL) = clfsw32.FlushLogToLsn
+//sys	ReadLogRecord(pvMarshal unsafe.Pointer, plsnFirst *CLS_LSN, eContextMode CLFS_CONTEXT_MODE, ppvReadBuffer *unsafe.Pointer, pcbReadBuffer *uint32, peRecordType *uint8, plsnUndoNext *CLS_LSN, plsnPrevious *CLS_LSN, ppvReadContext *unsafe.Pointer, pOverlapped *OVERLAPPED) (BOOL) = clfsw32.ReadLogRecord
+//sys	ReadNextLogRecord(pvReadContext unsafe.Pointer, ppvBuffer *unsafe.Pointer, pcbBuffer *uint32, peRecordType *uint8, plsnUser *CLS_LSN, plsnUndoNext *CLS_LSN, plsnPrevious *CLS_LSN, plsnRecord *CLS_LSN, pOverlapped *OVERLAPPED) (BOOL) = clfsw32.ReadNextLogRecord
+//sys	TerminateReadLog(pvCursorContext unsafe.Pointer) (BOOL) = clfsw32.TerminateReadLog
+//sys	PrepareLogArchive(hLog HANDLE, pszBaseLogFileName PWSTR, cLen uint32, plsnLow *CLS_LSN, plsnHigh *CLS_LSN, pcActualLength *uint32, poffBaseLogFileData *uint64, pcbBaseLogFileLength *uint64, plsnBase *CLS_LSN, plsnLast *CLS_LSN, plsnCurrentArchiveTail *CLS_LSN, ppvArchiveContext *unsafe.Pointer) (BOOL) = clfsw32.PrepareLogArchive
+//sys	ReadLogArchiveMetadata(pvArchiveContext unsafe.Pointer, cbOffset uint32, cbBytesToRead uint32, pbReadBuffer *uint8, pcbBytesRead *uint32) (BOOL) = clfsw32.ReadLogArchiveMetadata
+//sys	GetNextLogArchiveExtent(pvArchiveContext unsafe.Pointer, rgadExtent *CLS_ARCHIVE_DESCRIPTOR, cDescriptors uint32, pcDescriptorsReturned *uint32) (BOOL) = clfsw32.GetNextLogArchiveExtent
+//sys	TerminateLogArchive(pvArchiveContext unsafe.Pointer) (BOOL) = clfsw32.TerminateLogArchive
+//sys	ValidateLog(pszLogFileName PWSTR, psaLogFile *SECURITY_ATTRIBUTES, pinfoBuffer *CLS_INFORMATION, pcbBuffer *uint32) (BOOL) = clfsw32.ValidateLog
+//sys	GetLogContainerName(hLog HANDLE, cidLogicalContainer uint32, pwstrContainerName PWSTR, cLenContainerName uint32, pcActualLenContainerName *uint32) (BOOL) = clfsw32.GetLogContainerName
+//sys	GetLogIoStatistics(hLog HANDLE, pvStatsBuffer unsafe.Pointer, cbStatsBuffer uint32, eStatsClass CLFS_IOSTATS_CLASS, pcbStatsWritten *uint32) (BOOL) = clfsw32.GetLogIoStatistics
+//sys	RegisterManageableLogClient(hLog HANDLE, pCallbacks *LOG_MANAGEMENT_CALLBACKS) (BOOL) = clfsw32.RegisterManageableLogClient
+//sys	DeregisterManageableLogClient(hLog HANDLE) (BOOL) = clfsw32.DeregisterManageableLogClient
+//sys	ReadLogNotification(hLog HANDLE, pNotification *CLFS_MGMT_NOTIFICATION, lpOverlapped *OVERLAPPED) (BOOL) = clfsw32.ReadLogNotification
+//sys	InstallLogPolicy(hLog HANDLE, pPolicy *CLFS_MGMT_POLICY) (BOOL) = clfsw32.InstallLogPolicy
+//sys	RemoveLogPolicy(hLog HANDLE, ePolicyType CLFS_MGMT_POLICY_TYPE) (BOOL) = clfsw32.RemoveLogPolicy
+//sys	QueryLogPolicy(hLog HANDLE, ePolicyType CLFS_MGMT_POLICY_TYPE, pPolicyBuffer *CLFS_MGMT_POLICY, pcbPolicyBuffer *uint32) (BOOL) = clfsw32.QueryLogPolicy
+//sys	SetLogFileSizeWithPolicy(hLog HANDLE, pDesiredSize *uint64, pResultingSize *uint64) (BOOL) = clfsw32.SetLogFileSizeWithPolicy
+//sys	HandleLogFull(hLog HANDLE) (BOOL) = clfsw32.HandleLogFull
+//sys	LogTailAdvanceFailure(hLog HANDLE, dwReason uint32) (BOOL) = clfsw32.LogTailAdvanceFailure
+//sys	RegisterForLogWriteNotification(hLog HANDLE, cbThreshold uint32, fEnable BOOL) (BOOL) = clfsw32.RegisterForLogWriteNotification
+//sys	QueryUsersOnEncryptedFile(lpFileName PWSTR, pUsers **ENCRYPTION_CERTIFICATE_HASH_LIST) (uint32) = advapi32.QueryUsersOnEncryptedFile
+//sys	QueryRecoveryAgentsOnEncryptedFile(lpFileName PWSTR, pRecoveryAgents **ENCRYPTION_CERTIFICATE_HASH_LIST) (uint32) = advapi32.QueryRecoveryAgentsOnEncryptedFile
+//sys	RemoveUsersFromEncryptedFile(lpFileName PWSTR, pHashes *ENCRYPTION_CERTIFICATE_HASH_LIST) (uint32) = advapi32.RemoveUsersFromEncryptedFile
+//sys	AddUsersToEncryptedFile(lpFileName PWSTR, pEncryptionCertificates *ENCRYPTION_CERTIFICATE_LIST) (uint32) = advapi32.AddUsersToEncryptedFile
+//sys	SetUserFileEncryptionKey(pEncryptionCertificate *ENCRYPTION_CERTIFICATE) (uint32) = advapi32.SetUserFileEncryptionKey
+//sys	SetUserFileEncryptionKeyEx(pEncryptionCertificate *ENCRYPTION_CERTIFICATE, dwCapabilities uint32, dwFlags uint32, pvReserved unsafe.Pointer) (uint32) = advapi32.SetUserFileEncryptionKeyEx
+//sys	FreeEncryptionCertificateHashList(pUsers *ENCRYPTION_CERTIFICATE_HASH_LIST) = advapi32.FreeEncryptionCertificateHashList
+//sys	EncryptionDisable(DirPath PWSTR, Disable BOOL) (BOOL) = advapi32.EncryptionDisable
+//sys	DuplicateEncryptionInfoFile(SrcFileName PWSTR, DstFileName PWSTR, dwCreationDistribution uint32, dwAttributes uint32, lpSecurityAttributes *SECURITY_ATTRIBUTES) (uint32) = advapi32.DuplicateEncryptionInfoFile
+//sys	GetEncryptedFileMetadata(lpFileName PWSTR, pcbMetadata *uint32, ppbMetadata **uint8) (uint32) = advapi32.GetEncryptedFileMetadata
+//sys	SetEncryptedFileMetadata(lpFileName PWSTR, pbOldMetadata *uint8, pbNewMetadata *uint8, pOwnerHash *ENCRYPTION_CERTIFICATE_HASH, dwOperation uint32, pCertificatesAdded *ENCRYPTION_CERTIFICATE_HASH_LIST) (uint32) = advapi32.SetEncryptedFileMetadata
+//sys	FreeEncryptedFileMetadata(pbMetadata *uint8) = advapi32.FreeEncryptedFileMetadata
 //sys	LZStart() (int32)
 //sys	LZDone()
-//sys	CopyLZFile(/*in*/hfSource int32, /*in*/hfDest int32) (int32)
-//sys	LZCopy(/*in*/hfSource int32, /*in*/hfDest int32) (int32)
-//sys	LZInit(/*in*/hfSource int32) (int32)
-//sys	GetExpandedNameA(/*in*/lpszSource PSTR, /*out*/lpszBuffer PSTR) (int32)
-//sys	GetExpandedNameW(/*in*/lpszSource PWSTR, /*out*/lpszBuffer PWSTR) (int32)
-//sys	LZOpenFileA(/*in*/lpFileName PSTR, /*in*//*out*/lpReOpenBuf *OFSTRUCT, /*in*/wStyle LZOPENFILE_STYLE) (int32)
-//sys	LZOpenFileW(/*in*/lpFileName PWSTR, /*in*//*out*/lpReOpenBuf *OFSTRUCT, /*in*/wStyle LZOPENFILE_STYLE) (int32)
-//sys	LZSeek(/*in*/hFile int32, /*in*/lOffset int32, /*in*/iOrigin int32) (int32)
-//sys	LZRead(/*in*/hFile int32, /*out*/lpBuffer PSTR, /*in*/cbRead int32) (int32)
-//sys	LZClose(/*in*/hFile int32)
-//sys	WofShouldCompressBinaries(/*in*/Volume PWSTR, /*out*/Algorithm *uint32) (BOOL) = wofutil.WofShouldCompressBinaries
-//sys	WofGetDriverVersion(/*in*/FileOrVolumeHandle HANDLE, /*in*/Provider uint32, /*out*/WofVersion *uint32) (HRESULT) = wofutil.WofGetDriverVersion
-//sys	WofSetFileDataLocation(/*in*/FileHandle HANDLE, /*in*/Provider uint32, /*in*/ExternalFileInfo unsafe.Pointer, /*in*/Length uint32) (HRESULT) = wofutil.WofSetFileDataLocation
-//sys	WofIsExternalFile(/*in*/FilePath PWSTR, /*out*//*optional*/IsExternalFile *BOOL, /*out*//*optional*/Provider *uint32, /*out*//*optional*/ExternalFileInfo unsafe.Pointer, /*in*//*out*//*optional*/BufferLength *uint32) (HRESULT) = wofutil.WofIsExternalFile
-//sys	WofEnumEntries(/*in*/VolumeName PWSTR, /*in*/Provider uint32, /*in*/EnumProc WofEnumEntryProc, /*in*//*optional*/UserData unsafe.Pointer) (HRESULT) = wofutil.WofEnumEntries
-//sys	WofWimAddEntry(/*in*/VolumeName PWSTR, /*in*/WimPath PWSTR, /*in*/WimType uint32, /*in*/WimIndex uint32, /*out*/DataSourceId *LARGE_INTEGER) (HRESULT) = wofutil.WofWimAddEntry
-//sys	WofWimEnumFiles(/*in*/VolumeName PWSTR, /*in*/DataSourceId LARGE_INTEGER, /*in*/EnumProc WofEnumFilesProc, /*in*//*optional*/UserData unsafe.Pointer) (HRESULT) = wofutil.WofWimEnumFiles
-//sys	WofWimSuspendEntry(/*in*/VolumeName PWSTR, /*in*/DataSourceId LARGE_INTEGER) (HRESULT) = wofutil.WofWimSuspendEntry
-//sys	WofWimRemoveEntry(/*in*/VolumeName PWSTR, /*in*/DataSourceId LARGE_INTEGER) (HRESULT) = wofutil.WofWimRemoveEntry
-//sys	WofWimUpdateEntry(/*in*/VolumeName PWSTR, /*in*/DataSourceId LARGE_INTEGER, /*in*/NewWimPath PWSTR) (HRESULT) = wofutil.WofWimUpdateEntry
-//sys	WofFileEnumFiles(/*in*/VolumeName PWSTR, /*in*/Algorithm uint32, /*in*/EnumProc WofEnumFilesProc, /*in*//*optional*/UserData unsafe.Pointer) (HRESULT) = wofutil.WofFileEnumFiles
-//sys	TxfLogCreateFileReadContext(/*in*/LogPath PWSTR, /*in*/BeginningLsn CLS_LSN, /*in*/EndingLsn CLS_LSN, /*in*/TxfFileId *TXF_ID, /*out*/TxfLogContext *unsafe.Pointer) (BOOL) = txfw32.TxfLogCreateFileReadContext
-//sys	TxfLogCreateRangeReadContext(/*in*/LogPath PWSTR, /*in*/BeginningLsn CLS_LSN, /*in*/EndingLsn CLS_LSN, /*in*/BeginningVirtualClock *LARGE_INTEGER, /*in*/EndingVirtualClock *LARGE_INTEGER, /*in*/RecordTypeMask uint32, /*out*/TxfLogContext *unsafe.Pointer) (BOOL) = txfw32.TxfLogCreateRangeReadContext
-//sys	TxfLogDestroyReadContext(/*in*/TxfLogContext unsafe.Pointer) (BOOL) = txfw32.TxfLogDestroyReadContext
-//sys	TxfLogReadRecords(/*in*/TxfLogContext unsafe.Pointer, /*in*/BufferLength uint32, /*out*/Buffer unsafe.Pointer, /*out*/BytesUsed *uint32, /*out*/RecordCount *uint32) (BOOL) = txfw32.TxfLogReadRecords
-//sys	TxfReadMetadataInfo(/*in*/FileHandle HANDLE, /*out*/TxfFileId *TXF_ID, /*out*/LastLsn *CLS_LSN, /*out*/TransactionState *uint32, /*out*/LockingTransaction *Guid) (BOOL) = txfw32.TxfReadMetadataInfo
-//sys	TxfLogRecordGetFileName(/*in*/RecordBuffer unsafe.Pointer, /*in*/RecordBufferLengthInBytes uint32, /*out*/NameBuffer PWSTR, /*in*//*out*/NameBufferLengthInBytes *uint32, /*out*//*optional*/TxfId *TXF_ID) (BOOL) = txfw32.TxfLogRecordGetFileName
-//sys	TxfLogRecordGetGenericType(/*in*/RecordBuffer unsafe.Pointer, /*in*/RecordBufferLengthInBytes uint32, /*out*/GenericType *uint32, /*out*//*optional*/VirtualClock *LARGE_INTEGER) (BOOL) = txfw32.TxfLogRecordGetGenericType
-//sys	TxfSetThreadMiniVersionForCreate(/*in*/MiniVersion uint16) = txfw32.TxfSetThreadMiniVersionForCreate
-//sys	TxfGetThreadMiniVersionForCreate(/*out*/MiniVersion *uint16) = txfw32.TxfGetThreadMiniVersionForCreate
-//sys	CreateTransaction(/*in*//*out*/lpTransactionAttributes *SECURITY_ATTRIBUTES, /*in*//*out*/UOW *Guid, /*in*/CreateOptions uint32, /*in*/IsolationLevel uint32, /*in*/IsolationFlags uint32, /*in*/Timeout uint32, /*in*//*optional*/Description PWSTR) (HANDLE) = ktmw32.CreateTransaction
-//sys	OpenTransaction(/*in*/dwDesiredAccess uint32, /*in*//*out*/TransactionId *Guid) (HANDLE) = ktmw32.OpenTransaction
-//sys	CommitTransaction(/*in*/TransactionHandle HANDLE) (BOOL) = ktmw32.CommitTransaction
-//sys	CommitTransactionAsync(/*in*/TransactionHandle HANDLE) (BOOL) = ktmw32.CommitTransactionAsync
-//sys	RollbackTransaction(/*in*/TransactionHandle HANDLE) (BOOL) = ktmw32.RollbackTransaction
-//sys	RollbackTransactionAsync(/*in*/TransactionHandle HANDLE) (BOOL) = ktmw32.RollbackTransactionAsync
-//sys	GetTransactionId(/*in*/TransactionHandle HANDLE, /*in*//*out*/TransactionId *Guid) (BOOL) = ktmw32.GetTransactionId
-//sys	GetTransactionInformation(/*in*/TransactionHandle HANDLE, /*in*//*out*/Outcome *uint32, /*in*//*out*/IsolationLevel *uint32, /*in*//*out*/IsolationFlags *uint32, /*in*//*out*/Timeout *uint32, /*in*/BufferLength uint32, /*out*//*optional*/Description PWSTR) (BOOL) = ktmw32.GetTransactionInformation
-//sys	SetTransactionInformation(/*in*/TransactionHandle HANDLE, /*in*/IsolationLevel uint32, /*in*/IsolationFlags uint32, /*in*/Timeout uint32, /*in*//*optional*/Description PWSTR) (BOOL) = ktmw32.SetTransactionInformation
-//sys	CreateTransactionManager(/*in*//*out*/lpTransactionAttributes *SECURITY_ATTRIBUTES, /*in*/LogFileName PWSTR, /*in*/CreateOptions uint32, /*in*/CommitStrength uint32) (HANDLE) = ktmw32.CreateTransactionManager
-//sys	OpenTransactionManager(/*in*/LogFileName PWSTR, /*in*/DesiredAccess uint32, /*in*/OpenOptions uint32) (HANDLE) = ktmw32.OpenTransactionManager
-//sys	OpenTransactionManagerById(/*in*/TransactionManagerId *Guid, /*in*/DesiredAccess uint32, /*in*/OpenOptions uint32) (HANDLE) = ktmw32.OpenTransactionManagerById
-//sys	RenameTransactionManager(/*in*/LogFileName PWSTR, /*in*//*out*/ExistingTransactionManagerGuid *Guid) (BOOL) = ktmw32.RenameTransactionManager
-//sys	RollforwardTransactionManager(/*in*/TransactionManagerHandle HANDLE, /*in*//*out*/TmVirtualClock *LARGE_INTEGER) (BOOL) = ktmw32.RollforwardTransactionManager
-//sys	RecoverTransactionManager(/*in*/TransactionManagerHandle HANDLE) (BOOL) = ktmw32.RecoverTransactionManager
-//sys	GetCurrentClockTransactionManager(/*in*/TransactionManagerHandle HANDLE, /*in*//*out*/TmVirtualClock *LARGE_INTEGER) (BOOL) = ktmw32.GetCurrentClockTransactionManager
-//sys	GetTransactionManagerId(/*in*/TransactionManagerHandle HANDLE, /*in*//*out*/TransactionManagerId *Guid) (BOOL) = ktmw32.GetTransactionManagerId
-//sys	CreateResourceManager(/*in*//*out*/lpResourceManagerAttributes *SECURITY_ATTRIBUTES, /*in*//*out*/ResourceManagerId *Guid, /*in*/CreateOptions uint32, /*in*/TmHandle HANDLE, /*in*//*optional*/Description PWSTR) (HANDLE) = ktmw32.CreateResourceManager
-//sys	OpenResourceManager(/*in*/dwDesiredAccess uint32, /*in*/TmHandle HANDLE, /*in*//*out*/ResourceManagerId *Guid) (HANDLE) = ktmw32.OpenResourceManager
-//sys	RecoverResourceManager(/*in*/ResourceManagerHandle HANDLE) (BOOL) = ktmw32.RecoverResourceManager
-//sys	GetNotificationResourceManager(/*in*/ResourceManagerHandle HANDLE, /*in*//*out*/TransactionNotification *TRANSACTION_NOTIFICATION, /*in*/NotificationLength uint32, /*in*/dwMilliseconds uint32, /*in*//*out*/ReturnLength *uint32) (BOOL) = ktmw32.GetNotificationResourceManager
-//sys	GetNotificationResourceManagerAsync(/*in*/ResourceManagerHandle HANDLE, /*in*//*out*/TransactionNotification *TRANSACTION_NOTIFICATION, /*in*/TransactionNotificationLength uint32, /*in*//*out*/ReturnLength *uint32, /*in*//*out*/lpOverlapped *OVERLAPPED) (BOOL) = ktmw32.GetNotificationResourceManagerAsync
-//sys	SetResourceManagerCompletionPort(/*in*/ResourceManagerHandle HANDLE, /*in*/IoCompletionPortHandle HANDLE, /*in*/CompletionKey uintptr) (BOOL) = ktmw32.SetResourceManagerCompletionPort
-//sys	CreateEnlistment(/*in*//*out*/lpEnlistmentAttributes *SECURITY_ATTRIBUTES, /*in*/ResourceManagerHandle HANDLE, /*in*/TransactionHandle HANDLE, /*in*/NotificationMask uint32, /*in*/CreateOptions uint32, /*in*//*out*/EnlistmentKey unsafe.Pointer) (HANDLE) = ktmw32.CreateEnlistment
-//sys	OpenEnlistment(/*in*/dwDesiredAccess uint32, /*in*/ResourceManagerHandle HANDLE, /*in*//*out*/EnlistmentId *Guid) (HANDLE) = ktmw32.OpenEnlistment
-//sys	RecoverEnlistment(/*in*/EnlistmentHandle HANDLE, /*in*//*out*/EnlistmentKey unsafe.Pointer) (BOOL) = ktmw32.RecoverEnlistment
-//sys	GetEnlistmentRecoveryInformation(/*in*/EnlistmentHandle HANDLE, /*in*/BufferSize uint32, /*in*//*out*/Buffer unsafe.Pointer, /*in*//*out*/BufferUsed *uint32) (BOOL) = ktmw32.GetEnlistmentRecoveryInformation
-//sys	GetEnlistmentId(/*in*/EnlistmentHandle HANDLE, /*in*//*out*/EnlistmentId *Guid) (BOOL) = ktmw32.GetEnlistmentId
-//sys	SetEnlistmentRecoveryInformation(/*in*/EnlistmentHandle HANDLE, /*in*/BufferSize uint32, /*in*//*out*/Buffer unsafe.Pointer) (BOOL) = ktmw32.SetEnlistmentRecoveryInformation
-//sys	PrepareEnlistment(/*in*/EnlistmentHandle HANDLE, /*in*//*out*/TmVirtualClock *LARGE_INTEGER) (BOOL) = ktmw32.PrepareEnlistment
-//sys	PrePrepareEnlistment(/*in*/EnlistmentHandle HANDLE, /*in*//*out*/TmVirtualClock *LARGE_INTEGER) (BOOL) = ktmw32.PrePrepareEnlistment
-//sys	CommitEnlistment(/*in*/EnlistmentHandle HANDLE, /*in*//*out*/TmVirtualClock *LARGE_INTEGER) (BOOL) = ktmw32.CommitEnlistment
-//sys	RollbackEnlistment(/*in*/EnlistmentHandle HANDLE, /*in*//*out*/TmVirtualClock *LARGE_INTEGER) (BOOL) = ktmw32.RollbackEnlistment
-//sys	PrePrepareComplete(/*in*/EnlistmentHandle HANDLE, /*in*//*out*/TmVirtualClock *LARGE_INTEGER) (BOOL) = ktmw32.PrePrepareComplete
-//sys	PrepareComplete(/*in*/EnlistmentHandle HANDLE, /*in*//*out*/TmVirtualClock *LARGE_INTEGER) (BOOL) = ktmw32.PrepareComplete
-//sys	ReadOnlyEnlistment(/*in*/EnlistmentHandle HANDLE, /*in*//*out*/TmVirtualClock *LARGE_INTEGER) (BOOL) = ktmw32.ReadOnlyEnlistment
-//sys	CommitComplete(/*in*/EnlistmentHandle HANDLE, /*in*//*out*/TmVirtualClock *LARGE_INTEGER) (BOOL) = ktmw32.CommitComplete
-//sys	RollbackComplete(/*in*/EnlistmentHandle HANDLE, /*in*//*out*/TmVirtualClock *LARGE_INTEGER) (BOOL) = ktmw32.RollbackComplete
-//sys	SinglePhaseReject(/*in*/EnlistmentHandle HANDLE, /*in*//*out*/TmVirtualClock *LARGE_INTEGER) (BOOL) = ktmw32.SinglePhaseReject
-//sys	NetShareAdd(/*in*//*optional*/servername PWSTR, /*in*/level uint32, /*in*/buf *uint8, /*out*//*optional*/parm_err *uint32) (uint32) = netapi32.NetShareAdd
-//sys	NetShareEnum(/*in*//*optional*/servername PWSTR, /*in*/level uint32, /*out*/bufptr **uint8, /*in*/prefmaxlen uint32, /*out*/entriesread *uint32, /*out*/totalentries *uint32, /*in*//*out*//*optional*/resume_handle *uint32) (uint32) = netapi32.NetShareEnum
-//sys	NetShareEnumSticky(/*in*//*optional*/servername PWSTR, /*in*/level uint32, /*out*/bufptr **uint8, /*in*/prefmaxlen uint32, /*out*/entriesread *uint32, /*out*/totalentries *uint32, /*in*//*out*//*optional*/resume_handle *uint32) (uint32) = netapi32.NetShareEnumSticky
-//sys	NetShareGetInfo(/*in*//*optional*/servername PWSTR, /*in*/netname PWSTR, /*in*/level uint32, /*out*/bufptr **uint8) (uint32) = netapi32.NetShareGetInfo
-//sys	NetShareSetInfo(/*in*//*optional*/servername PWSTR, /*in*/netname PWSTR, /*in*/level uint32, /*in*/buf *uint8, /*out*//*optional*/parm_err *uint32) (uint32) = netapi32.NetShareSetInfo
-//sys	NetShareDel(/*in*//*optional*/servername PWSTR, /*in*/netname PWSTR, /*in*/reserved uint32) (uint32) = netapi32.NetShareDel
-//sys	NetShareDelSticky(/*in*//*optional*/servername PWSTR, /*in*/netname PWSTR, /*in*/reserved uint32) (uint32) = netapi32.NetShareDelSticky
-//sys	NetShareCheck(/*in*//*optional*/servername PWSTR, /*in*/device PWSTR, /*out*/type *uint32) (uint32) = netapi32.NetShareCheck
-//sys	NetShareDelEx(/*in*//*optional*/servername PWSTR, /*in*/level uint32, /*in*/buf *uint8) (uint32) = netapi32.NetShareDelEx
-//sys	NetServerAliasAdd(/*in*//*optional*/servername PWSTR, /*in*/level uint32, /*in*/buf *uint8) (uint32) = netapi32.NetServerAliasAdd
-//sys	NetServerAliasDel(/*in*//*optional*/servername PWSTR, /*in*/level uint32, /*in*/buf *uint8) (uint32) = netapi32.NetServerAliasDel
-//sys	NetServerAliasEnum(/*in*//*optional*/servername PWSTR, /*in*/level uint32, /*out*/bufptr **uint8, /*in*/prefmaxlen uint32, /*out*/entriesread *uint32, /*out*/totalentries *uint32, /*in*//*out*//*optional*/resumehandle *uint32) (uint32) = netapi32.NetServerAliasEnum
-//sys	NetSessionEnum(/*in*//*optional*/servername PWSTR, /*in*//*optional*/UncClientName PWSTR, /*in*//*optional*/username PWSTR, /*in*/level uint32, /*out*/bufptr **uint8, /*in*/prefmaxlen uint32, /*out*/entriesread *uint32, /*out*/totalentries *uint32, /*in*//*out*//*optional*/resume_handle *uint32) (uint32) = netapi32.NetSessionEnum
-//sys	NetSessionDel(/*in*//*optional*/servername PWSTR, /*in*//*optional*/UncClientName PWSTR, /*in*//*optional*/username PWSTR) (uint32) = netapi32.NetSessionDel
-//sys	NetSessionGetInfo(/*in*//*optional*/servername PWSTR, /*in*/UncClientName PWSTR, /*in*/username PWSTR, /*in*/level uint32, /*out*/bufptr **uint8) (uint32) = netapi32.NetSessionGetInfo
-//sys	NetConnectionEnum(/*in*//*optional*/servername PWSTR, /*in*/qualifier PWSTR, /*in*/level uint32, /*out*/bufptr **uint8, /*in*/prefmaxlen uint32, /*out*/entriesread *uint32, /*out*/totalentries *uint32, /*in*//*out*//*optional*/resume_handle *uint32) (uint32) = netapi32.NetConnectionEnum
-//sys	NetFileClose(/*in*//*optional*/servername PWSTR, /*in*/fileid uint32) (uint32) = netapi32.NetFileClose
-//sys	NetFileEnum(/*in*//*optional*/servername PWSTR, /*in*//*optional*/basepath PWSTR, /*in*//*optional*/username PWSTR, /*in*/level uint32, /*out*/bufptr **uint8, /*in*/prefmaxlen uint32, /*out*/entriesread *uint32, /*out*/totalentries *uint32, /*in*//*out*//*optional*/resume_handle *uintptr) (uint32) = netapi32.NetFileEnum
-//sys	NetFileGetInfo(/*in*//*optional*/servername PWSTR, /*in*/fileid uint32, /*in*/level uint32, /*out*/bufptr **uint8) (uint32) = netapi32.NetFileGetInfo
-//sys	NetStatisticsGet(/*in*/ServerName *int8, /*in*/Service *int8, /*in*/Level uint32, /*in*/Options uint32, /*out*/Buffer **uint8) (uint32) = netapi32.NetStatisticsGet
-//sys	QueryIoRingCapabilities(/*out*/capabilities *IORING_CAPABILITIES) (HRESULT) = api-ms-win-core-ioring-l1-1-0.QueryIoRingCapabilities
-//sys	IsIoRingOpSupported(/*in*/ioRing *HIORING__, /*in*/op IORING_OP_CODE) (BOOL) = api-ms-win-core-ioring-l1-1-0.IsIoRingOpSupported
-//sys	CreateIoRing(/*in*/ioringVersion IORING_VERSION, /*in*/flags IORING_CREATE_FLAGS, /*in*/submissionQueueSize uint32, /*in*/completionQueueSize uint32, /*out*/h **HIORING__) (HRESULT) = api-ms-win-core-ioring-l1-1-0.CreateIoRing
-//sys	GetIoRingInfo(/*in*/ioRing *HIORING__, /*out*/info *IORING_INFO) (HRESULT) = api-ms-win-core-ioring-l1-1-0.GetIoRingInfo
-//sys	SubmitIoRing(/*in*/ioRing *HIORING__, /*in*/waitOperations uint32, /*in*/milliseconds uint32, /*out*//*optional*/submittedEntries *uint32) (HRESULT) = api-ms-win-core-ioring-l1-1-0.SubmitIoRing
-//sys	CloseIoRing(/*in*/ioRing *HIORING__) (HRESULT) = api-ms-win-core-ioring-l1-1-0.CloseIoRing
-//sys	PopIoRingCompletion(/*in*/ioRing *HIORING__, /*out*/cqe *IORING_CQE) (HRESULT) = api-ms-win-core-ioring-l1-1-0.PopIoRingCompletion
-//sys	SetIoRingCompletionEvent(/*in*/ioRing *HIORING__, /*in*/hEvent HANDLE) (HRESULT) = api-ms-win-core-ioring-l1-1-0.SetIoRingCompletionEvent
-//sys	BuildIoRingCancelRequest(/*in*/ioRing *HIORING__, /*in*/file IORING_HANDLE_REF, /*in*/opToCancel uintptr, /*in*/userData uintptr) (HRESULT) = api-ms-win-core-ioring-l1-1-0.BuildIoRingCancelRequest
-//sys	BuildIoRingReadFile(/*in*/ioRing *HIORING__, /*in*/fileRef IORING_HANDLE_REF, /*in*/dataRef IORING_BUFFER_REF, /*in*/numberOfBytesToRead uint32, /*in*/fileOffset uint64, /*in*/userData uintptr, /*in*/flags IORING_SQE_FLAGS) (HRESULT) = api-ms-win-core-ioring-l1-1-0.BuildIoRingReadFile
-//sys	BuildIoRingRegisterFileHandles(/*in*/ioRing *HIORING__, /*in*/count uint32, /*in*/handles *HANDLE, /*in*/userData uintptr) (HRESULT) = api-ms-win-core-ioring-l1-1-0.BuildIoRingRegisterFileHandles
-//sys	BuildIoRingRegisterBuffers(/*in*/ioRing *HIORING__, /*in*/count uint32, /*in*/buffers *IORING_BUFFER_INFO, /*in*/userData uintptr) (HRESULT) = api-ms-win-core-ioring-l1-1-0.BuildIoRingRegisterBuffers
-//sys	Wow64EnableWow64FsRedirection(/*in*/Wow64FsEnableRedirection BOOLEAN) (BOOLEAN)
-//sys	Wow64DisableWow64FsRedirection(/*out*/OldValue *unsafe.Pointer) (BOOL)
-//sys	Wow64RevertWow64FsRedirection(/*in*/OlValue unsafe.Pointer) (BOOL)
-//sys	GetBinaryTypeA(/*in*/lpApplicationName PSTR, /*out*/lpBinaryType *uint32) (BOOL)
-//sys	GetBinaryTypeW(/*in*/lpApplicationName PWSTR, /*out*/lpBinaryType *uint32) (BOOL)
-//sys	GetShortPathNameA(/*in*/lpszLongPath PSTR, /*out*//*optional*/lpszShortPath PSTR, /*in*/cchBuffer uint32) (uint32)
-//sys	GetLongPathNameTransactedA(/*in*/lpszShortPath PSTR, /*out*//*optional*/lpszLongPath PSTR, /*in*/cchBuffer uint32, /*in*/hTransaction HANDLE) (uint32)
-//sys	GetLongPathNameTransactedW(/*in*/lpszShortPath PWSTR, /*out*//*optional*/lpszLongPath PWSTR, /*in*/cchBuffer uint32, /*in*/hTransaction HANDLE) (uint32)
-//sys	SetFileCompletionNotificationModes(/*in*/FileHandle HANDLE, /*in*/Flags uint8) (BOOL)
-//sys	SetFileShortNameA(/*in*/hFile HANDLE, /*in*/lpShortName PSTR) (BOOL)
-//sys	SetFileShortNameW(/*in*/hFile HANDLE, /*in*/lpShortName PWSTR) (BOOL)
-//sys	SetTapePosition(/*in*/hDevice HANDLE, /*in*/dwPositionMethod TAPE_POSITION_METHOD, /*in*/dwPartition uint32, /*in*/dwOffsetLow uint32, /*in*/dwOffsetHigh uint32, /*in*/bImmediate BOOL) (uint32)
-//sys	GetTapePosition(/*in*/hDevice HANDLE, /*in*/dwPositionType TAPE_POSITION_TYPE, /*out*/lpdwPartition *uint32, /*out*/lpdwOffsetLow *uint32, /*out*/lpdwOffsetHigh *uint32) (uint32)
-//sys	PrepareTape(/*in*/hDevice HANDLE, /*in*/dwOperation PREPARE_TAPE_OPERATION, /*in*/bImmediate BOOL) (uint32)
-//sys	EraseTape(/*in*/hDevice HANDLE, /*in*/dwEraseType ERASE_TAPE_TYPE, /*in*/bImmediate BOOL) (uint32)
-//sys	CreateTapePartition(/*in*/hDevice HANDLE, /*in*/dwPartitionMethod CREATE_TAPE_PARTITION_METHOD, /*in*/dwCount uint32, /*in*/dwSize uint32) (uint32)
-//sys	WriteTapemark(/*in*/hDevice HANDLE, /*in*/dwTapemarkType TAPEMARK_TYPE, /*in*/dwTapemarkCount uint32, /*in*/bImmediate BOOL) (uint32)
-//sys	GetTapeStatus(/*in*/hDevice HANDLE) (uint32)
-//sys	GetTapeParameters(/*in*/hDevice HANDLE, /*in*/dwOperation GET_TAPE_DRIVE_PARAMETERS_OPERATION, /*in*//*out*/lpdwSize *uint32, /*out*/lpTapeInformation unsafe.Pointer) (uint32)
-//sys	SetTapeParameters(/*in*/hDevice HANDLE, /*in*/dwOperation TAPE_INFORMATION_TYPE, /*in*/lpTapeInformation unsafe.Pointer) (uint32)
-//sys	EncryptFileA(/*in*/lpFileName PSTR) (BOOL) = advapi32.EncryptFileA
-//sys	EncryptFileW(/*in*/lpFileName PWSTR) (BOOL) = advapi32.EncryptFileW
-//sys	DecryptFileA(/*in*/lpFileName PSTR, /*in*/dwReserved uint32) (BOOL) = advapi32.DecryptFileA
-//sys	DecryptFileW(/*in*/lpFileName PWSTR, /*in*/dwReserved uint32) (BOOL) = advapi32.DecryptFileW
-//sys	FileEncryptionStatusA(/*in*/lpFileName PSTR, /*out*/lpStatus *uint32) (BOOL) = advapi32.FileEncryptionStatusA
-//sys	FileEncryptionStatusW(/*in*/lpFileName PWSTR, /*out*/lpStatus *uint32) (BOOL) = advapi32.FileEncryptionStatusW
-//sys	OpenEncryptedFileRawA(/*in*/lpFileName PSTR, /*in*/ulFlags uint32, /*out*/pvContext *unsafe.Pointer) (uint32) = advapi32.OpenEncryptedFileRawA
-//sys	OpenEncryptedFileRawW(/*in*/lpFileName PWSTR, /*in*/ulFlags uint32, /*out*/pvContext *unsafe.Pointer) (uint32) = advapi32.OpenEncryptedFileRawW
-//sys	ReadEncryptedFileRaw(/*in*/pfExportCallback PFE_EXPORT_FUNC, /*in*//*optional*/pvCallbackContext unsafe.Pointer, /*in*/pvContext unsafe.Pointer) (uint32) = advapi32.ReadEncryptedFileRaw
-//sys	WriteEncryptedFileRaw(/*in*/pfImportCallback PFE_IMPORT_FUNC, /*in*//*optional*/pvCallbackContext unsafe.Pointer, /*in*/pvContext unsafe.Pointer) (uint32) = advapi32.WriteEncryptedFileRaw
-//sys	CloseEncryptedFileRaw(/*in*/pvContext unsafe.Pointer) = advapi32.CloseEncryptedFileRaw
-//sys	OpenFile(/*in*/lpFileName PSTR, /*in*//*out*/lpReOpenBuff *OFSTRUCT, /*in*/uStyle LZOPENFILE_STYLE) (int32)
-//sys	BackupRead(/*in*/hFile HANDLE, /*out*/lpBuffer *uint8, /*in*/nNumberOfBytesToRead uint32, /*out*/lpNumberOfBytesRead *uint32, /*in*/bAbort BOOL, /*in*/bProcessSecurity BOOL, /*in*//*out*/lpContext *unsafe.Pointer) (BOOL)
-//sys	BackupSeek(/*in*/hFile HANDLE, /*in*/dwLowBytesToSeek uint32, /*in*/dwHighBytesToSeek uint32, /*out*/lpdwLowByteSeeked *uint32, /*out*/lpdwHighByteSeeked *uint32, /*in*//*out*/lpContext *unsafe.Pointer) (BOOL)
-//sys	BackupWrite(/*in*/hFile HANDLE, /*in*/lpBuffer *uint8, /*in*/nNumberOfBytesToWrite uint32, /*out*/lpNumberOfBytesWritten *uint32, /*in*/bAbort BOOL, /*in*/bProcessSecurity BOOL, /*in*//*out*/lpContext *unsafe.Pointer) (BOOL)
-//sys	GetLogicalDriveStringsA(/*in*/nBufferLength uint32, /*out*//*optional*/lpBuffer PSTR) (uint32)
-//sys	SetSearchPathMode(/*in*/Flags uint32) (BOOL)
-//sys	CreateDirectoryExA(/*in*/lpTemplateDirectory PSTR, /*in*/lpNewDirectory PSTR, /*in*//*optional*/lpSecurityAttributes *SECURITY_ATTRIBUTES) (BOOL)
-//sys	CreateDirectoryExW(/*in*/lpTemplateDirectory PWSTR, /*in*/lpNewDirectory PWSTR, /*in*//*optional*/lpSecurityAttributes *SECURITY_ATTRIBUTES) (BOOL)
-//sys	CreateDirectoryTransactedA(/*in*//*optional*/lpTemplateDirectory PSTR, /*in*/lpNewDirectory PSTR, /*in*//*optional*/lpSecurityAttributes *SECURITY_ATTRIBUTES, /*in*/hTransaction HANDLE) (BOOL)
-//sys	CreateDirectoryTransactedW(/*in*//*optional*/lpTemplateDirectory PWSTR, /*in*/lpNewDirectory PWSTR, /*in*//*optional*/lpSecurityAttributes *SECURITY_ATTRIBUTES, /*in*/hTransaction HANDLE) (BOOL)
-//sys	RemoveDirectoryTransactedA(/*in*/lpPathName PSTR, /*in*/hTransaction HANDLE) (BOOL)
-//sys	RemoveDirectoryTransactedW(/*in*/lpPathName PWSTR, /*in*/hTransaction HANDLE) (BOOL)
-//sys	GetFullPathNameTransactedA(/*in*/lpFileName PSTR, /*in*/nBufferLength uint32, /*out*//*optional*/lpBuffer PSTR, /*out*//*optional*/lpFilePart *PSTR, /*in*/hTransaction HANDLE) (uint32)
-//sys	GetFullPathNameTransactedW(/*in*/lpFileName PWSTR, /*in*/nBufferLength uint32, /*out*//*optional*/lpBuffer PWSTR, /*out*//*optional*/lpFilePart *PWSTR, /*in*/hTransaction HANDLE) (uint32)
-//sys	DefineDosDeviceA(/*in*/dwFlags DEFINE_DOS_DEVICE_FLAGS, /*in*/lpDeviceName PSTR, /*in*//*optional*/lpTargetPath PSTR) (BOOL)
-//sys	QueryDosDeviceA(/*in*//*optional*/lpDeviceName PSTR, /*out*//*optional*/lpTargetPath PSTR, /*in*/ucchMax uint32) (uint32)
-//sys	CreateFileTransactedA(/*in*/lpFileName PSTR, /*in*/dwDesiredAccess uint32, /*in*/dwShareMode FILE_SHARE_MODE, /*in*//*optional*/lpSecurityAttributes *SECURITY_ATTRIBUTES, /*in*/dwCreationDisposition FILE_CREATION_DISPOSITION, /*in*/dwFlagsAndAttributes FILE_FLAGS_AND_ATTRIBUTES, /*in*//*optional*/hTemplateFile HANDLE, /*in*/hTransaction HANDLE, /*in*//*optional*/pusMiniVersion *TXFS_MINIVERSION, /*in*//*out*/lpExtendedParameter unsafe.Pointer) (HANDLE)
-//sys	CreateFileTransactedW(/*in*/lpFileName PWSTR, /*in*/dwDesiredAccess uint32, /*in*/dwShareMode FILE_SHARE_MODE, /*in*//*optional*/lpSecurityAttributes *SECURITY_ATTRIBUTES, /*in*/dwCreationDisposition FILE_CREATION_DISPOSITION, /*in*/dwFlagsAndAttributes FILE_FLAGS_AND_ATTRIBUTES, /*in*//*optional*/hTemplateFile HANDLE, /*in*/hTransaction HANDLE, /*in*//*optional*/pusMiniVersion *TXFS_MINIVERSION, /*in*//*out*/lpExtendedParameter unsafe.Pointer) (HANDLE)
-//sys	ReOpenFile(/*in*/hOriginalFile HANDLE, /*in*/dwDesiredAccess FILE_ACCESS_FLAGS, /*in*/dwShareMode FILE_SHARE_MODE, /*in*/dwFlagsAndAttributes FILE_FLAGS_AND_ATTRIBUTES) (HANDLE)
-//sys	SetFileAttributesTransactedA(/*in*/lpFileName PSTR, /*in*/dwFileAttributes uint32, /*in*/hTransaction HANDLE) (BOOL)
-//sys	SetFileAttributesTransactedW(/*in*/lpFileName PWSTR, /*in*/dwFileAttributes uint32, /*in*/hTransaction HANDLE) (BOOL)
-//sys	GetFileAttributesTransactedA(/*in*/lpFileName PSTR, /*in*/fInfoLevelId GET_FILEEX_INFO_LEVELS, /*out*/lpFileInformation unsafe.Pointer, /*in*/hTransaction HANDLE) (BOOL)
-//sys	GetFileAttributesTransactedW(/*in*/lpFileName PWSTR, /*in*/fInfoLevelId GET_FILEEX_INFO_LEVELS, /*out*/lpFileInformation unsafe.Pointer, /*in*/hTransaction HANDLE) (BOOL)
-//sys	GetCompressedFileSizeTransactedA(/*in*/lpFileName PSTR, /*out*//*optional*/lpFileSizeHigh *uint32, /*in*/hTransaction HANDLE) (uint32)
-//sys	GetCompressedFileSizeTransactedW(/*in*/lpFileName PWSTR, /*out*//*optional*/lpFileSizeHigh *uint32, /*in*/hTransaction HANDLE) (uint32)
-//sys	DeleteFileTransactedA(/*in*/lpFileName PSTR, /*in*/hTransaction HANDLE) (BOOL)
-//sys	DeleteFileTransactedW(/*in*/lpFileName PWSTR, /*in*/hTransaction HANDLE) (BOOL)
-//sys	CheckNameLegalDOS8Dot3A(/*in*/lpName PSTR, /*out*//*optional*/lpOemName PSTR, /*in*/OemNameSize uint32, /*out*//*optional*/pbNameContainsSpaces *BOOL, /*out*/pbNameLegal *BOOL) (BOOL)
-//sys	CheckNameLegalDOS8Dot3W(/*in*/lpName PWSTR, /*out*//*optional*/lpOemName PSTR, /*in*/OemNameSize uint32, /*out*//*optional*/pbNameContainsSpaces *BOOL, /*out*/pbNameLegal *BOOL) (BOOL)
-//sys	FindFirstFileTransactedA(/*in*/lpFileName PSTR, /*in*/fInfoLevelId FINDEX_INFO_LEVELS, /*out*/lpFindFileData unsafe.Pointer, /*in*/fSearchOp FINDEX_SEARCH_OPS, /*in*//*out*/lpSearchFilter unsafe.Pointer, /*in*/dwAdditionalFlags uint32, /*in*/hTransaction HANDLE) (FindFileHandle)
-//sys	FindFirstFileTransactedW(/*in*/lpFileName PWSTR, /*in*/fInfoLevelId FINDEX_INFO_LEVELS, /*out*/lpFindFileData unsafe.Pointer, /*in*/fSearchOp FINDEX_SEARCH_OPS, /*in*//*out*/lpSearchFilter unsafe.Pointer, /*in*/dwAdditionalFlags uint32, /*in*/hTransaction HANDLE) (FindFileHandle)
-//sys	CopyFileA(/*in*/lpExistingFileName PSTR, /*in*/lpNewFileName PSTR, /*in*/bFailIfExists BOOL) (BOOL)
-//sys	CopyFileW(/*in*/lpExistingFileName PWSTR, /*in*/lpNewFileName PWSTR, /*in*/bFailIfExists BOOL) (BOOL)
-//sys	CopyFileExA(/*in*/lpExistingFileName PSTR, /*in*/lpNewFileName PSTR, /*in*//*optional*/lpProgressRoutine LPPROGRESS_ROUTINE, /*in*//*optional*/lpData unsafe.Pointer, /*in*//*out*//*optional*/pbCancel *int32, /*in*/dwCopyFlags uint32) (BOOL)
-//sys	CopyFileExW(/*in*/lpExistingFileName PWSTR, /*in*/lpNewFileName PWSTR, /*in*//*optional*/lpProgressRoutine LPPROGRESS_ROUTINE, /*in*//*optional*/lpData unsafe.Pointer, /*in*//*out*//*optional*/pbCancel *int32, /*in*/dwCopyFlags uint32) (BOOL)
-//sys	CopyFileTransactedA(/*in*/lpExistingFileName PSTR, /*in*/lpNewFileName PSTR, /*in*//*optional*/lpProgressRoutine LPPROGRESS_ROUTINE, /*in*//*optional*/lpData unsafe.Pointer, /*in*//*optional*/pbCancel *int32, /*in*/dwCopyFlags uint32, /*in*/hTransaction HANDLE) (BOOL)
-//sys	CopyFileTransactedW(/*in*/lpExistingFileName PWSTR, /*in*/lpNewFileName PWSTR, /*in*//*optional*/lpProgressRoutine LPPROGRESS_ROUTINE, /*in*//*optional*/lpData unsafe.Pointer, /*in*//*optional*/pbCancel *int32, /*in*/dwCopyFlags uint32, /*in*/hTransaction HANDLE) (BOOL)
-//sys	CopyFile2(/*in*/pwszExistingFileName PWSTR, /*in*/pwszNewFileName PWSTR, /*in*//*optional*/pExtendedParameters *COPYFILE2_EXTENDED_PARAMETERS) (HRESULT)
-//sys	MoveFileA(/*in*/lpExistingFileName PSTR, /*in*/lpNewFileName PSTR) (BOOL)
-//sys	MoveFileW(/*in*/lpExistingFileName PWSTR, /*in*/lpNewFileName PWSTR) (BOOL)
-//sys	MoveFileExA(/*in*/lpExistingFileName PSTR, /*in*//*optional*/lpNewFileName PSTR, /*in*/dwFlags MOVE_FILE_FLAGS) (BOOL)
-//sys	MoveFileExW(/*in*/lpExistingFileName PWSTR, /*in*//*optional*/lpNewFileName PWSTR, /*in*/dwFlags MOVE_FILE_FLAGS) (BOOL)
-//sys	MoveFileWithProgressA(/*in*/lpExistingFileName PSTR, /*in*//*optional*/lpNewFileName PSTR, /*in*//*optional*/lpProgressRoutine LPPROGRESS_ROUTINE, /*in*//*optional*/lpData unsafe.Pointer, /*in*/dwFlags MOVE_FILE_FLAGS) (BOOL)
-//sys	MoveFileWithProgressW(/*in*/lpExistingFileName PWSTR, /*in*//*optional*/lpNewFileName PWSTR, /*in*//*optional*/lpProgressRoutine LPPROGRESS_ROUTINE, /*in*//*optional*/lpData unsafe.Pointer, /*in*/dwFlags MOVE_FILE_FLAGS) (BOOL)
-//sys	MoveFileTransactedA(/*in*/lpExistingFileName PSTR, /*in*//*optional*/lpNewFileName PSTR, /*in*//*optional*/lpProgressRoutine LPPROGRESS_ROUTINE, /*in*//*optional*/lpData unsafe.Pointer, /*in*/dwFlags MOVE_FILE_FLAGS, /*in*/hTransaction HANDLE) (BOOL)
-//sys	MoveFileTransactedW(/*in*/lpExistingFileName PWSTR, /*in*//*optional*/lpNewFileName PWSTR, /*in*//*optional*/lpProgressRoutine LPPROGRESS_ROUTINE, /*in*//*optional*/lpData unsafe.Pointer, /*in*/dwFlags MOVE_FILE_FLAGS, /*in*/hTransaction HANDLE) (BOOL)
-//sys	ReplaceFileA(/*in*/lpReplacedFileName PSTR, /*in*/lpReplacementFileName PSTR, /*in*//*optional*/lpBackupFileName PSTR, /*in*/dwReplaceFlags REPLACE_FILE_FLAGS, /*in*//*out*/lpExclude unsafe.Pointer, /*in*//*out*/lpReserved unsafe.Pointer) (BOOL)
-//sys	ReplaceFileW(/*in*/lpReplacedFileName PWSTR, /*in*/lpReplacementFileName PWSTR, /*in*//*optional*/lpBackupFileName PWSTR, /*in*/dwReplaceFlags REPLACE_FILE_FLAGS, /*in*//*out*/lpExclude unsafe.Pointer, /*in*//*out*/lpReserved unsafe.Pointer) (BOOL)
-//sys	CreateHardLinkA(/*in*/lpFileName PSTR, /*in*/lpExistingFileName PSTR, /*in*//*out*/lpSecurityAttributes *SECURITY_ATTRIBUTES) (BOOL)
-//sys	CreateHardLinkW(/*in*/lpFileName PWSTR, /*in*/lpExistingFileName PWSTR, /*in*//*out*/lpSecurityAttributes *SECURITY_ATTRIBUTES) (BOOL)
-//sys	CreateHardLinkTransactedA(/*in*/lpFileName PSTR, /*in*/lpExistingFileName PSTR, /*in*//*out*/lpSecurityAttributes *SECURITY_ATTRIBUTES, /*in*/hTransaction HANDLE) (BOOL)
-//sys	CreateHardLinkTransactedW(/*in*/lpFileName PWSTR, /*in*/lpExistingFileName PWSTR, /*in*//*out*/lpSecurityAttributes *SECURITY_ATTRIBUTES, /*in*/hTransaction HANDLE) (BOOL)
-//sys	FindFirstStreamTransactedW(/*in*/lpFileName PWSTR, /*in*/InfoLevel STREAM_INFO_LEVELS, /*out*/lpFindStreamData unsafe.Pointer, /*in*/dwFlags uint32, /*in*/hTransaction HANDLE) (FindStreamHandle)
-//sys	FindFirstFileNameTransactedW(/*in*/lpFileName PWSTR, /*in*/dwFlags uint32, /*in*//*out*/StringLength *uint32, /*out*/LinkName PWSTR, /*in*//*optional*/hTransaction HANDLE) (FindFileNameHandle)
-//sys	SetVolumeLabelA(/*in*//*optional*/lpRootPathName PSTR, /*in*//*optional*/lpVolumeName PSTR) (BOOL)
-//sys	SetVolumeLabelW(/*in*//*optional*/lpRootPathName PWSTR, /*in*//*optional*/lpVolumeName PWSTR) (BOOL)
-//sys	SetFileBandwidthReservation(/*in*/hFile HANDLE, /*in*/nPeriodMilliseconds uint32, /*in*/nBytesPerPeriod uint32, /*in*/bDiscardable BOOL, /*out*/lpTransferSize *uint32, /*out*/lpNumOutstandingRequests *uint32) (BOOL)
-//sys	GetFileBandwidthReservation(/*in*/hFile HANDLE, /*out*/lpPeriodMilliseconds *uint32, /*out*/lpBytesPerPeriod *uint32, /*out*/pDiscardable *int32, /*out*/lpTransferSize *uint32, /*out*/lpNumOutstandingRequests *uint32) (BOOL)
-//sys	ReadDirectoryChangesW(/*in*/hDirectory HANDLE, /*out*/lpBuffer unsafe.Pointer, /*in*/nBufferLength uint32, /*in*/bWatchSubtree BOOL, /*in*/dwNotifyFilter FILE_NOTIFY_CHANGE, /*out*//*optional*/lpBytesReturned *uint32, /*in*//*out*//*optional*/lpOverlapped *OVERLAPPED, /*in*//*optional*/lpCompletionRoutine LPOVERLAPPED_COMPLETION_ROUTINE) (BOOL)
-//sys	ReadDirectoryChangesExW(/*in*/hDirectory HANDLE, /*out*/lpBuffer unsafe.Pointer, /*in*/nBufferLength uint32, /*in*/bWatchSubtree BOOL, /*in*/dwNotifyFilter FILE_NOTIFY_CHANGE, /*out*//*optional*/lpBytesReturned *uint32, /*in*//*out*//*optional*/lpOverlapped *OVERLAPPED, /*in*//*optional*/lpCompletionRoutine LPOVERLAPPED_COMPLETION_ROUTINE, /*in*/ReadDirectoryNotifyInformationClass READ_DIRECTORY_NOTIFY_INFORMATION_CLASS) (BOOL)
-//sys	FindFirstVolumeA(/*out*/lpszVolumeName PSTR, /*in*/cchBufferLength uint32) (FindVolumeHandle)
-//sys	FindNextVolumeA(/*in*/hFindVolume FindVolumeHandle, /*out*/lpszVolumeName PSTR, /*in*/cchBufferLength uint32) (BOOL)
-//sys	FindFirstVolumeMountPointA(/*in*/lpszRootPathName PSTR, /*out*/lpszVolumeMountPoint PSTR, /*in*/cchBufferLength uint32) (FindVolumeMointPointHandle)
-//sys	FindFirstVolumeMountPointW(/*in*/lpszRootPathName PWSTR, /*out*/lpszVolumeMountPoint PWSTR, /*in*/cchBufferLength uint32) (FindVolumeMointPointHandle)
-//sys	FindNextVolumeMountPointA(/*in*/hFindVolumeMountPoint FindVolumeMointPointHandle, /*out*/lpszVolumeMountPoint PSTR, /*in*/cchBufferLength uint32) (BOOL)
-//sys	FindNextVolumeMountPointW(/*in*/hFindVolumeMountPoint FindVolumeMointPointHandle, /*out*/lpszVolumeMountPoint PWSTR, /*in*/cchBufferLength uint32) (BOOL)
-//sys	FindVolumeMountPointClose(/*in*/hFindVolumeMountPoint FindVolumeMointPointHandle) (BOOL)
-//sys	SetVolumeMountPointA(/*in*/lpszVolumeMountPoint PSTR, /*in*/lpszVolumeName PSTR) (BOOL)
-//sys	SetVolumeMountPointW(/*in*/lpszVolumeMountPoint PWSTR, /*in*/lpszVolumeName PWSTR) (BOOL)
-//sys	DeleteVolumeMountPointA(/*in*/lpszVolumeMountPoint PSTR) (BOOL)
-//sys	GetVolumeNameForVolumeMountPointA(/*in*/lpszVolumeMountPoint PSTR, /*out*/lpszVolumeName PSTR, /*in*/cchBufferLength uint32) (BOOL)
-//sys	GetVolumePathNameA(/*in*/lpszFileName PSTR, /*out*/lpszVolumePathName PSTR, /*in*/cchBufferLength uint32) (BOOL)
-//sys	GetVolumePathNamesForVolumeNameA(/*in*/lpszVolumeName PSTR, /*out*//*optional*/lpszVolumePathNames PSTR, /*in*/cchBufferLength uint32, /*out*/lpcchReturnLength *uint32) (BOOL)
-//sys	GetFileInformationByHandleEx(/*in*/hFile HANDLE, /*in*/FileInformationClass FILE_INFO_BY_HANDLE_CLASS, /*out*/lpFileInformation unsafe.Pointer, /*in*/dwBufferSize uint32) (BOOL)
-//sys	OpenFileById(/*in*/hVolumeHint HANDLE, /*in*/lpFileId *FILE_ID_DESCRIPTOR, /*in*/dwDesiredAccess FILE_ACCESS_FLAGS, /*in*/dwShareMode FILE_SHARE_MODE, /*in*//*optional*/lpSecurityAttributes *SECURITY_ATTRIBUTES, /*in*/dwFlagsAndAttributes FILE_FLAGS_AND_ATTRIBUTES) (HANDLE)
-//sys	CreateSymbolicLinkA(/*in*/lpSymlinkFileName PSTR, /*in*/lpTargetFileName PSTR, /*in*/dwFlags SYMBOLIC_LINK_FLAGS) (BOOLEAN)
-//sys	CreateSymbolicLinkW(/*in*/lpSymlinkFileName PWSTR, /*in*/lpTargetFileName PWSTR, /*in*/dwFlags SYMBOLIC_LINK_FLAGS) (BOOLEAN)
-//sys	CreateSymbolicLinkTransactedA(/*in*/lpSymlinkFileName PSTR, /*in*/lpTargetFileName PSTR, /*in*/dwFlags SYMBOLIC_LINK_FLAGS, /*in*/hTransaction HANDLE) (BOOLEAN)
-//sys	CreateSymbolicLinkTransactedW(/*in*/lpSymlinkFileName PWSTR, /*in*/lpTargetFileName PWSTR, /*in*/dwFlags SYMBOLIC_LINK_FLAGS, /*in*/hTransaction HANDLE) (BOOLEAN)
-//sys	NtCreateFile(/*in*//*out*/FileHandle *HANDLE, /*in*/DesiredAccess uint32, /*in*//*out*/ObjectAttributes *OBJECT_ATTRIBUTES, /*in*//*out*/IoStatusBlock *IO_STATUS_BLOCK, /*in*//*out*/AllocationSize *LARGE_INTEGER, /*in*/FileAttributes uint32, /*in*/ShareAccess FILE_SHARE_MODE, /*in*/CreateDisposition NT_CREATE_FILE_DISPOSITION, /*in*/CreateOptions uint32, /*in*//*out*/EaBuffer unsafe.Pointer, /*in*/EaLength uint32) (NTSTATUS) = ntdll.NtCreateFile
+//sys	CopyLZFile(hfSource int32, hfDest int32) (int32)
+//sys	LZCopy(hfSource int32, hfDest int32) (int32)
+//sys	LZInit(hfSource int32) (int32)
+//sys	GetExpandedNameA(lpszSource PSTR, lpszBuffer PSTR) (int32)
+//sys	GetExpandedNameW(lpszSource PWSTR, lpszBuffer PWSTR) (int32)
+//sys	LZOpenFileA(lpFileName PSTR, lpReOpenBuf *OFSTRUCT, wStyle LZOPENFILE_STYLE) (int32)
+//sys	LZOpenFileW(lpFileName PWSTR, lpReOpenBuf *OFSTRUCT, wStyle LZOPENFILE_STYLE) (int32)
+//sys	LZSeek(hFile int32, lOffset int32, iOrigin int32) (int32)
+//sys	LZRead(hFile int32, lpBuffer PSTR, cbRead int32) (int32)
+//sys	LZClose(hFile int32)
+//sys	WofShouldCompressBinaries(Volume PWSTR, Algorithm *uint32) (BOOL) = wofutil.WofShouldCompressBinaries
+//sys	WofGetDriverVersion(FileOrVolumeHandle HANDLE, Provider uint32, WofVersion *uint32) (HRESULT) = wofutil.WofGetDriverVersion
+//sys	WofSetFileDataLocation(FileHandle HANDLE, Provider uint32, ExternalFileInfo unsafe.Pointer, Length uint32) (HRESULT) = wofutil.WofSetFileDataLocation
+//sys	WofIsExternalFile(FilePath PWSTR, IsExternalFile *BOOL, Provider *uint32, ExternalFileInfo unsafe.Pointer, BufferLength *uint32) (HRESULT) = wofutil.WofIsExternalFile
+//sys	WofEnumEntries(VolumeName PWSTR, Provider uint32, EnumProc WofEnumEntryProc, UserData unsafe.Pointer) (HRESULT) = wofutil.WofEnumEntries
+//sys	WofWimAddEntry(VolumeName PWSTR, WimPath PWSTR, WimType uint32, WimIndex uint32, DataSourceId *LARGE_INTEGER) (HRESULT) = wofutil.WofWimAddEntry
+//sys	WofWimEnumFiles(VolumeName PWSTR, DataSourceId LARGE_INTEGER, EnumProc WofEnumFilesProc, UserData unsafe.Pointer) (HRESULT) = wofutil.WofWimEnumFiles
+//sys	WofWimSuspendEntry(VolumeName PWSTR, DataSourceId LARGE_INTEGER) (HRESULT) = wofutil.WofWimSuspendEntry
+//sys	WofWimRemoveEntry(VolumeName PWSTR, DataSourceId LARGE_INTEGER) (HRESULT) = wofutil.WofWimRemoveEntry
+//sys	WofWimUpdateEntry(VolumeName PWSTR, DataSourceId LARGE_INTEGER, NewWimPath PWSTR) (HRESULT) = wofutil.WofWimUpdateEntry
+//sys	WofFileEnumFiles(VolumeName PWSTR, Algorithm uint32, EnumProc WofEnumFilesProc, UserData unsafe.Pointer) (HRESULT) = wofutil.WofFileEnumFiles
+//sys	TxfLogCreateFileReadContext(LogPath PWSTR, BeginningLsn CLS_LSN, EndingLsn CLS_LSN, TxfFileId *TXF_ID, TxfLogContext *unsafe.Pointer) (BOOL) = txfw32.TxfLogCreateFileReadContext
+//sys	TxfLogCreateRangeReadContext(LogPath PWSTR, BeginningLsn CLS_LSN, EndingLsn CLS_LSN, BeginningVirtualClock *LARGE_INTEGER, EndingVirtualClock *LARGE_INTEGER, RecordTypeMask uint32, TxfLogContext *unsafe.Pointer) (BOOL) = txfw32.TxfLogCreateRangeReadContext
+//sys	TxfLogDestroyReadContext(TxfLogContext unsafe.Pointer) (BOOL) = txfw32.TxfLogDestroyReadContext
+//sys	TxfLogReadRecords(TxfLogContext unsafe.Pointer, BufferLength uint32, Buffer unsafe.Pointer, BytesUsed *uint32, RecordCount *uint32) (BOOL) = txfw32.TxfLogReadRecords
+//sys	TxfReadMetadataInfo(FileHandle HANDLE, TxfFileId *TXF_ID, LastLsn *CLS_LSN, TransactionState *uint32, LockingTransaction *Guid) (BOOL) = txfw32.TxfReadMetadataInfo
+//sys	TxfLogRecordGetFileName(RecordBuffer unsafe.Pointer, RecordBufferLengthInBytes uint32, NameBuffer PWSTR, NameBufferLengthInBytes *uint32, TxfId *TXF_ID) (BOOL) = txfw32.TxfLogRecordGetFileName
+//sys	TxfLogRecordGetGenericType(RecordBuffer unsafe.Pointer, RecordBufferLengthInBytes uint32, GenericType *uint32, VirtualClock *LARGE_INTEGER) (BOOL) = txfw32.TxfLogRecordGetGenericType
+//sys	TxfSetThreadMiniVersionForCreate(MiniVersion uint16) = txfw32.TxfSetThreadMiniVersionForCreate
+//sys	TxfGetThreadMiniVersionForCreate(MiniVersion *uint16) = txfw32.TxfGetThreadMiniVersionForCreate
+//sys	CreateTransaction(lpTransactionAttributes *SECURITY_ATTRIBUTES, UOW *Guid, CreateOptions uint32, IsolationLevel uint32, IsolationFlags uint32, Timeout uint32, Description PWSTR) (HANDLE) = ktmw32.CreateTransaction
+//sys	OpenTransaction(dwDesiredAccess uint32, TransactionId *Guid) (HANDLE) = ktmw32.OpenTransaction
+//sys	CommitTransaction(TransactionHandle HANDLE) (BOOL) = ktmw32.CommitTransaction
+//sys	CommitTransactionAsync(TransactionHandle HANDLE) (BOOL) = ktmw32.CommitTransactionAsync
+//sys	RollbackTransaction(TransactionHandle HANDLE) (BOOL) = ktmw32.RollbackTransaction
+//sys	RollbackTransactionAsync(TransactionHandle HANDLE) (BOOL) = ktmw32.RollbackTransactionAsync
+//sys	GetTransactionId(TransactionHandle HANDLE, TransactionId *Guid) (BOOL) = ktmw32.GetTransactionId
+//sys	GetTransactionInformation(TransactionHandle HANDLE, Outcome *uint32, IsolationLevel *uint32, IsolationFlags *uint32, Timeout *uint32, BufferLength uint32, Description PWSTR) (BOOL) = ktmw32.GetTransactionInformation
+//sys	SetTransactionInformation(TransactionHandle HANDLE, IsolationLevel uint32, IsolationFlags uint32, Timeout uint32, Description PWSTR) (BOOL) = ktmw32.SetTransactionInformation
+//sys	CreateTransactionManager(lpTransactionAttributes *SECURITY_ATTRIBUTES, LogFileName PWSTR, CreateOptions uint32, CommitStrength uint32) (HANDLE) = ktmw32.CreateTransactionManager
+//sys	OpenTransactionManager(LogFileName PWSTR, DesiredAccess uint32, OpenOptions uint32) (HANDLE) = ktmw32.OpenTransactionManager
+//sys	OpenTransactionManagerById(TransactionManagerId *Guid, DesiredAccess uint32, OpenOptions uint32) (HANDLE) = ktmw32.OpenTransactionManagerById
+//sys	RenameTransactionManager(LogFileName PWSTR, ExistingTransactionManagerGuid *Guid) (BOOL) = ktmw32.RenameTransactionManager
+//sys	RollforwardTransactionManager(TransactionManagerHandle HANDLE, TmVirtualClock *LARGE_INTEGER) (BOOL) = ktmw32.RollforwardTransactionManager
+//sys	RecoverTransactionManager(TransactionManagerHandle HANDLE) (BOOL) = ktmw32.RecoverTransactionManager
+//sys	GetCurrentClockTransactionManager(TransactionManagerHandle HANDLE, TmVirtualClock *LARGE_INTEGER) (BOOL) = ktmw32.GetCurrentClockTransactionManager
+//sys	GetTransactionManagerId(TransactionManagerHandle HANDLE, TransactionManagerId *Guid) (BOOL) = ktmw32.GetTransactionManagerId
+//sys	CreateResourceManager(lpResourceManagerAttributes *SECURITY_ATTRIBUTES, ResourceManagerId *Guid, CreateOptions uint32, TmHandle HANDLE, Description PWSTR) (HANDLE) = ktmw32.CreateResourceManager
+//sys	OpenResourceManager(dwDesiredAccess uint32, TmHandle HANDLE, ResourceManagerId *Guid) (HANDLE) = ktmw32.OpenResourceManager
+//sys	RecoverResourceManager(ResourceManagerHandle HANDLE) (BOOL) = ktmw32.RecoverResourceManager
+//sys	GetNotificationResourceManager(ResourceManagerHandle HANDLE, TransactionNotification *TRANSACTION_NOTIFICATION, NotificationLength uint32, dwMilliseconds uint32, ReturnLength *uint32) (BOOL) = ktmw32.GetNotificationResourceManager
+//sys	GetNotificationResourceManagerAsync(ResourceManagerHandle HANDLE, TransactionNotification *TRANSACTION_NOTIFICATION, TransactionNotificationLength uint32, ReturnLength *uint32, lpOverlapped *OVERLAPPED) (BOOL) = ktmw32.GetNotificationResourceManagerAsync
+//sys	SetResourceManagerCompletionPort(ResourceManagerHandle HANDLE, IoCompletionPortHandle HANDLE, CompletionKey uintptr) (BOOL) = ktmw32.SetResourceManagerCompletionPort
+//sys	CreateEnlistment(lpEnlistmentAttributes *SECURITY_ATTRIBUTES, ResourceManagerHandle HANDLE, TransactionHandle HANDLE, NotificationMask uint32, CreateOptions uint32, EnlistmentKey unsafe.Pointer) (HANDLE) = ktmw32.CreateEnlistment
+//sys	OpenEnlistment(dwDesiredAccess uint32, ResourceManagerHandle HANDLE, EnlistmentId *Guid) (HANDLE) = ktmw32.OpenEnlistment
+//sys	RecoverEnlistment(EnlistmentHandle HANDLE, EnlistmentKey unsafe.Pointer) (BOOL) = ktmw32.RecoverEnlistment
+//sys	GetEnlistmentRecoveryInformation(EnlistmentHandle HANDLE, BufferSize uint32, Buffer unsafe.Pointer, BufferUsed *uint32) (BOOL) = ktmw32.GetEnlistmentRecoveryInformation
+//sys	GetEnlistmentId(EnlistmentHandle HANDLE, EnlistmentId *Guid) (BOOL) = ktmw32.GetEnlistmentId
+//sys	SetEnlistmentRecoveryInformation(EnlistmentHandle HANDLE, BufferSize uint32, Buffer unsafe.Pointer) (BOOL) = ktmw32.SetEnlistmentRecoveryInformation
+//sys	PrepareEnlistment(EnlistmentHandle HANDLE, TmVirtualClock *LARGE_INTEGER) (BOOL) = ktmw32.PrepareEnlistment
+//sys	PrePrepareEnlistment(EnlistmentHandle HANDLE, TmVirtualClock *LARGE_INTEGER) (BOOL) = ktmw32.PrePrepareEnlistment
+//sys	CommitEnlistment(EnlistmentHandle HANDLE, TmVirtualClock *LARGE_INTEGER) (BOOL) = ktmw32.CommitEnlistment
+//sys	RollbackEnlistment(EnlistmentHandle HANDLE, TmVirtualClock *LARGE_INTEGER) (BOOL) = ktmw32.RollbackEnlistment
+//sys	PrePrepareComplete(EnlistmentHandle HANDLE, TmVirtualClock *LARGE_INTEGER) (BOOL) = ktmw32.PrePrepareComplete
+//sys	PrepareComplete(EnlistmentHandle HANDLE, TmVirtualClock *LARGE_INTEGER) (BOOL) = ktmw32.PrepareComplete
+//sys	ReadOnlyEnlistment(EnlistmentHandle HANDLE, TmVirtualClock *LARGE_INTEGER) (BOOL) = ktmw32.ReadOnlyEnlistment
+//sys	CommitComplete(EnlistmentHandle HANDLE, TmVirtualClock *LARGE_INTEGER) (BOOL) = ktmw32.CommitComplete
+//sys	RollbackComplete(EnlistmentHandle HANDLE, TmVirtualClock *LARGE_INTEGER) (BOOL) = ktmw32.RollbackComplete
+//sys	SinglePhaseReject(EnlistmentHandle HANDLE, TmVirtualClock *LARGE_INTEGER) (BOOL) = ktmw32.SinglePhaseReject
+//sys	NetShareAdd(servername PWSTR, level uint32, buf *uint8, parm_err *uint32) (uint32) = netapi32.NetShareAdd
+//sys	NetShareEnum(servername PWSTR, level uint32, bufptr **uint8, prefmaxlen uint32, entriesread *uint32, totalentries *uint32, resume_handle *uint32) (uint32) = netapi32.NetShareEnum
+//sys	NetShareEnumSticky(servername PWSTR, level uint32, bufptr **uint8, prefmaxlen uint32, entriesread *uint32, totalentries *uint32, resume_handle *uint32) (uint32) = netapi32.NetShareEnumSticky
+//sys	NetShareGetInfo(servername PWSTR, netname PWSTR, level uint32, bufptr **uint8) (uint32) = netapi32.NetShareGetInfo
+//sys	NetShareSetInfo(servername PWSTR, netname PWSTR, level uint32, buf *uint8, parm_err *uint32) (uint32) = netapi32.NetShareSetInfo
+//sys	NetShareDel(servername PWSTR, netname PWSTR, reserved uint32) (uint32) = netapi32.NetShareDel
+//sys	NetShareDelSticky(servername PWSTR, netname PWSTR, reserved uint32) (uint32) = netapi32.NetShareDelSticky
+//sys	NetShareCheck(servername PWSTR, device PWSTR, type *uint32) (uint32) = netapi32.NetShareCheck
+//sys	NetShareDelEx(servername PWSTR, level uint32, buf *uint8) (uint32) = netapi32.NetShareDelEx
+//sys	NetServerAliasAdd(servername PWSTR, level uint32, buf *uint8) (uint32) = netapi32.NetServerAliasAdd
+//sys	NetServerAliasDel(servername PWSTR, level uint32, buf *uint8) (uint32) = netapi32.NetServerAliasDel
+//sys	NetServerAliasEnum(servername PWSTR, level uint32, bufptr **uint8, prefmaxlen uint32, entriesread *uint32, totalentries *uint32, resumehandle *uint32) (uint32) = netapi32.NetServerAliasEnum
+//sys	NetSessionEnum(servername PWSTR, UncClientName PWSTR, username PWSTR, level uint32, bufptr **uint8, prefmaxlen uint32, entriesread *uint32, totalentries *uint32, resume_handle *uint32) (uint32) = netapi32.NetSessionEnum
+//sys	NetSessionDel(servername PWSTR, UncClientName PWSTR, username PWSTR) (uint32) = netapi32.NetSessionDel
+//sys	NetSessionGetInfo(servername PWSTR, UncClientName PWSTR, username PWSTR, level uint32, bufptr **uint8) (uint32) = netapi32.NetSessionGetInfo
+//sys	NetConnectionEnum(servername PWSTR, qualifier PWSTR, level uint32, bufptr **uint8, prefmaxlen uint32, entriesread *uint32, totalentries *uint32, resume_handle *uint32) (uint32) = netapi32.NetConnectionEnum
+//sys	NetFileClose(servername PWSTR, fileid uint32) (uint32) = netapi32.NetFileClose
+//sys	NetFileEnum(servername PWSTR, basepath PWSTR, username PWSTR, level uint32, bufptr **uint8, prefmaxlen uint32, entriesread *uint32, totalentries *uint32, resume_handle *uintptr) (uint32) = netapi32.NetFileEnum
+//sys	NetFileGetInfo(servername PWSTR, fileid uint32, level uint32, bufptr **uint8) (uint32) = netapi32.NetFileGetInfo
+//sys	NetStatisticsGet(ServerName *int8, Service *int8, Level uint32, Options uint32, Buffer **uint8) (uint32) = netapi32.NetStatisticsGet
+//sys	QueryIoRingCapabilities(capabilities *IORING_CAPABILITIES) (HRESULT) = api-ms-win-core-ioring-l1-1-0.QueryIoRingCapabilities
+//sys	IsIoRingOpSupported(ioRing *HIORING__, op IORING_OP_CODE) (BOOL) = api-ms-win-core-ioring-l1-1-0.IsIoRingOpSupported
+//sys	CreateIoRing(ioringVersion IORING_VERSION, flags IORING_CREATE_FLAGS, submissionQueueSize uint32, completionQueueSize uint32, h **HIORING__) (HRESULT) = api-ms-win-core-ioring-l1-1-0.CreateIoRing
+//sys	GetIoRingInfo(ioRing *HIORING__, info *IORING_INFO) (HRESULT) = api-ms-win-core-ioring-l1-1-0.GetIoRingInfo
+//sys	SubmitIoRing(ioRing *HIORING__, waitOperations uint32, milliseconds uint32, submittedEntries *uint32) (HRESULT) = api-ms-win-core-ioring-l1-1-0.SubmitIoRing
+//sys	CloseIoRing(ioRing *HIORING__) (HRESULT) = api-ms-win-core-ioring-l1-1-0.CloseIoRing
+//sys	PopIoRingCompletion(ioRing *HIORING__, cqe *IORING_CQE) (HRESULT) = api-ms-win-core-ioring-l1-1-0.PopIoRingCompletion
+//sys	SetIoRingCompletionEvent(ioRing *HIORING__, hEvent HANDLE) (HRESULT) = api-ms-win-core-ioring-l1-1-0.SetIoRingCompletionEvent
+//sys	BuildIoRingCancelRequest(ioRing *HIORING__, file IORING_HANDLE_REF, opToCancel uintptr, userData uintptr) (HRESULT) = api-ms-win-core-ioring-l1-1-0.BuildIoRingCancelRequest
+//sys	BuildIoRingReadFile(ioRing *HIORING__, fileRef IORING_HANDLE_REF, dataRef IORING_BUFFER_REF, numberOfBytesToRead uint32, fileOffset uint64, userData uintptr, flags IORING_SQE_FLAGS) (HRESULT) = api-ms-win-core-ioring-l1-1-0.BuildIoRingReadFile
+//sys	BuildIoRingRegisterFileHandles(ioRing *HIORING__, count uint32, handles *HANDLE, userData uintptr) (HRESULT) = api-ms-win-core-ioring-l1-1-0.BuildIoRingRegisterFileHandles
+//sys	BuildIoRingRegisterBuffers(ioRing *HIORING__, count uint32, buffers *IORING_BUFFER_INFO, userData uintptr) (HRESULT) = api-ms-win-core-ioring-l1-1-0.BuildIoRingRegisterBuffers
+//sys	Wow64EnableWow64FsRedirection(Wow64FsEnableRedirection BOOLEAN) (BOOLEAN)
+//sys	Wow64DisableWow64FsRedirection(OldValue *unsafe.Pointer) (BOOL)
+//sys	Wow64RevertWow64FsRedirection(OlValue unsafe.Pointer) (BOOL)
+//sys	GetBinaryTypeA(lpApplicationName PSTR, lpBinaryType *uint32) (BOOL)
+//sys	GetBinaryTypeW(lpApplicationName PWSTR, lpBinaryType *uint32) (BOOL)
+//sys	GetShortPathNameA(lpszLongPath PSTR, lpszShortPath PSTR, cchBuffer uint32) (uint32)
+//sys	GetLongPathNameTransactedA(lpszShortPath PSTR, lpszLongPath PSTR, cchBuffer uint32, hTransaction HANDLE) (uint32)
+//sys	GetLongPathNameTransactedW(lpszShortPath PWSTR, lpszLongPath PWSTR, cchBuffer uint32, hTransaction HANDLE) (uint32)
+//sys	SetFileCompletionNotificationModes(FileHandle HANDLE, Flags uint8) (BOOL)
+//sys	SetFileShortNameA(hFile HANDLE, lpShortName PSTR) (BOOL)
+//sys	SetFileShortNameW(hFile HANDLE, lpShortName PWSTR) (BOOL)
+//sys	SetTapePosition(hDevice HANDLE, dwPositionMethod TAPE_POSITION_METHOD, dwPartition uint32, dwOffsetLow uint32, dwOffsetHigh uint32, bImmediate BOOL) (uint32)
+//sys	GetTapePosition(hDevice HANDLE, dwPositionType TAPE_POSITION_TYPE, lpdwPartition *uint32, lpdwOffsetLow *uint32, lpdwOffsetHigh *uint32) (uint32)
+//sys	PrepareTape(hDevice HANDLE, dwOperation PREPARE_TAPE_OPERATION, bImmediate BOOL) (uint32)
+//sys	EraseTape(hDevice HANDLE, dwEraseType ERASE_TAPE_TYPE, bImmediate BOOL) (uint32)
+//sys	CreateTapePartition(hDevice HANDLE, dwPartitionMethod CREATE_TAPE_PARTITION_METHOD, dwCount uint32, dwSize uint32) (uint32)
+//sys	WriteTapemark(hDevice HANDLE, dwTapemarkType TAPEMARK_TYPE, dwTapemarkCount uint32, bImmediate BOOL) (uint32)
+//sys	GetTapeStatus(hDevice HANDLE) (uint32)
+//sys	GetTapeParameters(hDevice HANDLE, dwOperation GET_TAPE_DRIVE_PARAMETERS_OPERATION, lpdwSize *uint32, lpTapeInformation unsafe.Pointer) (uint32)
+//sys	SetTapeParameters(hDevice HANDLE, dwOperation TAPE_INFORMATION_TYPE, lpTapeInformation unsafe.Pointer) (uint32)
+//sys	EncryptFileA(lpFileName PSTR) (BOOL) = advapi32.EncryptFileA
+//sys	EncryptFileW(lpFileName PWSTR) (BOOL) = advapi32.EncryptFileW
+//sys	DecryptFileA(lpFileName PSTR, dwReserved uint32) (BOOL) = advapi32.DecryptFileA
+//sys	DecryptFileW(lpFileName PWSTR, dwReserved uint32) (BOOL) = advapi32.DecryptFileW
+//sys	FileEncryptionStatusA(lpFileName PSTR, lpStatus *uint32) (BOOL) = advapi32.FileEncryptionStatusA
+//sys	FileEncryptionStatusW(lpFileName PWSTR, lpStatus *uint32) (BOOL) = advapi32.FileEncryptionStatusW
+//sys	OpenEncryptedFileRawA(lpFileName PSTR, ulFlags uint32, pvContext *unsafe.Pointer) (uint32) = advapi32.OpenEncryptedFileRawA
+//sys	OpenEncryptedFileRawW(lpFileName PWSTR, ulFlags uint32, pvContext *unsafe.Pointer) (uint32) = advapi32.OpenEncryptedFileRawW
+//sys	ReadEncryptedFileRaw(pfExportCallback PFE_EXPORT_FUNC, pvCallbackContext unsafe.Pointer, pvContext unsafe.Pointer) (uint32) = advapi32.ReadEncryptedFileRaw
+//sys	WriteEncryptedFileRaw(pfImportCallback PFE_IMPORT_FUNC, pvCallbackContext unsafe.Pointer, pvContext unsafe.Pointer) (uint32) = advapi32.WriteEncryptedFileRaw
+//sys	CloseEncryptedFileRaw(pvContext unsafe.Pointer) = advapi32.CloseEncryptedFileRaw
+//sys	OpenFile(lpFileName PSTR, lpReOpenBuff *OFSTRUCT, uStyle LZOPENFILE_STYLE) (int32)
+//sys	BackupRead(hFile HANDLE, lpBuffer *uint8, nNumberOfBytesToRead uint32, lpNumberOfBytesRead *uint32, bAbort BOOL, bProcessSecurity BOOL, lpContext *unsafe.Pointer) (BOOL)
+//sys	BackupSeek(hFile HANDLE, dwLowBytesToSeek uint32, dwHighBytesToSeek uint32, lpdwLowByteSeeked *uint32, lpdwHighByteSeeked *uint32, lpContext *unsafe.Pointer) (BOOL)
+//sys	BackupWrite(hFile HANDLE, lpBuffer *uint8, nNumberOfBytesToWrite uint32, lpNumberOfBytesWritten *uint32, bAbort BOOL, bProcessSecurity BOOL, lpContext *unsafe.Pointer) (BOOL)
+//sys	GetLogicalDriveStringsA(nBufferLength uint32, lpBuffer PSTR) (uint32)
+//sys	SetSearchPathMode(Flags uint32) (BOOL)
+//sys	CreateDirectoryExA(lpTemplateDirectory PSTR, lpNewDirectory PSTR, lpSecurityAttributes *SECURITY_ATTRIBUTES) (BOOL)
+//sys	CreateDirectoryExW(lpTemplateDirectory PWSTR, lpNewDirectory PWSTR, lpSecurityAttributes *SECURITY_ATTRIBUTES) (BOOL)
+//sys	CreateDirectoryTransactedA(lpTemplateDirectory PSTR, lpNewDirectory PSTR, lpSecurityAttributes *SECURITY_ATTRIBUTES, hTransaction HANDLE) (BOOL)
+//sys	CreateDirectoryTransactedW(lpTemplateDirectory PWSTR, lpNewDirectory PWSTR, lpSecurityAttributes *SECURITY_ATTRIBUTES, hTransaction HANDLE) (BOOL)
+//sys	RemoveDirectoryTransactedA(lpPathName PSTR, hTransaction HANDLE) (BOOL)
+//sys	RemoveDirectoryTransactedW(lpPathName PWSTR, hTransaction HANDLE) (BOOL)
+//sys	GetFullPathNameTransactedA(lpFileName PSTR, nBufferLength uint32, lpBuffer PSTR, lpFilePart *PSTR, hTransaction HANDLE) (uint32)
+//sys	GetFullPathNameTransactedW(lpFileName PWSTR, nBufferLength uint32, lpBuffer PWSTR, lpFilePart *PWSTR, hTransaction HANDLE) (uint32)
+//sys	DefineDosDeviceA(dwFlags DEFINE_DOS_DEVICE_FLAGS, lpDeviceName PSTR, lpTargetPath PSTR) (BOOL)
+//sys	QueryDosDeviceA(lpDeviceName PSTR, lpTargetPath PSTR, ucchMax uint32) (uint32)
+//sys	CreateFileTransactedA(lpFileName PSTR, dwDesiredAccess uint32, dwShareMode FILE_SHARE_MODE, lpSecurityAttributes *SECURITY_ATTRIBUTES, dwCreationDisposition FILE_CREATION_DISPOSITION, dwFlagsAndAttributes FILE_FLAGS_AND_ATTRIBUTES, hTemplateFile HANDLE, hTransaction HANDLE, pusMiniVersion *TXFS_MINIVERSION, lpExtendedParameter unsafe.Pointer) (HANDLE)
+//sys	CreateFileTransactedW(lpFileName PWSTR, dwDesiredAccess uint32, dwShareMode FILE_SHARE_MODE, lpSecurityAttributes *SECURITY_ATTRIBUTES, dwCreationDisposition FILE_CREATION_DISPOSITION, dwFlagsAndAttributes FILE_FLAGS_AND_ATTRIBUTES, hTemplateFile HANDLE, hTransaction HANDLE, pusMiniVersion *TXFS_MINIVERSION, lpExtendedParameter unsafe.Pointer) (HANDLE)
+//sys	ReOpenFile(hOriginalFile HANDLE, dwDesiredAccess FILE_ACCESS_FLAGS, dwShareMode FILE_SHARE_MODE, dwFlagsAndAttributes FILE_FLAGS_AND_ATTRIBUTES) (HANDLE)
+//sys	SetFileAttributesTransactedA(lpFileName PSTR, dwFileAttributes uint32, hTransaction HANDLE) (BOOL)
+//sys	SetFileAttributesTransactedW(lpFileName PWSTR, dwFileAttributes uint32, hTransaction HANDLE) (BOOL)
+//sys	GetFileAttributesTransactedA(lpFileName PSTR, fInfoLevelId GET_FILEEX_INFO_LEVELS, lpFileInformation unsafe.Pointer, hTransaction HANDLE) (BOOL)
+//sys	GetFileAttributesTransactedW(lpFileName PWSTR, fInfoLevelId GET_FILEEX_INFO_LEVELS, lpFileInformation unsafe.Pointer, hTransaction HANDLE) (BOOL)
+//sys	GetCompressedFileSizeTransactedA(lpFileName PSTR, lpFileSizeHigh *uint32, hTransaction HANDLE) (uint32)
+//sys	GetCompressedFileSizeTransactedW(lpFileName PWSTR, lpFileSizeHigh *uint32, hTransaction HANDLE) (uint32)
+//sys	DeleteFileTransactedA(lpFileName PSTR, hTransaction HANDLE) (BOOL)
+//sys	DeleteFileTransactedW(lpFileName PWSTR, hTransaction HANDLE) (BOOL)
+//sys	CheckNameLegalDOS8Dot3A(lpName PSTR, lpOemName PSTR, OemNameSize uint32, pbNameContainsSpaces *BOOL, pbNameLegal *BOOL) (BOOL)
+//sys	CheckNameLegalDOS8Dot3W(lpName PWSTR, lpOemName PSTR, OemNameSize uint32, pbNameContainsSpaces *BOOL, pbNameLegal *BOOL) (BOOL)
+//sys	FindFirstFileTransactedA(lpFileName PSTR, fInfoLevelId FINDEX_INFO_LEVELS, lpFindFileData unsafe.Pointer, fSearchOp FINDEX_SEARCH_OPS, lpSearchFilter unsafe.Pointer, dwAdditionalFlags uint32, hTransaction HANDLE) (FindFileHandle)
+//sys	FindFirstFileTransactedW(lpFileName PWSTR, fInfoLevelId FINDEX_INFO_LEVELS, lpFindFileData unsafe.Pointer, fSearchOp FINDEX_SEARCH_OPS, lpSearchFilter unsafe.Pointer, dwAdditionalFlags uint32, hTransaction HANDLE) (FindFileHandle)
+//sys	CopyFileA(lpExistingFileName PSTR, lpNewFileName PSTR, bFailIfExists BOOL) (BOOL)
+//sys	CopyFileW(lpExistingFileName PWSTR, lpNewFileName PWSTR, bFailIfExists BOOL) (BOOL)
+//sys	CopyFileExA(lpExistingFileName PSTR, lpNewFileName PSTR, lpProgressRoutine LPPROGRESS_ROUTINE, lpData unsafe.Pointer, pbCancel *int32, dwCopyFlags uint32) (BOOL)
+//sys	CopyFileExW(lpExistingFileName PWSTR, lpNewFileName PWSTR, lpProgressRoutine LPPROGRESS_ROUTINE, lpData unsafe.Pointer, pbCancel *int32, dwCopyFlags uint32) (BOOL)
+//sys	CopyFileTransactedA(lpExistingFileName PSTR, lpNewFileName PSTR, lpProgressRoutine LPPROGRESS_ROUTINE, lpData unsafe.Pointer, pbCancel *int32, dwCopyFlags uint32, hTransaction HANDLE) (BOOL)
+//sys	CopyFileTransactedW(lpExistingFileName PWSTR, lpNewFileName PWSTR, lpProgressRoutine LPPROGRESS_ROUTINE, lpData unsafe.Pointer, pbCancel *int32, dwCopyFlags uint32, hTransaction HANDLE) (BOOL)
+//sys	CopyFile2(pwszExistingFileName PWSTR, pwszNewFileName PWSTR, pExtendedParameters *COPYFILE2_EXTENDED_PARAMETERS) (HRESULT)
+//sys	MoveFileA(lpExistingFileName PSTR, lpNewFileName PSTR) (BOOL)
+//sys	MoveFileW(lpExistingFileName PWSTR, lpNewFileName PWSTR) (BOOL)
+//sys	MoveFileExA(lpExistingFileName PSTR, lpNewFileName PSTR, dwFlags MOVE_FILE_FLAGS) (BOOL)
+//sys	MoveFileExW(lpExistingFileName PWSTR, lpNewFileName PWSTR, dwFlags MOVE_FILE_FLAGS) (BOOL)
+//sys	MoveFileWithProgressA(lpExistingFileName PSTR, lpNewFileName PSTR, lpProgressRoutine LPPROGRESS_ROUTINE, lpData unsafe.Pointer, dwFlags MOVE_FILE_FLAGS) (BOOL)
+//sys	MoveFileWithProgressW(lpExistingFileName PWSTR, lpNewFileName PWSTR, lpProgressRoutine LPPROGRESS_ROUTINE, lpData unsafe.Pointer, dwFlags MOVE_FILE_FLAGS) (BOOL)
+//sys	MoveFileTransactedA(lpExistingFileName PSTR, lpNewFileName PSTR, lpProgressRoutine LPPROGRESS_ROUTINE, lpData unsafe.Pointer, dwFlags MOVE_FILE_FLAGS, hTransaction HANDLE) (BOOL)
+//sys	MoveFileTransactedW(lpExistingFileName PWSTR, lpNewFileName PWSTR, lpProgressRoutine LPPROGRESS_ROUTINE, lpData unsafe.Pointer, dwFlags MOVE_FILE_FLAGS, hTransaction HANDLE) (BOOL)
+//sys	ReplaceFileA(lpReplacedFileName PSTR, lpReplacementFileName PSTR, lpBackupFileName PSTR, dwReplaceFlags REPLACE_FILE_FLAGS, lpExclude unsafe.Pointer, lpReserved unsafe.Pointer) (BOOL)
+//sys	ReplaceFileW(lpReplacedFileName PWSTR, lpReplacementFileName PWSTR, lpBackupFileName PWSTR, dwReplaceFlags REPLACE_FILE_FLAGS, lpExclude unsafe.Pointer, lpReserved unsafe.Pointer) (BOOL)
+//sys	CreateHardLinkA(lpFileName PSTR, lpExistingFileName PSTR, lpSecurityAttributes *SECURITY_ATTRIBUTES) (BOOL)
+//sys	CreateHardLinkW(lpFileName PWSTR, lpExistingFileName PWSTR, lpSecurityAttributes *SECURITY_ATTRIBUTES) (BOOL)
+//sys	CreateHardLinkTransactedA(lpFileName PSTR, lpExistingFileName PSTR, lpSecurityAttributes *SECURITY_ATTRIBUTES, hTransaction HANDLE) (BOOL)
+//sys	CreateHardLinkTransactedW(lpFileName PWSTR, lpExistingFileName PWSTR, lpSecurityAttributes *SECURITY_ATTRIBUTES, hTransaction HANDLE) (BOOL)
+//sys	FindFirstStreamTransactedW(lpFileName PWSTR, InfoLevel STREAM_INFO_LEVELS, lpFindStreamData unsafe.Pointer, dwFlags uint32, hTransaction HANDLE) (FindStreamHandle)
+//sys	FindFirstFileNameTransactedW(lpFileName PWSTR, dwFlags uint32, StringLength *uint32, LinkName PWSTR, hTransaction HANDLE) (FindFileNameHandle)
+//sys	SetVolumeLabelA(lpRootPathName PSTR, lpVolumeName PSTR) (BOOL)
+//sys	SetVolumeLabelW(lpRootPathName PWSTR, lpVolumeName PWSTR) (BOOL)
+//sys	SetFileBandwidthReservation(hFile HANDLE, nPeriodMilliseconds uint32, nBytesPerPeriod uint32, bDiscardable BOOL, lpTransferSize *uint32, lpNumOutstandingRequests *uint32) (BOOL)
+//sys	GetFileBandwidthReservation(hFile HANDLE, lpPeriodMilliseconds *uint32, lpBytesPerPeriod *uint32, pDiscardable *int32, lpTransferSize *uint32, lpNumOutstandingRequests *uint32) (BOOL)
+//sys	ReadDirectoryChangesW(hDirectory HANDLE, lpBuffer unsafe.Pointer, nBufferLength uint32, bWatchSubtree BOOL, dwNotifyFilter FILE_NOTIFY_CHANGE, lpBytesReturned *uint32, lpOverlapped *OVERLAPPED, lpCompletionRoutine LPOVERLAPPED_COMPLETION_ROUTINE) (BOOL)
+//sys	ReadDirectoryChangesExW(hDirectory HANDLE, lpBuffer unsafe.Pointer, nBufferLength uint32, bWatchSubtree BOOL, dwNotifyFilter FILE_NOTIFY_CHANGE, lpBytesReturned *uint32, lpOverlapped *OVERLAPPED, lpCompletionRoutine LPOVERLAPPED_COMPLETION_ROUTINE, ReadDirectoryNotifyInformationClass READ_DIRECTORY_NOTIFY_INFORMATION_CLASS) (BOOL)
+//sys	FindFirstVolumeA(lpszVolumeName PSTR, cchBufferLength uint32) (FindVolumeHandle)
+//sys	FindNextVolumeA(hFindVolume FindVolumeHandle, lpszVolumeName PSTR, cchBufferLength uint32) (BOOL)
+//sys	FindFirstVolumeMountPointA(lpszRootPathName PSTR, lpszVolumeMountPoint PSTR, cchBufferLength uint32) (FindVolumeMointPointHandle)
+//sys	FindFirstVolumeMountPointW(lpszRootPathName PWSTR, lpszVolumeMountPoint PWSTR, cchBufferLength uint32) (FindVolumeMointPointHandle)
+//sys	FindNextVolumeMountPointA(hFindVolumeMountPoint FindVolumeMointPointHandle, lpszVolumeMountPoint PSTR, cchBufferLength uint32) (BOOL)
+//sys	FindNextVolumeMountPointW(hFindVolumeMountPoint FindVolumeMointPointHandle, lpszVolumeMountPoint PWSTR, cchBufferLength uint32) (BOOL)
+//sys	FindVolumeMountPointClose(hFindVolumeMountPoint FindVolumeMointPointHandle) (BOOL)
+//sys	SetVolumeMountPointA(lpszVolumeMountPoint PSTR, lpszVolumeName PSTR) (BOOL)
+//sys	SetVolumeMountPointW(lpszVolumeMountPoint PWSTR, lpszVolumeName PWSTR) (BOOL)
+//sys	DeleteVolumeMountPointA(lpszVolumeMountPoint PSTR) (BOOL)
+//sys	GetVolumeNameForVolumeMountPointA(lpszVolumeMountPoint PSTR, lpszVolumeName PSTR, cchBufferLength uint32) (BOOL)
+//sys	GetVolumePathNameA(lpszFileName PSTR, lpszVolumePathName PSTR, cchBufferLength uint32) (BOOL)
+//sys	GetVolumePathNamesForVolumeNameA(lpszVolumeName PSTR, lpszVolumePathNames PSTR, cchBufferLength uint32, lpcchReturnLength *uint32) (BOOL)
+//sys	GetFileInformationByHandleEx(hFile HANDLE, FileInformationClass FILE_INFO_BY_HANDLE_CLASS, lpFileInformation unsafe.Pointer, dwBufferSize uint32) (BOOL)
+//sys	OpenFileById(hVolumeHint HANDLE, lpFileId *FILE_ID_DESCRIPTOR, dwDesiredAccess FILE_ACCESS_FLAGS, dwShareMode FILE_SHARE_MODE, lpSecurityAttributes *SECURITY_ATTRIBUTES, dwFlagsAndAttributes FILE_FLAGS_AND_ATTRIBUTES) (HANDLE)
+//sys	CreateSymbolicLinkA(lpSymlinkFileName PSTR, lpTargetFileName PSTR, dwFlags SYMBOLIC_LINK_FLAGS) (BOOLEAN)
+//sys	CreateSymbolicLinkW(lpSymlinkFileName PWSTR, lpTargetFileName PWSTR, dwFlags SYMBOLIC_LINK_FLAGS) (BOOLEAN)
+//sys	CreateSymbolicLinkTransactedA(lpSymlinkFileName PSTR, lpTargetFileName PSTR, dwFlags SYMBOLIC_LINK_FLAGS, hTransaction HANDLE) (BOOLEAN)
+//sys	CreateSymbolicLinkTransactedW(lpSymlinkFileName PWSTR, lpTargetFileName PWSTR, dwFlags SYMBOLIC_LINK_FLAGS, hTransaction HANDLE) (BOOLEAN)
+//sys	NtCreateFile(FileHandle *HANDLE, DesiredAccess uint32, ObjectAttributes *OBJECT_ATTRIBUTES, IoStatusBlock *IO_STATUS_BLOCK, AllocationSize *LARGE_INTEGER, FileAttributes uint32, ShareAccess FILE_SHARE_MODE, CreateDisposition NT_CREATE_FILE_DISPOSITION, CreateOptions uint32, EaBuffer unsafe.Pointer, EaLength uint32) (NTSTATUS) = ntdll.NtCreateFile
 
 // APIs for Windows.Win32.Security.Cryptography
-//sys	CryptAcquireContextA(/*out*/phProv *uintptr, /*in*//*optional*/szContainer PSTR, /*in*//*optional*/szProvider PSTR, /*in*/dwProvType uint32, /*in*/dwFlags uint32) (BOOL) = advapi32.CryptAcquireContextA
-//sys	CryptAcquireContextW(/*out*/phProv *uintptr, /*in*//*optional*/szContainer PWSTR, /*in*//*optional*/szProvider PWSTR, /*in*/dwProvType uint32, /*in*/dwFlags uint32) (BOOL) = advapi32.CryptAcquireContextW
-//sys	CryptReleaseContext(/*in*/hProv uintptr, /*in*/dwFlags uint32) (BOOL) = advapi32.CryptReleaseContext
-//sys	CryptGenKey(/*in*/hProv uintptr, /*in*/Algid uint32, /*in*/dwFlags CRYPT_KEY_FLAGS, /*out*/phKey *uintptr) (BOOL) = advapi32.CryptGenKey
-//sys	CryptDeriveKey(/*in*/hProv uintptr, /*in*/Algid uint32, /*in*/hBaseData uintptr, /*in*/dwFlags uint32, /*out*/phKey *uintptr) (BOOL) = advapi32.CryptDeriveKey
-//sys	CryptDestroyKey(/*in*/hKey uintptr) (BOOL) = advapi32.CryptDestroyKey
-//sys	CryptSetKeyParam(/*in*/hKey uintptr, /*in*/dwParam CRYPT_KEY_PARAM_ID, /*in*/pbData *uint8, /*in*/dwFlags uint32) (BOOL) = advapi32.CryptSetKeyParam
-//sys	CryptGetKeyParam(/*in*/hKey uintptr, /*in*/dwParam CRYPT_KEY_PARAM_ID, /*out*//*optional*/pbData *uint8, /*in*//*out*/pdwDataLen *uint32, /*in*/dwFlags uint32) (BOOL) = advapi32.CryptGetKeyParam
-//sys	CryptSetHashParam(/*in*/hHash uintptr, /*in*/dwParam CRYPT_SET_HASH_PARAM, /*in*/pbData *uint8, /*in*/dwFlags uint32) (BOOL) = advapi32.CryptSetHashParam
-//sys	CryptGetHashParam(/*in*/hHash uintptr, /*in*/dwParam uint32, /*out*//*optional*/pbData *uint8, /*in*//*out*/pdwDataLen *uint32, /*in*/dwFlags uint32) (BOOL) = advapi32.CryptGetHashParam
-//sys	CryptSetProvParam(/*in*/hProv uintptr, /*in*/dwParam CRYPT_SET_PROV_PARAM_ID, /*in*/pbData *uint8, /*in*/dwFlags uint32) (BOOL) = advapi32.CryptSetProvParam
-//sys	CryptGetProvParam(/*in*/hProv uintptr, /*in*/dwParam uint32, /*out*//*optional*/pbData *uint8, /*in*//*out*/pdwDataLen *uint32, /*in*/dwFlags uint32) (BOOL) = advapi32.CryptGetProvParam
-//sys	CryptGenRandom(/*in*/hProv uintptr, /*in*/dwLen uint32, /*in*//*out*/pbBuffer *uint8) (BOOL) = advapi32.CryptGenRandom
-//sys	CryptGetUserKey(/*in*/hProv uintptr, /*in*/dwKeySpec uint32, /*out*/phUserKey *uintptr) (BOOL) = advapi32.CryptGetUserKey
-//sys	CryptExportKey(/*in*/hKey uintptr, /*in*/hExpKey uintptr, /*in*/dwBlobType uint32, /*in*/dwFlags CRYPT_KEY_FLAGS, /*out*//*optional*/pbData *uint8, /*in*//*out*/pdwDataLen *uint32) (BOOL) = advapi32.CryptExportKey
-//sys	CryptImportKey(/*in*/hProv uintptr, /*in*/pbData *uint8, /*in*/dwDataLen uint32, /*in*/hPubKey uintptr, /*in*/dwFlags CRYPT_KEY_FLAGS, /*out*/phKey *uintptr) (BOOL) = advapi32.CryptImportKey
-//sys	CryptEncrypt(/*in*/hKey uintptr, /*in*/hHash uintptr, /*in*/Final BOOL, /*in*/dwFlags uint32, /*out*//*optional*/pbData *uint8, /*in*//*out*/pdwDataLen *uint32, /*in*/dwBufLen uint32) (BOOL) = advapi32.CryptEncrypt
-//sys	CryptDecrypt(/*in*/hKey uintptr, /*in*/hHash uintptr, /*in*/Final BOOL, /*in*/dwFlags uint32, /*out*/pbData *uint8, /*in*//*out*/pdwDataLen *uint32) (BOOL) = advapi32.CryptDecrypt
-//sys	CryptCreateHash(/*in*/hProv uintptr, /*in*/Algid uint32, /*in*/hKey uintptr, /*in*/dwFlags uint32, /*out*/phHash *uintptr) (BOOL) = advapi32.CryptCreateHash
-//sys	CryptHashData(/*in*/hHash uintptr, /*in*/pbData *uint8, /*in*/dwDataLen uint32, /*in*/dwFlags uint32) (BOOL) = advapi32.CryptHashData
-//sys	CryptHashSessionKey(/*in*/hHash uintptr, /*in*/hKey uintptr, /*in*/dwFlags uint32) (BOOL) = advapi32.CryptHashSessionKey
-//sys	CryptDestroyHash(/*in*/hHash uintptr) (BOOL) = advapi32.CryptDestroyHash
-//sys	CryptSignHashA(/*in*/hHash uintptr, /*in*/dwKeySpec uint32, /*in*//*optional*/szDescription PSTR, /*in*/dwFlags uint32, /*out*//*optional*/pbSignature *uint8, /*in*//*out*/pdwSigLen *uint32) (BOOL) = advapi32.CryptSignHashA
-//sys	CryptSignHashW(/*in*/hHash uintptr, /*in*/dwKeySpec uint32, /*in*//*optional*/szDescription PWSTR, /*in*/dwFlags uint32, /*out*//*optional*/pbSignature *uint8, /*in*//*out*/pdwSigLen *uint32) (BOOL) = advapi32.CryptSignHashW
-//sys	CryptVerifySignatureA(/*in*/hHash uintptr, /*in*/pbSignature *uint8, /*in*/dwSigLen uint32, /*in*/hPubKey uintptr, /*in*//*optional*/szDescription PSTR, /*in*/dwFlags uint32) (BOOL) = advapi32.CryptVerifySignatureA
-//sys	CryptVerifySignatureW(/*in*/hHash uintptr, /*in*/pbSignature *uint8, /*in*/dwSigLen uint32, /*in*/hPubKey uintptr, /*in*//*optional*/szDescription PWSTR, /*in*/dwFlags uint32) (BOOL) = advapi32.CryptVerifySignatureW
-//sys	CryptSetProviderA(/*in*/pszProvName PSTR, /*in*/dwProvType uint32) (BOOL) = advapi32.CryptSetProviderA
-//sys	CryptSetProviderW(/*in*/pszProvName PWSTR, /*in*/dwProvType uint32) (BOOL) = advapi32.CryptSetProviderW
-//sys	CryptSetProviderExA(/*in*/pszProvName PSTR, /*in*/dwProvType uint32, /*in*//*out*/pdwReserved *uint32, /*in*/dwFlags uint32) (BOOL) = advapi32.CryptSetProviderExA
-//sys	CryptSetProviderExW(/*in*/pszProvName PWSTR, /*in*/dwProvType uint32, /*in*//*out*/pdwReserved *uint32, /*in*/dwFlags uint32) (BOOL) = advapi32.CryptSetProviderExW
-//sys	CryptGetDefaultProviderA(/*in*/dwProvType uint32, /*in*//*out*/pdwReserved *uint32, /*in*/dwFlags uint32, /*out*//*optional*/pszProvName PSTR, /*in*//*out*/pcbProvName *uint32) (BOOL) = advapi32.CryptGetDefaultProviderA
-//sys	CryptGetDefaultProviderW(/*in*/dwProvType uint32, /*in*//*out*/pdwReserved *uint32, /*in*/dwFlags uint32, /*out*//*optional*/pszProvName PWSTR, /*in*//*out*/pcbProvName *uint32) (BOOL) = advapi32.CryptGetDefaultProviderW
-//sys	CryptEnumProviderTypesA(/*in*/dwIndex uint32, /*in*//*out*/pdwReserved *uint32, /*in*/dwFlags uint32, /*out*/pdwProvType *uint32, /*out*//*optional*/szTypeName PSTR, /*in*//*out*/pcbTypeName *uint32) (BOOL) = advapi32.CryptEnumProviderTypesA
-//sys	CryptEnumProviderTypesW(/*in*/dwIndex uint32, /*in*//*out*/pdwReserved *uint32, /*in*/dwFlags uint32, /*out*/pdwProvType *uint32, /*out*//*optional*/szTypeName PWSTR, /*in*//*out*/pcbTypeName *uint32) (BOOL) = advapi32.CryptEnumProviderTypesW
-//sys	CryptEnumProvidersA(/*in*/dwIndex uint32, /*in*//*out*/pdwReserved *uint32, /*in*/dwFlags uint32, /*out*/pdwProvType *uint32, /*out*//*optional*/szProvName PSTR, /*in*//*out*/pcbProvName *uint32) (BOOL) = advapi32.CryptEnumProvidersA
-//sys	CryptEnumProvidersW(/*in*/dwIndex uint32, /*in*//*out*/pdwReserved *uint32, /*in*/dwFlags uint32, /*out*/pdwProvType *uint32, /*out*//*optional*/szProvName PWSTR, /*in*//*out*/pcbProvName *uint32) (BOOL) = advapi32.CryptEnumProvidersW
-//sys	CryptContextAddRef(/*in*/hProv uintptr, /*in*//*out*/pdwReserved *uint32, /*in*/dwFlags uint32) (BOOL) = advapi32.CryptContextAddRef
-//sys	CryptDuplicateKey(/*in*/hKey uintptr, /*in*//*out*/pdwReserved *uint32, /*in*/dwFlags uint32, /*out*/phKey *uintptr) (BOOL) = advapi32.CryptDuplicateKey
-//sys	CryptDuplicateHash(/*in*/hHash uintptr, /*in*//*out*/pdwReserved *uint32, /*in*/dwFlags uint32, /*out*/phHash *uintptr) (BOOL) = advapi32.CryptDuplicateHash
-//sys	BCryptOpenAlgorithmProvider(/*out*/phAlgorithm *BCRYPT_ALG_HANDLE, /*in*/pszAlgId PWSTR, /*in*//*optional*/pszImplementation PWSTR, /*in*/dwFlags BCRYPT_OPEN_ALGORITHM_PROVIDER_FLAGS) (NTSTATUS) = bcrypt.BCryptOpenAlgorithmProvider
-//sys	BCryptEnumAlgorithms(/*in*/dwAlgOperations BCRYPT_OPERATION, /*out*/pAlgCount *uint32, /*out*/ppAlgList **BCRYPT_ALGORITHM_IDENTIFIER, /*in*/dwFlags uint32) (NTSTATUS) = bcrypt.BCryptEnumAlgorithms
-//sys	BCryptEnumProviders(/*in*/pszAlgId PWSTR, /*out*/pImplCount *uint32, /*out*/ppImplList **BCRYPT_PROVIDER_NAME, /*in*/dwFlags uint32) (NTSTATUS) = bcrypt.BCryptEnumProviders
-//sys	BCryptGetProperty(/*in*/hObject unsafe.Pointer, /*in*/pszProperty PWSTR, /*out*//*optional*/pbOutput *uint8, /*in*/cbOutput uint32, /*out*/pcbResult *uint32, /*in*/dwFlags uint32) (NTSTATUS) = bcrypt.BCryptGetProperty
-//sys	BCryptSetProperty(/*in*//*out*/hObject unsafe.Pointer, /*in*/pszProperty PWSTR, /*in*/pbInput *uint8, /*in*/cbInput uint32, /*in*/dwFlags uint32) (NTSTATUS) = bcrypt.BCryptSetProperty
-//sys	BCryptCloseAlgorithmProvider(/*in*/hAlgorithm BCRYPT_ALG_HANDLE, /*in*/dwFlags uint32) (NTSTATUS) = bcrypt.BCryptCloseAlgorithmProvider
-//sys	BCryptFreeBuffer(/*in*/pvBuffer unsafe.Pointer) = bcrypt.BCryptFreeBuffer
-//sys	BCryptGenerateSymmetricKey(/*in*/hAlgorithm BCRYPT_ALG_HANDLE, /*out*/phKey *BCRYPT_KEY_HANDLE, /*out*//*optional*/pbKeyObject *uint8, /*in*/cbKeyObject uint32, /*in*/pbSecret *uint8, /*in*/cbSecret uint32, /*in*/dwFlags uint32) (NTSTATUS) = bcrypt.BCryptGenerateSymmetricKey
-//sys	BCryptGenerateKeyPair(/*in*/hAlgorithm BCRYPT_ALG_HANDLE, /*out*/phKey *BCRYPT_KEY_HANDLE, /*in*/dwLength uint32, /*in*/dwFlags uint32) (NTSTATUS) = bcrypt.BCryptGenerateKeyPair
-//sys	BCryptEncrypt(/*in*/hKey BCRYPT_KEY_HANDLE, /*in*//*optional*/pbInput *uint8, /*in*/cbInput uint32, /*in*//*optional*/pPaddingInfo unsafe.Pointer, /*in*//*out*//*optional*/pbIV *uint8, /*in*/cbIV uint32, /*out*//*optional*/pbOutput *uint8, /*in*/cbOutput uint32, /*out*/pcbResult *uint32, /*in*/dwFlags NCRYPT_FLAGS) (NTSTATUS) = bcrypt.BCryptEncrypt
-//sys	BCryptDecrypt(/*in*/hKey BCRYPT_KEY_HANDLE, /*in*//*optional*/pbInput *uint8, /*in*/cbInput uint32, /*in*//*optional*/pPaddingInfo unsafe.Pointer, /*in*//*out*//*optional*/pbIV *uint8, /*in*/cbIV uint32, /*out*//*optional*/pbOutput *uint8, /*in*/cbOutput uint32, /*out*/pcbResult *uint32, /*in*/dwFlags NCRYPT_FLAGS) (NTSTATUS) = bcrypt.BCryptDecrypt
-//sys	BCryptExportKey(/*in*/hKey BCRYPT_KEY_HANDLE, /*in*//*optional*/hExportKey BCRYPT_KEY_HANDLE, /*in*/pszBlobType PWSTR, /*out*//*optional*/pbOutput *uint8, /*in*/cbOutput uint32, /*out*/pcbResult *uint32, /*in*/dwFlags uint32) (NTSTATUS) = bcrypt.BCryptExportKey
-//sys	BCryptImportKey(/*in*/hAlgorithm BCRYPT_ALG_HANDLE, /*in*//*optional*/hImportKey BCRYPT_KEY_HANDLE, /*in*/pszBlobType PWSTR, /*out*/phKey *BCRYPT_KEY_HANDLE, /*out*//*optional*/pbKeyObject *uint8, /*in*/cbKeyObject uint32, /*in*/pbInput *uint8, /*in*/cbInput uint32, /*in*/dwFlags uint32) (NTSTATUS) = bcrypt.BCryptImportKey
-//sys	BCryptImportKeyPair(/*in*/hAlgorithm BCRYPT_ALG_HANDLE, /*in*//*optional*/hImportKey BCRYPT_KEY_HANDLE, /*in*/pszBlobType PWSTR, /*out*/phKey *BCRYPT_KEY_HANDLE, /*in*/pbInput *uint8, /*in*/cbInput uint32, /*in*/dwFlags uint32) (NTSTATUS) = bcrypt.BCryptImportKeyPair
-//sys	BCryptDuplicateKey(/*in*/hKey BCRYPT_KEY_HANDLE, /*out*/phNewKey *BCRYPT_KEY_HANDLE, /*out*//*optional*/pbKeyObject *uint8, /*in*/cbKeyObject uint32, /*in*/dwFlags uint32) (NTSTATUS) = bcrypt.BCryptDuplicateKey
-//sys	BCryptFinalizeKeyPair(/*in*/hKey BCRYPT_KEY_HANDLE, /*in*/dwFlags uint32) (NTSTATUS) = bcrypt.BCryptFinalizeKeyPair
-//sys	BCryptDestroyKey(/*in*/hKey BCRYPT_KEY_HANDLE) (NTSTATUS) = bcrypt.BCryptDestroyKey
-//sys	BCryptDestroySecret(/*in*//*out*/hSecret unsafe.Pointer) (NTSTATUS) = bcrypt.BCryptDestroySecret
-//sys	BCryptSignHash(/*in*/hKey BCRYPT_KEY_HANDLE, /*in*//*optional*/pPaddingInfo unsafe.Pointer, /*in*/pbInput *uint8, /*in*/cbInput uint32, /*out*//*optional*/pbOutput *uint8, /*in*/cbOutput uint32, /*out*/pcbResult *uint32, /*in*/dwFlags NCRYPT_FLAGS) (NTSTATUS) = bcrypt.BCryptSignHash
-//sys	BCryptVerifySignature(/*in*/hKey BCRYPT_KEY_HANDLE, /*in*//*optional*/pPaddingInfo unsafe.Pointer, /*in*/pbHash *uint8, /*in*/cbHash uint32, /*in*/pbSignature *uint8, /*in*/cbSignature uint32, /*in*/dwFlags NCRYPT_FLAGS) (NTSTATUS) = bcrypt.BCryptVerifySignature
-//sys	BCryptSecretAgreement(/*in*/hPrivKey BCRYPT_KEY_HANDLE, /*in*/hPubKey BCRYPT_KEY_HANDLE, /*out*/phAgreedSecret *unsafe.Pointer, /*in*/dwFlags uint32) (NTSTATUS) = bcrypt.BCryptSecretAgreement
-//sys	BCryptDeriveKey(/*in*/hSharedSecret unsafe.Pointer, /*in*/pwszKDF PWSTR, /*in*//*optional*/pParameterList *BCryptBufferDesc, /*out*//*optional*/pbDerivedKey *uint8, /*in*/cbDerivedKey uint32, /*out*/pcbResult *uint32, /*in*/dwFlags uint32) (NTSTATUS) = bcrypt.BCryptDeriveKey
-//sys	BCryptKeyDerivation(/*in*/hKey BCRYPT_KEY_HANDLE, /*in*//*optional*/pParameterList *BCryptBufferDesc, /*out*/pbDerivedKey *uint8, /*in*/cbDerivedKey uint32, /*out*/pcbResult *uint32, /*in*/dwFlags uint32) (NTSTATUS) = bcrypt.BCryptKeyDerivation
-//sys	BCryptCreateHash(/*in*/hAlgorithm BCRYPT_ALG_HANDLE, /*out*/phHash *unsafe.Pointer, /*out*//*optional*/pbHashObject *uint8, /*in*/cbHashObject uint32, /*in*//*optional*/pbSecret *uint8, /*in*/cbSecret uint32, /*in*/dwFlags uint32) (NTSTATUS) = bcrypt.BCryptCreateHash
-//sys	BCryptHashData(/*in*//*out*/hHash unsafe.Pointer, /*in*/pbInput *uint8, /*in*/cbInput uint32, /*in*/dwFlags uint32) (NTSTATUS) = bcrypt.BCryptHashData
-//sys	BCryptFinishHash(/*in*//*out*/hHash unsafe.Pointer, /*out*/pbOutput *uint8, /*in*/cbOutput uint32, /*in*/dwFlags uint32) (NTSTATUS) = bcrypt.BCryptFinishHash
-//sys	BCryptCreateMultiHash(/*in*/hAlgorithm BCRYPT_ALG_HANDLE, /*out*/phHash *unsafe.Pointer, /*in*/nHashes uint32, /*out*//*optional*/pbHashObject *uint8, /*in*/cbHashObject uint32, /*in*//*optional*/pbSecret *uint8, /*in*/cbSecret uint32, /*in*/dwFlags uint32) (NTSTATUS) = bcrypt.BCryptCreateMultiHash
-//sys	BCryptProcessMultiOperations(/*in*//*out*/hObject unsafe.Pointer, /*in*/operationType BCRYPT_MULTI_OPERATION_TYPE, /*in*/pOperations unsafe.Pointer, /*in*/cbOperations uint32, /*in*/dwFlags uint32) (NTSTATUS) = bcrypt.BCryptProcessMultiOperations
-//sys	BCryptDuplicateHash(/*in*/hHash unsafe.Pointer, /*out*/phNewHash *unsafe.Pointer, /*out*//*optional*/pbHashObject *uint8, /*in*/cbHashObject uint32, /*in*/dwFlags uint32) (NTSTATUS) = bcrypt.BCryptDuplicateHash
-//sys	BCryptDestroyHash(/*in*//*out*/hHash unsafe.Pointer) (NTSTATUS) = bcrypt.BCryptDestroyHash
-//sys	BCryptHash(/*in*/hAlgorithm BCRYPT_ALG_HANDLE, /*in*//*optional*/pbSecret *uint8, /*in*/cbSecret uint32, /*in*/pbInput *uint8, /*in*/cbInput uint32, /*out*/pbOutput *uint8, /*in*/cbOutput uint32) (NTSTATUS) = bcrypt.BCryptHash
-//sys	BCryptGenRandom(/*in*//*optional*/hAlgorithm BCRYPT_ALG_HANDLE, /*out*/pbBuffer *uint8, /*in*/cbBuffer uint32, /*in*/dwFlags uint32) (NTSTATUS) = bcrypt.BCryptGenRandom
-//sys	BCryptDeriveKeyCapi(/*in*/hHash unsafe.Pointer, /*in*//*optional*/hTargetAlg BCRYPT_ALG_HANDLE, /*out*/pbDerivedKey *uint8, /*in*/cbDerivedKey uint32, /*in*/dwFlags uint32) (NTSTATUS) = bcrypt.BCryptDeriveKeyCapi
-//sys	BCryptDeriveKeyPBKDF2(/*in*/hPrf BCRYPT_ALG_HANDLE, /*in*//*optional*/pbPassword *uint8, /*in*/cbPassword uint32, /*in*//*optional*/pbSalt *uint8, /*in*/cbSalt uint32, /*in*/cIterations uint64, /*out*/pbDerivedKey *uint8, /*in*/cbDerivedKey uint32, /*in*/dwFlags uint32) (NTSTATUS) = bcrypt.BCryptDeriveKeyPBKDF2
-//sys	BCryptQueryProviderRegistration(/*in*/pszProvider PWSTR, /*in*/dwMode BCRYPT_QUERY_PROVIDER_MODE, /*in*/dwInterface BCRYPT_INTERFACE, /*in*//*out*/pcbBuffer *uint32, /*in*//*out*/ppBuffer **CRYPT_PROVIDER_REG) (NTSTATUS) = bcrypt.BCryptQueryProviderRegistration
-//sys	BCryptEnumRegisteredProviders(/*in*//*out*/pcbBuffer *uint32, /*in*//*out*/ppBuffer **CRYPT_PROVIDERS) (NTSTATUS) = bcrypt.BCryptEnumRegisteredProviders
-//sys	BCryptCreateContext(/*in*/dwTable BCRYPT_TABLE, /*in*/pszContext PWSTR, /*in*//*optional*/pConfig *CRYPT_CONTEXT_CONFIG) (NTSTATUS) = bcrypt.BCryptCreateContext
-//sys	BCryptDeleteContext(/*in*/dwTable BCRYPT_TABLE, /*in*/pszContext PWSTR) (NTSTATUS) = bcrypt.BCryptDeleteContext
-//sys	BCryptEnumContexts(/*in*/dwTable BCRYPT_TABLE, /*in*//*out*/pcbBuffer *uint32, /*in*//*out*/ppBuffer **CRYPT_CONTEXTS) (NTSTATUS) = bcrypt.BCryptEnumContexts
-//sys	BCryptConfigureContext(/*in*/dwTable BCRYPT_TABLE, /*in*/pszContext PWSTR, /*in*/pConfig *CRYPT_CONTEXT_CONFIG) (NTSTATUS) = bcrypt.BCryptConfigureContext
-//sys	BCryptQueryContextConfiguration(/*in*/dwTable BCRYPT_TABLE, /*in*/pszContext PWSTR, /*in*//*out*/pcbBuffer *uint32, /*in*//*out*/ppBuffer **CRYPT_CONTEXT_CONFIG) (NTSTATUS) = bcrypt.BCryptQueryContextConfiguration
-//sys	BCryptAddContextFunction(/*in*/dwTable BCRYPT_TABLE, /*in*/pszContext PWSTR, /*in*/dwInterface BCRYPT_INTERFACE, /*in*/pszFunction PWSTR, /*in*/dwPosition uint32) (NTSTATUS) = bcrypt.BCryptAddContextFunction
-//sys	BCryptRemoveContextFunction(/*in*/dwTable BCRYPT_TABLE, /*in*/pszContext PWSTR, /*in*/dwInterface BCRYPT_INTERFACE, /*in*/pszFunction PWSTR) (NTSTATUS) = bcrypt.BCryptRemoveContextFunction
-//sys	BCryptEnumContextFunctions(/*in*/dwTable BCRYPT_TABLE, /*in*/pszContext PWSTR, /*in*/dwInterface BCRYPT_INTERFACE, /*in*//*out*/pcbBuffer *uint32, /*in*//*out*/ppBuffer **CRYPT_CONTEXT_FUNCTIONS) (NTSTATUS) = bcrypt.BCryptEnumContextFunctions
-//sys	BCryptConfigureContextFunction(/*in*/dwTable BCRYPT_TABLE, /*in*/pszContext PWSTR, /*in*/dwInterface BCRYPT_INTERFACE, /*in*/pszFunction PWSTR, /*in*/pConfig *CRYPT_CONTEXT_FUNCTION_CONFIG) (NTSTATUS) = bcrypt.BCryptConfigureContextFunction
-//sys	BCryptQueryContextFunctionConfiguration(/*in*/dwTable BCRYPT_TABLE, /*in*/pszContext PWSTR, /*in*/dwInterface BCRYPT_INTERFACE, /*in*/pszFunction PWSTR, /*in*//*out*/pcbBuffer *uint32, /*in*//*out*/ppBuffer **CRYPT_CONTEXT_FUNCTION_CONFIG) (NTSTATUS) = bcrypt.BCryptQueryContextFunctionConfiguration
-//sys	BCryptEnumContextFunctionProviders(/*in*/dwTable BCRYPT_TABLE, /*in*/pszContext PWSTR, /*in*/dwInterface BCRYPT_INTERFACE, /*in*/pszFunction PWSTR, /*in*//*out*/pcbBuffer *uint32, /*in*//*out*/ppBuffer **CRYPT_CONTEXT_FUNCTION_PROVIDERS) (NTSTATUS) = bcrypt.BCryptEnumContextFunctionProviders
-//sys	BCryptSetContextFunctionProperty(/*in*/dwTable BCRYPT_TABLE, /*in*/pszContext PWSTR, /*in*/dwInterface BCRYPT_INTERFACE, /*in*/pszFunction PWSTR, /*in*/pszProperty PWSTR, /*in*/cbValue uint32, /*in*//*optional*/pbValue *uint8) (NTSTATUS) = bcrypt.BCryptSetContextFunctionProperty
-//sys	BCryptQueryContextFunctionProperty(/*in*/dwTable BCRYPT_TABLE, /*in*/pszContext PWSTR, /*in*/dwInterface BCRYPT_INTERFACE, /*in*/pszFunction PWSTR, /*in*/pszProperty PWSTR, /*in*//*out*/pcbValue *uint32, /*in*//*out*/ppbValue **uint8) (NTSTATUS) = bcrypt.BCryptQueryContextFunctionProperty
-//sys	BCryptRegisterConfigChangeNotify(/*out*/phEvent *HANDLE) (NTSTATUS) = bcrypt.BCryptRegisterConfigChangeNotify
-//sys	BCryptUnregisterConfigChangeNotify(/*in*/hEvent HANDLE) (NTSTATUS) = bcrypt.BCryptUnregisterConfigChangeNotify
-//sys	BCryptResolveProviders(/*in*//*optional*/pszContext PWSTR, /*in*//*optional*/dwInterface uint32, /*in*//*optional*/pszFunction PWSTR, /*in*//*optional*/pszProvider PWSTR, /*in*/dwMode BCRYPT_QUERY_PROVIDER_MODE, /*in*/dwFlags BCRYPT_RESOLVE_PROVIDERS_FLAGS, /*in*//*out*/pcbBuffer *uint32, /*in*//*out*/ppBuffer **CRYPT_PROVIDER_REFS) (NTSTATUS) = bcrypt.BCryptResolveProviders
-//sys	BCryptGetFipsAlgorithmMode(/*out*/pfEnabled *uint8) (NTSTATUS) = bcrypt.BCryptGetFipsAlgorithmMode
-//sys	NCryptOpenStorageProvider(/*out*/phProvider *NCRYPT_PROV_HANDLE, /*in*//*optional*/pszProviderName PWSTR, /*in*/dwFlags uint32) (HRESULT) = ncrypt.NCryptOpenStorageProvider
-//sys	NCryptEnumAlgorithms(/*in*/hProvider NCRYPT_PROV_HANDLE, /*in*/dwAlgOperations NCRYPT_OPERATION, /*out*/pdwAlgCount *uint32, /*out*/ppAlgList **NCryptAlgorithmName, /*in*/dwFlags uint32) (HRESULT) = ncrypt.NCryptEnumAlgorithms
-//sys	NCryptIsAlgSupported(/*in*/hProvider NCRYPT_PROV_HANDLE, /*in*/pszAlgId PWSTR, /*in*/dwFlags uint32) (HRESULT) = ncrypt.NCryptIsAlgSupported
-//sys	NCryptEnumKeys(/*in*/hProvider NCRYPT_PROV_HANDLE, /*in*//*optional*/pszScope PWSTR, /*out*/ppKeyName **NCryptKeyName, /*in*//*out*/ppEnumState *unsafe.Pointer, /*in*/dwFlags NCRYPT_FLAGS) (HRESULT) = ncrypt.NCryptEnumKeys
-//sys	NCryptEnumStorageProviders(/*out*/pdwProviderCount *uint32, /*out*/ppProviderList **NCryptProviderName, /*in*/dwFlags uint32) (HRESULT) = ncrypt.NCryptEnumStorageProviders
-//sys	NCryptFreeBuffer(/*in*//*out*/pvInput unsafe.Pointer) (HRESULT) = ncrypt.NCryptFreeBuffer
-//sys	NCryptOpenKey(/*in*/hProvider NCRYPT_PROV_HANDLE, /*out*/phKey *NCRYPT_KEY_HANDLE, /*in*/pszKeyName PWSTR, /*in*//*optional*/dwLegacyKeySpec CERT_KEY_SPEC, /*in*/dwFlags NCRYPT_FLAGS) (HRESULT) = ncrypt.NCryptOpenKey
-//sys	NCryptCreatePersistedKey(/*in*/hProvider NCRYPT_PROV_HANDLE, /*out*/phKey *NCRYPT_KEY_HANDLE, /*in*/pszAlgId PWSTR, /*in*//*optional*/pszKeyName PWSTR, /*in*/dwLegacyKeySpec CERT_KEY_SPEC, /*in*/dwFlags NCRYPT_FLAGS) (HRESULT) = ncrypt.NCryptCreatePersistedKey
-//sys	NCryptGetProperty(/*in*/hObject NCRYPT_HANDLE, /*in*/pszProperty PWSTR, /*out*//*optional*/pbOutput *uint8, /*in*/cbOutput uint32, /*out*/pcbResult *uint32, /*in*/dwFlags OBJECT_SECURITY_INFORMATION) (HRESULT) = ncrypt.NCryptGetProperty
-//sys	NCryptSetProperty(/*in*/hObject NCRYPT_HANDLE, /*in*/pszProperty PWSTR, /*in*/pbInput *uint8, /*in*/cbInput uint32, /*in*/dwFlags NCRYPT_FLAGS) (HRESULT) = ncrypt.NCryptSetProperty
-//sys	NCryptFinalizeKey(/*in*/hKey NCRYPT_KEY_HANDLE, /*in*/dwFlags NCRYPT_FLAGS) (HRESULT) = ncrypt.NCryptFinalizeKey
-//sys	NCryptEncrypt(/*in*/hKey NCRYPT_KEY_HANDLE, /*in*//*optional*/pbInput *uint8, /*in*/cbInput uint32, /*in*//*optional*/pPaddingInfo unsafe.Pointer, /*out*//*optional*/pbOutput *uint8, /*in*/cbOutput uint32, /*out*/pcbResult *uint32, /*in*/dwFlags NCRYPT_FLAGS) (HRESULT) = ncrypt.NCryptEncrypt
-//sys	NCryptDecrypt(/*in*/hKey NCRYPT_KEY_HANDLE, /*in*//*optional*/pbInput *uint8, /*in*/cbInput uint32, /*in*//*optional*/pPaddingInfo unsafe.Pointer, /*out*//*optional*/pbOutput *uint8, /*in*/cbOutput uint32, /*out*/pcbResult *uint32, /*in*/dwFlags NCRYPT_FLAGS) (HRESULT) = ncrypt.NCryptDecrypt
-//sys	NCryptImportKey(/*in*/hProvider NCRYPT_PROV_HANDLE, /*in*//*optional*/hImportKey NCRYPT_KEY_HANDLE, /*in*/pszBlobType PWSTR, /*in*//*optional*/pParameterList *BCryptBufferDesc, /*out*/phKey *NCRYPT_KEY_HANDLE, /*in*/pbData *uint8, /*in*/cbData uint32, /*in*/dwFlags NCRYPT_FLAGS) (HRESULT) = ncrypt.NCryptImportKey
-//sys	NCryptExportKey(/*in*/hKey NCRYPT_KEY_HANDLE, /*in*//*optional*/hExportKey NCRYPT_KEY_HANDLE, /*in*/pszBlobType PWSTR, /*in*//*optional*/pParameterList *BCryptBufferDesc, /*out*//*optional*/pbOutput *uint8, /*in*/cbOutput uint32, /*out*/pcbResult *uint32, /*in*/dwFlags NCRYPT_FLAGS) (HRESULT) = ncrypt.NCryptExportKey
-//sys	NCryptSignHash(/*in*/hKey NCRYPT_KEY_HANDLE, /*in*//*optional*/pPaddingInfo unsafe.Pointer, /*in*/pbHashValue *uint8, /*in*/cbHashValue uint32, /*out*//*optional*/pbSignature *uint8, /*in*/cbSignature uint32, /*out*/pcbResult *uint32, /*in*/dwFlags NCRYPT_FLAGS) (HRESULT) = ncrypt.NCryptSignHash
-//sys	NCryptVerifySignature(/*in*/hKey NCRYPT_KEY_HANDLE, /*in*//*optional*/pPaddingInfo unsafe.Pointer, /*in*/pbHashValue *uint8, /*in*/cbHashValue uint32, /*in*/pbSignature *uint8, /*in*/cbSignature uint32, /*in*/dwFlags NCRYPT_FLAGS) (HRESULT) = ncrypt.NCryptVerifySignature
-//sys	NCryptDeleteKey(/*in*/hKey NCRYPT_KEY_HANDLE, /*in*/dwFlags uint32) (HRESULT) = ncrypt.NCryptDeleteKey
-//sys	NCryptFreeObject(/*in*/hObject NCRYPT_HANDLE) (HRESULT) = ncrypt.NCryptFreeObject
-//sys	NCryptIsKeyHandle(/*in*/hKey NCRYPT_KEY_HANDLE) (BOOL) = ncrypt.NCryptIsKeyHandle
-//sys	NCryptTranslateHandle(/*out*//*optional*/phProvider *NCRYPT_PROV_HANDLE, /*out*/phKey *NCRYPT_KEY_HANDLE, /*in*/hLegacyProv uintptr, /*in*//*optional*/hLegacyKey uintptr, /*in*//*optional*/dwLegacyKeySpec CERT_KEY_SPEC, /*in*/dwFlags uint32) (HRESULT) = ncrypt.NCryptTranslateHandle
-//sys	NCryptNotifyChangeKey(/*in*/hProvider NCRYPT_PROV_HANDLE, /*in*//*out*/phEvent *HANDLE, /*in*/dwFlags NCRYPT_FLAGS) (HRESULT) = ncrypt.NCryptNotifyChangeKey
-//sys	NCryptSecretAgreement(/*in*/hPrivKey NCRYPT_KEY_HANDLE, /*in*/hPubKey NCRYPT_KEY_HANDLE, /*out*/phAgreedSecret *NCRYPT_SECRET_HANDLE, /*in*/dwFlags NCRYPT_FLAGS) (HRESULT) = ncrypt.NCryptSecretAgreement
-//sys	NCryptDeriveKey(/*in*/hSharedSecret NCRYPT_SECRET_HANDLE, /*in*/pwszKDF PWSTR, /*in*//*optional*/pParameterList *BCryptBufferDesc, /*out*//*optional*/pbDerivedKey *uint8, /*in*/cbDerivedKey uint32, /*out*/pcbResult *uint32, /*in*/dwFlags uint32) (HRESULT) = ncrypt.NCryptDeriveKey
-//sys	NCryptKeyDerivation(/*in*/hKey NCRYPT_KEY_HANDLE, /*in*//*optional*/pParameterList *BCryptBufferDesc, /*out*/pbDerivedKey *uint8, /*in*/cbDerivedKey uint32, /*out*/pcbResult *uint32, /*in*/dwFlags uint32) (HRESULT) = ncrypt.NCryptKeyDerivation
-//sys	NCryptCreateClaim(/*in*//*optional*/hSubjectKey NCRYPT_KEY_HANDLE, /*in*//*optional*/hAuthorityKey NCRYPT_KEY_HANDLE, /*in*/dwClaimType uint32, /*in*//*optional*/pParameterList *BCryptBufferDesc, /*out*//*optional*/pbClaimBlob *uint8, /*in*/cbClaimBlob uint32, /*out*/pcbResult *uint32, /*in*/dwFlags uint32) (HRESULT) = ncrypt.NCryptCreateClaim
-//sys	NCryptVerifyClaim(/*in*/hSubjectKey NCRYPT_KEY_HANDLE, /*in*//*optional*/hAuthorityKey NCRYPT_KEY_HANDLE, /*in*/dwClaimType uint32, /*in*//*optional*/pParameterList *BCryptBufferDesc, /*in*/pbClaimBlob *uint8, /*in*/cbClaimBlob uint32, /*out*/pOutput *BCryptBufferDesc, /*in*/dwFlags uint32) (HRESULT) = ncrypt.NCryptVerifyClaim
-//sys	CryptFormatObject(/*in*/dwCertEncodingType uint32, /*in*/dwFormatType uint32, /*in*/dwFormatStrType uint32, /*in*//*optional*/pFormatStruct unsafe.Pointer, /*in*//*optional*/lpszStructType PSTR, /*in*/pbEncoded *uint8, /*in*/cbEncoded uint32, /*out*//*optional*/pbFormat unsafe.Pointer, /*in*//*out*/pcbFormat *uint32) (BOOL) = crypt32.CryptFormatObject
-//sys	CryptEncodeObjectEx(/*in*/dwCertEncodingType CERT_QUERY_ENCODING_TYPE, /*in*/lpszStructType PSTR, /*in*/pvStructInfo unsafe.Pointer, /*in*/dwFlags CRYPT_ENCODE_OBJECT_FLAGS, /*in*//*optional*/pEncodePara *CRYPT_ENCODE_PARA, /*out*//*optional*/pvEncoded unsafe.Pointer, /*in*//*out*/pcbEncoded *uint32) (BOOL) = crypt32.CryptEncodeObjectEx
-//sys	CryptEncodeObject(/*in*/dwCertEncodingType uint32, /*in*/lpszStructType PSTR, /*in*/pvStructInfo unsafe.Pointer, /*out*//*optional*/pbEncoded *uint8, /*in*//*out*/pcbEncoded *uint32) (BOOL) = crypt32.CryptEncodeObject
-//sys	CryptDecodeObjectEx(/*in*/dwCertEncodingType uint32, /*in*/lpszStructType PSTR, /*in*/pbEncoded *uint8, /*in*/cbEncoded uint32, /*in*/dwFlags uint32, /*in*//*optional*/pDecodePara *CRYPT_DECODE_PARA, /*out*//*optional*/pvStructInfo unsafe.Pointer, /*in*//*out*/pcbStructInfo *uint32) (BOOL) = crypt32.CryptDecodeObjectEx
-//sys	CryptDecodeObject(/*in*/dwCertEncodingType uint32, /*in*/lpszStructType PSTR, /*in*/pbEncoded *uint8, /*in*/cbEncoded uint32, /*in*/dwFlags uint32, /*out*//*optional*/pvStructInfo unsafe.Pointer, /*in*//*out*/pcbStructInfo *uint32) (BOOL) = crypt32.CryptDecodeObject
-//sys	CryptInstallOIDFunctionAddress(/*in*//*optional*/hModule HINSTANCE, /*in*/dwEncodingType uint32, /*in*/pszFuncName PSTR, /*in*/cFuncEntry uint32, /*in*/rgFuncEntry *CRYPT_OID_FUNC_ENTRY, /*in*/dwFlags uint32) (BOOL) = crypt32.CryptInstallOIDFunctionAddress
-//sys	CryptInitOIDFunctionSet(/*in*/pszFuncName PSTR, /*in*/dwFlags uint32) (unsafe.Pointer) = crypt32.CryptInitOIDFunctionSet
-//sys	CryptGetOIDFunctionAddress(/*in*/hFuncSet unsafe.Pointer, /*in*/dwEncodingType uint32, /*in*/pszOID PSTR, /*in*/dwFlags uint32, /*out*/ppvFuncAddr *unsafe.Pointer, /*out*/phFuncAddr *unsafe.Pointer) (BOOL) = crypt32.CryptGetOIDFunctionAddress
-//sys	CryptGetDefaultOIDDllList(/*in*/hFuncSet unsafe.Pointer, /*in*/dwEncodingType uint32, /*out*//*optional*/pwszDllList PWSTR, /*in*//*out*/pcchDllList *uint32) (BOOL) = crypt32.CryptGetDefaultOIDDllList
-//sys	CryptGetDefaultOIDFunctionAddress(/*in*/hFuncSet unsafe.Pointer, /*in*/dwEncodingType uint32, /*in*//*optional*/pwszDll PWSTR, /*in*/dwFlags uint32, /*out*/ppvFuncAddr *unsafe.Pointer, /*in*//*out*/phFuncAddr *unsafe.Pointer) (BOOL) = crypt32.CryptGetDefaultOIDFunctionAddress
-//sys	CryptFreeOIDFunctionAddress(/*in*/hFuncAddr unsafe.Pointer, /*in*/dwFlags uint32) (BOOL) = crypt32.CryptFreeOIDFunctionAddress
-//sys	CryptRegisterOIDFunction(/*in*/dwEncodingType uint32, /*in*/pszFuncName PSTR, /*in*/pszOID PSTR, /*in*//*optional*/pwszDll PWSTR, /*in*//*optional*/pszOverrideFuncName PSTR) (BOOL) = crypt32.CryptRegisterOIDFunction
-//sys	CryptUnregisterOIDFunction(/*in*/dwEncodingType uint32, /*in*/pszFuncName PSTR, /*in*/pszOID PSTR) (BOOL) = crypt32.CryptUnregisterOIDFunction
-//sys	CryptRegisterDefaultOIDFunction(/*in*/dwEncodingType uint32, /*in*/pszFuncName PSTR, /*in*/dwIndex uint32, /*in*/pwszDll PWSTR) (BOOL) = crypt32.CryptRegisterDefaultOIDFunction
-//sys	CryptUnregisterDefaultOIDFunction(/*in*/dwEncodingType uint32, /*in*/pszFuncName PSTR, /*in*/pwszDll PWSTR) (BOOL) = crypt32.CryptUnregisterDefaultOIDFunction
-//sys	CryptSetOIDFunctionValue(/*in*/dwEncodingType uint32, /*in*/pszFuncName PSTR, /*in*/pszOID PSTR, /*in*//*optional*/pwszValueName PWSTR, /*in*/dwValueType REG_VALUE_TYPE, /*in*//*optional*/pbValueData *uint8, /*in*/cbValueData uint32) (BOOL) = crypt32.CryptSetOIDFunctionValue
-//sys	CryptGetOIDFunctionValue(/*in*/dwEncodingType uint32, /*in*/pszFuncName PSTR, /*in*/pszOID PSTR, /*in*//*optional*/pwszValueName PWSTR, /*out*//*optional*/pdwValueType *uint32, /*out*//*optional*/pbValueData *uint8, /*in*//*out*//*optional*/pcbValueData *uint32) (BOOL) = crypt32.CryptGetOIDFunctionValue
-//sys	CryptEnumOIDFunction(/*in*/dwEncodingType uint32, /*in*//*optional*/pszFuncName PSTR, /*in*//*optional*/pszOID PSTR, /*in*/dwFlags uint32, /*in*//*out*//*optional*/pvArg unsafe.Pointer, /*in*/pfnEnumOIDFunc PFN_CRYPT_ENUM_OID_FUNC) (BOOL) = crypt32.CryptEnumOIDFunction
-//sys	CryptFindOIDInfo(/*in*/dwKeyType uint32, /*in*/pvKey unsafe.Pointer, /*in*/dwGroupId uint32) (*CRYPT_OID_INFO) = crypt32.CryptFindOIDInfo
-//sys	CryptRegisterOIDInfo(/*in*/pInfo *CRYPT_OID_INFO, /*in*/dwFlags uint32) (BOOL) = crypt32.CryptRegisterOIDInfo
-//sys	CryptUnregisterOIDInfo(/*in*/pInfo *CRYPT_OID_INFO) (BOOL) = crypt32.CryptUnregisterOIDInfo
-//sys	CryptEnumOIDInfo(/*in*/dwGroupId uint32, /*in*/dwFlags uint32, /*in*//*out*//*optional*/pvArg unsafe.Pointer, /*in*/pfnEnumOIDInfo PFN_CRYPT_ENUM_OID_INFO) (BOOL) = crypt32.CryptEnumOIDInfo
-//sys	CryptFindLocalizedName(/*in*/pwszCryptName PWSTR) (PWSTR) = crypt32.CryptFindLocalizedName
-//sys	CryptMsgOpenToEncode(/*in*/dwMsgEncodingType uint32, /*in*/dwFlags uint32, /*in*/dwMsgType CRYPT_MSG_TYPE, /*in*/pvMsgEncodeInfo unsafe.Pointer, /*in*//*optional*/pszInnerContentObjID PSTR, /*in*//*optional*/pStreamInfo *CMSG_STREAM_INFO) (unsafe.Pointer) = crypt32.CryptMsgOpenToEncode
-//sys	CryptMsgCalculateEncodedLength(/*in*/dwMsgEncodingType uint32, /*in*/dwFlags uint32, /*in*/dwMsgType uint32, /*in*/pvMsgEncodeInfo unsafe.Pointer, /*in*//*optional*/pszInnerContentObjID PSTR, /*in*/cbData uint32) (uint32) = crypt32.CryptMsgCalculateEncodedLength
-//sys	CryptMsgOpenToDecode(/*in*/dwMsgEncodingType uint32, /*in*/dwFlags uint32, /*in*/dwMsgType uint32, /*in*//*optional*/hCryptProv HCRYPTPROV_LEGACY, /*in*//*out*/pRecipientInfo *CERT_INFO, /*in*//*optional*/pStreamInfo *CMSG_STREAM_INFO) (unsafe.Pointer) = crypt32.CryptMsgOpenToDecode
-//sys	CryptMsgDuplicate(/*in*//*optional*/hCryptMsg unsafe.Pointer) (unsafe.Pointer) = crypt32.CryptMsgDuplicate
-//sys	CryptMsgClose(/*in*//*optional*/hCryptMsg unsafe.Pointer) (BOOL) = crypt32.CryptMsgClose
-//sys	CryptMsgUpdate(/*in*/hCryptMsg unsafe.Pointer, /*in*//*optional*/pbData *uint8, /*in*/cbData uint32, /*in*/fFinal BOOL) (BOOL) = crypt32.CryptMsgUpdate
-//sys	CryptMsgGetParam(/*in*/hCryptMsg unsafe.Pointer, /*in*/dwParamType uint32, /*in*/dwIndex uint32, /*out*//*optional*/pvData unsafe.Pointer, /*in*//*out*/pcbData *uint32) (BOOL) = crypt32.CryptMsgGetParam
-//sys	CryptMsgControl(/*in*/hCryptMsg unsafe.Pointer, /*in*/dwFlags uint32, /*in*/dwCtrlType uint32, /*in*//*optional*/pvCtrlPara unsafe.Pointer) (BOOL) = crypt32.CryptMsgControl
-//sys	CryptMsgVerifyCountersignatureEncoded(/*in*//*optional*/hCryptProv HCRYPTPROV_LEGACY, /*in*/dwEncodingType uint32, /*in*/pbSignerInfo *uint8, /*in*/cbSignerInfo uint32, /*in*/pbSignerInfoCountersignature *uint8, /*in*/cbSignerInfoCountersignature uint32, /*in*/pciCountersigner *CERT_INFO) (BOOL) = crypt32.CryptMsgVerifyCountersignatureEncoded
-//sys	CryptMsgVerifyCountersignatureEncodedEx(/*in*//*optional*/hCryptProv HCRYPTPROV_LEGACY, /*in*/dwEncodingType uint32, /*in*/pbSignerInfo *uint8, /*in*/cbSignerInfo uint32, /*in*/pbSignerInfoCountersignature *uint8, /*in*/cbSignerInfoCountersignature uint32, /*in*/dwSignerType uint32, /*in*/pvSigner unsafe.Pointer, /*in*/dwFlags uint32, /*in*//*out*//*optional*/pvExtra unsafe.Pointer) (BOOL) = crypt32.CryptMsgVerifyCountersignatureEncodedEx
-//sys	CryptMsgCountersign(/*in*/hCryptMsg unsafe.Pointer, /*in*/dwIndex uint32, /*in*/cCountersigners uint32, /*in*/rgCountersigners *CMSG_SIGNER_ENCODE_INFO) (BOOL) = crypt32.CryptMsgCountersign
-//sys	CryptMsgCountersignEncoded(/*in*/dwEncodingType uint32, /*in*/pbSignerInfo *uint8, /*in*/cbSignerInfo uint32, /*in*/cCountersigners uint32, /*in*/rgCountersigners *CMSG_SIGNER_ENCODE_INFO, /*out*//*optional*/pbCountersignature *uint8, /*in*//*out*/pcbCountersignature *uint32) (BOOL) = crypt32.CryptMsgCountersignEncoded
-//sys	CertOpenStore(/*in*/lpszStoreProvider PSTR, /*in*/dwEncodingType CERT_QUERY_ENCODING_TYPE, /*in*//*optional*/hCryptProv HCRYPTPROV_LEGACY, /*in*/dwFlags CERT_OPEN_STORE_FLAGS, /*in*//*optional*/pvPara unsafe.Pointer) (HCERTSTORE) = crypt32.CertOpenStore
-//sys	CertDuplicateStore(/*in*/hCertStore HCERTSTORE) (HCERTSTORE) = crypt32.CertDuplicateStore
-//sys	CertSaveStore(/*in*/hCertStore HCERTSTORE, /*in*/dwEncodingType CERT_QUERY_ENCODING_TYPE, /*in*/dwSaveAs CERT_STORE_SAVE_AS, /*in*/dwSaveTo CERT_STORE_SAVE_TO, /*in*//*out*/pvSaveToPara unsafe.Pointer, /*in*/dwFlags uint32) (BOOL) = crypt32.CertSaveStore
-//sys	CertCloseStore(/*in*//*optional*/hCertStore HCERTSTORE, /*in*/dwFlags uint32) (BOOL) = crypt32.CertCloseStore
-//sys	CertGetSubjectCertificateFromStore(/*in*/hCertStore HCERTSTORE, /*in*/dwCertEncodingType uint32, /*in*/pCertId *CERT_INFO) (*CERT_CONTEXT) = crypt32.CertGetSubjectCertificateFromStore
-//sys	CertEnumCertificatesInStore(/*in*/hCertStore HCERTSTORE, /*in*//*optional*/pPrevCertContext *CERT_CONTEXT) (*CERT_CONTEXT) = crypt32.CertEnumCertificatesInStore
-//sys	CertFindCertificateInStore(/*in*/hCertStore HCERTSTORE, /*in*/dwCertEncodingType uint32, /*in*/dwFindFlags uint32, /*in*/dwFindType CERT_FIND_FLAGS, /*in*//*optional*/pvFindPara unsafe.Pointer, /*in*//*optional*/pPrevCertContext *CERT_CONTEXT) (*CERT_CONTEXT) = crypt32.CertFindCertificateInStore
-//sys	CertGetIssuerCertificateFromStore(/*in*/hCertStore HCERTSTORE, /*in*/pSubjectContext *CERT_CONTEXT, /*in*//*optional*/pPrevIssuerContext *CERT_CONTEXT, /*in*//*out*/pdwFlags *uint32) (*CERT_CONTEXT) = crypt32.CertGetIssuerCertificateFromStore
-//sys	CertVerifySubjectCertificateContext(/*in*/pSubject *CERT_CONTEXT, /*in*//*optional*/pIssuer *CERT_CONTEXT, /*in*//*out*/pdwFlags *uint32) (BOOL) = crypt32.CertVerifySubjectCertificateContext
-//sys	CertDuplicateCertificateContext(/*in*//*optional*/pCertContext *CERT_CONTEXT) (*CERT_CONTEXT) = crypt32.CertDuplicateCertificateContext
-//sys	CertCreateCertificateContext(/*in*/dwCertEncodingType uint32, /*in*/pbCertEncoded *uint8, /*in*/cbCertEncoded uint32) (*CERT_CONTEXT) = crypt32.CertCreateCertificateContext
-//sys	CertFreeCertificateContext(/*in*//*optional*/pCertContext *CERT_CONTEXT) (BOOL) = crypt32.CertFreeCertificateContext
-//sys	CertSetCertificateContextProperty(/*in*/pCertContext *CERT_CONTEXT, /*in*/dwPropId uint32, /*in*/dwFlags uint32, /*in*//*optional*/pvData unsafe.Pointer) (BOOL) = crypt32.CertSetCertificateContextProperty
-//sys	CertGetCertificateContextProperty(/*in*/pCertContext *CERT_CONTEXT, /*in*/dwPropId uint32, /*out*//*optional*/pvData unsafe.Pointer, /*in*//*out*/pcbData *uint32) (BOOL) = crypt32.CertGetCertificateContextProperty
-//sys	CertEnumCertificateContextProperties(/*in*/pCertContext *CERT_CONTEXT, /*in*/dwPropId uint32) (uint32) = crypt32.CertEnumCertificateContextProperties
-//sys	CertCreateCTLEntryFromCertificateContextProperties(/*in*/pCertContext *CERT_CONTEXT, /*in*/cOptAttr uint32, /*in*//*optional*/rgOptAttr *CRYPT_ATTRIBUTE, /*in*/dwFlags uint32, /*in*//*out*/pvReserved unsafe.Pointer, /*out*//*optional*/pCtlEntry *CTL_ENTRY, /*in*//*out*/pcbCtlEntry *uint32) (BOOL) = crypt32.CertCreateCTLEntryFromCertificateContextProperties
-//sys	CertSetCertificateContextPropertiesFromCTLEntry(/*in*/pCertContext *CERT_CONTEXT, /*in*/pCtlEntry *CTL_ENTRY, /*in*/dwFlags uint32) (BOOL) = crypt32.CertSetCertificateContextPropertiesFromCTLEntry
-//sys	CertGetCRLFromStore(/*in*/hCertStore HCERTSTORE, /*in*//*optional*/pIssuerContext *CERT_CONTEXT, /*in*//*optional*/pPrevCrlContext *CRL_CONTEXT, /*in*//*out*/pdwFlags *uint32) (*CRL_CONTEXT) = crypt32.CertGetCRLFromStore
-//sys	CertEnumCRLsInStore(/*in*/hCertStore HCERTSTORE, /*in*//*optional*/pPrevCrlContext *CRL_CONTEXT) (*CRL_CONTEXT) = crypt32.CertEnumCRLsInStore
-//sys	CertFindCRLInStore(/*in*/hCertStore HCERTSTORE, /*in*/dwCertEncodingType uint32, /*in*/dwFindFlags uint32, /*in*/dwFindType uint32, /*in*//*optional*/pvFindPara unsafe.Pointer, /*in*//*optional*/pPrevCrlContext *CRL_CONTEXT) (*CRL_CONTEXT) = crypt32.CertFindCRLInStore
-//sys	CertDuplicateCRLContext(/*in*//*optional*/pCrlContext *CRL_CONTEXT) (*CRL_CONTEXT) = crypt32.CertDuplicateCRLContext
-//sys	CertCreateCRLContext(/*in*/dwCertEncodingType uint32, /*in*/pbCrlEncoded *uint8, /*in*/cbCrlEncoded uint32) (*CRL_CONTEXT) = crypt32.CertCreateCRLContext
-//sys	CertFreeCRLContext(/*in*//*optional*/pCrlContext *CRL_CONTEXT) (BOOL) = crypt32.CertFreeCRLContext
-//sys	CertSetCRLContextProperty(/*in*/pCrlContext *CRL_CONTEXT, /*in*/dwPropId uint32, /*in*/dwFlags uint32, /*in*//*optional*/pvData unsafe.Pointer) (BOOL) = crypt32.CertSetCRLContextProperty
-//sys	CertGetCRLContextProperty(/*in*/pCrlContext *CRL_CONTEXT, /*in*/dwPropId uint32, /*out*//*optional*/pvData unsafe.Pointer, /*in*//*out*/pcbData *uint32) (BOOL) = crypt32.CertGetCRLContextProperty
-//sys	CertEnumCRLContextProperties(/*in*/pCrlContext *CRL_CONTEXT, /*in*/dwPropId uint32) (uint32) = crypt32.CertEnumCRLContextProperties
-//sys	CertFindCertificateInCRL(/*in*/pCert *CERT_CONTEXT, /*in*/pCrlContext *CRL_CONTEXT, /*in*/dwFlags uint32, /*in*//*out*/pvReserved unsafe.Pointer, /*out*//*optional*/ppCrlEntry **CRL_ENTRY) (BOOL) = crypt32.CertFindCertificateInCRL
-//sys	CertIsValidCRLForCertificate(/*in*/pCert *CERT_CONTEXT, /*in*/pCrl *CRL_CONTEXT, /*in*/dwFlags uint32, /*in*//*out*/pvReserved unsafe.Pointer) (BOOL) = crypt32.CertIsValidCRLForCertificate
-//sys	CertAddEncodedCertificateToStore(/*in*//*optional*/hCertStore HCERTSTORE, /*in*/dwCertEncodingType uint32, /*in*/pbCertEncoded *uint8, /*in*/cbCertEncoded uint32, /*in*/dwAddDisposition uint32, /*out*//*optional*/ppCertContext **CERT_CONTEXT) (BOOL) = crypt32.CertAddEncodedCertificateToStore
-//sys	CertAddCertificateContextToStore(/*in*//*optional*/hCertStore HCERTSTORE, /*in*/pCertContext *CERT_CONTEXT, /*in*/dwAddDisposition uint32, /*out*//*optional*/ppStoreContext **CERT_CONTEXT) (BOOL) = crypt32.CertAddCertificateContextToStore
-//sys	CertAddSerializedElementToStore(/*in*//*optional*/hCertStore HCERTSTORE, /*in*/pbElement *uint8, /*in*/cbElement uint32, /*in*/dwAddDisposition uint32, /*in*/dwFlags uint32, /*in*/dwContextTypeFlags uint32, /*out*//*optional*/pdwContextType *uint32, /*out*//*optional*/ppvContext *unsafe.Pointer) (BOOL) = crypt32.CertAddSerializedElementToStore
-//sys	CertDeleteCertificateFromStore(/*in*/pCertContext *CERT_CONTEXT) (BOOL) = crypt32.CertDeleteCertificateFromStore
-//sys	CertAddEncodedCRLToStore(/*in*//*optional*/hCertStore HCERTSTORE, /*in*/dwCertEncodingType uint32, /*in*/pbCrlEncoded *uint8, /*in*/cbCrlEncoded uint32, /*in*/dwAddDisposition uint32, /*out*//*optional*/ppCrlContext **CRL_CONTEXT) (BOOL) = crypt32.CertAddEncodedCRLToStore
-//sys	CertAddCRLContextToStore(/*in*//*optional*/hCertStore HCERTSTORE, /*in*/pCrlContext *CRL_CONTEXT, /*in*/dwAddDisposition uint32, /*out*//*optional*/ppStoreContext **CRL_CONTEXT) (BOOL) = crypt32.CertAddCRLContextToStore
-//sys	CertDeleteCRLFromStore(/*in*/pCrlContext *CRL_CONTEXT) (BOOL) = crypt32.CertDeleteCRLFromStore
-//sys	CertSerializeCertificateStoreElement(/*in*/pCertContext *CERT_CONTEXT, /*in*/dwFlags uint32, /*out*//*optional*/pbElement *uint8, /*in*//*out*/pcbElement *uint32) (BOOL) = crypt32.CertSerializeCertificateStoreElement
-//sys	CertSerializeCRLStoreElement(/*in*/pCrlContext *CRL_CONTEXT, /*in*/dwFlags uint32, /*out*//*optional*/pbElement *uint8, /*in*//*out*/pcbElement *uint32) (BOOL) = crypt32.CertSerializeCRLStoreElement
-//sys	CertDuplicateCTLContext(/*in*//*optional*/pCtlContext *CTL_CONTEXT) (*CTL_CONTEXT) = crypt32.CertDuplicateCTLContext
-//sys	CertCreateCTLContext(/*in*/dwMsgAndCertEncodingType uint32, /*in*/pbCtlEncoded *uint8, /*in*/cbCtlEncoded uint32) (*CTL_CONTEXT) = crypt32.CertCreateCTLContext
-//sys	CertFreeCTLContext(/*in*//*optional*/pCtlContext *CTL_CONTEXT) (BOOL) = crypt32.CertFreeCTLContext
-//sys	CertSetCTLContextProperty(/*in*/pCtlContext *CTL_CONTEXT, /*in*/dwPropId uint32, /*in*/dwFlags uint32, /*in*//*optional*/pvData unsafe.Pointer) (BOOL) = crypt32.CertSetCTLContextProperty
-//sys	CertGetCTLContextProperty(/*in*/pCtlContext *CTL_CONTEXT, /*in*/dwPropId uint32, /*out*//*optional*/pvData unsafe.Pointer, /*in*//*out*/pcbData *uint32) (BOOL) = crypt32.CertGetCTLContextProperty
-//sys	CertEnumCTLContextProperties(/*in*/pCtlContext *CTL_CONTEXT, /*in*/dwPropId uint32) (uint32) = crypt32.CertEnumCTLContextProperties
-//sys	CertEnumCTLsInStore(/*in*/hCertStore HCERTSTORE, /*in*//*optional*/pPrevCtlContext *CTL_CONTEXT) (*CTL_CONTEXT) = crypt32.CertEnumCTLsInStore
-//sys	CertFindSubjectInCTL(/*in*/dwEncodingType uint32, /*in*/dwSubjectType uint32, /*in*/pvSubject unsafe.Pointer, /*in*/pCtlContext *CTL_CONTEXT, /*in*/dwFlags uint32) (*CTL_ENTRY) = crypt32.CertFindSubjectInCTL
-//sys	CertFindCTLInStore(/*in*/hCertStore HCERTSTORE, /*in*/dwMsgAndCertEncodingType uint32, /*in*/dwFindFlags uint32, /*in*/dwFindType CERT_FIND_TYPE, /*in*//*optional*/pvFindPara unsafe.Pointer, /*in*//*optional*/pPrevCtlContext *CTL_CONTEXT) (*CTL_CONTEXT) = crypt32.CertFindCTLInStore
-//sys	CertAddEncodedCTLToStore(/*in*//*optional*/hCertStore HCERTSTORE, /*in*/dwMsgAndCertEncodingType uint32, /*in*/pbCtlEncoded *uint8, /*in*/cbCtlEncoded uint32, /*in*/dwAddDisposition uint32, /*out*//*optional*/ppCtlContext **CTL_CONTEXT) (BOOL) = crypt32.CertAddEncodedCTLToStore
-//sys	CertAddCTLContextToStore(/*in*//*optional*/hCertStore HCERTSTORE, /*in*/pCtlContext *CTL_CONTEXT, /*in*/dwAddDisposition uint32, /*out*//*optional*/ppStoreContext **CTL_CONTEXT) (BOOL) = crypt32.CertAddCTLContextToStore
-//sys	CertSerializeCTLStoreElement(/*in*/pCtlContext *CTL_CONTEXT, /*in*/dwFlags uint32, /*out*//*optional*/pbElement *uint8, /*in*//*out*/pcbElement *uint32) (BOOL) = crypt32.CertSerializeCTLStoreElement
-//sys	CertDeleteCTLFromStore(/*in*/pCtlContext *CTL_CONTEXT) (BOOL) = crypt32.CertDeleteCTLFromStore
-//sys	CertAddCertificateLinkToStore(/*in*/hCertStore HCERTSTORE, /*in*/pCertContext *CERT_CONTEXT, /*in*/dwAddDisposition uint32, /*out*//*optional*/ppStoreContext **CERT_CONTEXT) (BOOL) = crypt32.CertAddCertificateLinkToStore
-//sys	CertAddCRLLinkToStore(/*in*/hCertStore HCERTSTORE, /*in*/pCrlContext *CRL_CONTEXT, /*in*/dwAddDisposition uint32, /*out*//*optional*/ppStoreContext **CRL_CONTEXT) (BOOL) = crypt32.CertAddCRLLinkToStore
-//sys	CertAddCTLLinkToStore(/*in*/hCertStore HCERTSTORE, /*in*/pCtlContext *CTL_CONTEXT, /*in*/dwAddDisposition uint32, /*out*//*optional*/ppStoreContext **CTL_CONTEXT) (BOOL) = crypt32.CertAddCTLLinkToStore
-//sys	CertAddStoreToCollection(/*in*/hCollectionStore HCERTSTORE, /*in*//*optional*/hSiblingStore HCERTSTORE, /*in*/dwUpdateFlags uint32, /*in*/dwPriority uint32) (BOOL) = crypt32.CertAddStoreToCollection
-//sys	CertRemoveStoreFromCollection(/*in*/hCollectionStore HCERTSTORE, /*in*/hSiblingStore HCERTSTORE) = crypt32.CertRemoveStoreFromCollection
-//sys	CertControlStore(/*in*/hCertStore HCERTSTORE, /*in*/dwFlags CERT_CONTROL_STORE_FLAGS, /*in*/dwCtrlType uint32, /*in*//*optional*/pvCtrlPara unsafe.Pointer) (BOOL) = crypt32.CertControlStore
-//sys	CertSetStoreProperty(/*in*/hCertStore HCERTSTORE, /*in*/dwPropId uint32, /*in*/dwFlags uint32, /*in*//*optional*/pvData unsafe.Pointer) (BOOL) = crypt32.CertSetStoreProperty
-//sys	CertGetStoreProperty(/*in*/hCertStore HCERTSTORE, /*in*/dwPropId uint32, /*out*//*optional*/pvData unsafe.Pointer, /*in*//*out*/pcbData *uint32) (BOOL) = crypt32.CertGetStoreProperty
-//sys	CertCreateContext(/*in*/dwContextType uint32, /*in*/dwEncodingType uint32, /*in*/pbEncoded *uint8, /*in*/cbEncoded uint32, /*in*/dwFlags uint32, /*in*//*optional*/pCreatePara *CERT_CREATE_CONTEXT_PARA) (unsafe.Pointer) = crypt32.CertCreateContext
-//sys	CertRegisterSystemStore(/*in*/pvSystemStore unsafe.Pointer, /*in*/dwFlags uint32, /*in*//*optional*/pStoreInfo *CERT_SYSTEM_STORE_INFO, /*in*//*out*/pvReserved unsafe.Pointer) (BOOL) = crypt32.CertRegisterSystemStore
-//sys	CertRegisterPhysicalStore(/*in*/pvSystemStore unsafe.Pointer, /*in*/dwFlags uint32, /*in*/pwszStoreName PWSTR, /*in*/pStoreInfo *CERT_PHYSICAL_STORE_INFO, /*in*//*out*/pvReserved unsafe.Pointer) (BOOL) = crypt32.CertRegisterPhysicalStore
-//sys	CertUnregisterSystemStore(/*in*/pvSystemStore unsafe.Pointer, /*in*/dwFlags uint32) (BOOL) = crypt32.CertUnregisterSystemStore
-//sys	CertUnregisterPhysicalStore(/*in*/pvSystemStore unsafe.Pointer, /*in*/dwFlags uint32, /*in*/pwszStoreName PWSTR) (BOOL) = crypt32.CertUnregisterPhysicalStore
-//sys	CertEnumSystemStoreLocation(/*in*/dwFlags uint32, /*in*//*out*//*optional*/pvArg unsafe.Pointer, /*in*/pfnEnum PFN_CERT_ENUM_SYSTEM_STORE_LOCATION) (BOOL) = crypt32.CertEnumSystemStoreLocation
-//sys	CertEnumSystemStore(/*in*/dwFlags uint32, /*in*//*optional*/pvSystemStoreLocationPara unsafe.Pointer, /*in*//*out*//*optional*/pvArg unsafe.Pointer, /*in*/pfnEnum PFN_CERT_ENUM_SYSTEM_STORE) (BOOL) = crypt32.CertEnumSystemStore
-//sys	CertEnumPhysicalStore(/*in*/pvSystemStore unsafe.Pointer, /*in*/dwFlags uint32, /*in*//*out*//*optional*/pvArg unsafe.Pointer, /*in*/pfnEnum PFN_CERT_ENUM_PHYSICAL_STORE) (BOOL) = crypt32.CertEnumPhysicalStore
-//sys	CertGetEnhancedKeyUsage(/*in*/pCertContext *CERT_CONTEXT, /*in*/dwFlags uint32, /*out*//*optional*/pUsage *CTL_USAGE, /*in*//*out*/pcbUsage *uint32) (BOOL) = crypt32.CertGetEnhancedKeyUsage
-//sys	CertSetEnhancedKeyUsage(/*in*/pCertContext *CERT_CONTEXT, /*in*//*optional*/pUsage *CTL_USAGE) (BOOL) = crypt32.CertSetEnhancedKeyUsage
-//sys	CertAddEnhancedKeyUsageIdentifier(/*in*/pCertContext *CERT_CONTEXT, /*in*/pszUsageIdentifier PSTR) (BOOL) = crypt32.CertAddEnhancedKeyUsageIdentifier
-//sys	CertRemoveEnhancedKeyUsageIdentifier(/*in*/pCertContext *CERT_CONTEXT, /*in*/pszUsageIdentifier PSTR) (BOOL) = crypt32.CertRemoveEnhancedKeyUsageIdentifier
-//sys	CertGetValidUsages(/*in*/cCerts uint32, /*in*/rghCerts **CERT_CONTEXT, /*out*/cNumOIDs *int32, /*out*//*optional*/rghOIDs *PSTR, /*in*//*out*/pcbOIDs *uint32) (BOOL) = crypt32.CertGetValidUsages
-//sys	CryptMsgGetAndVerifySigner(/*in*/hCryptMsg unsafe.Pointer, /*in*/cSignerStore uint32, /*in*//*optional*/rghSignerStore *HCERTSTORE, /*in*/dwFlags uint32, /*out*//*optional*/ppSigner **CERT_CONTEXT, /*in*//*out*//*optional*/pdwSignerIndex *uint32) (BOOL) = crypt32.CryptMsgGetAndVerifySigner
-//sys	CryptMsgSignCTL(/*in*/dwMsgEncodingType uint32, /*in*/pbCtlContent *uint8, /*in*/cbCtlContent uint32, /*in*/pSignInfo *CMSG_SIGNED_ENCODE_INFO, /*in*/dwFlags uint32, /*out*//*optional*/pbEncoded *uint8, /*in*//*out*/pcbEncoded *uint32) (BOOL) = crypt32.CryptMsgSignCTL
-//sys	CryptMsgEncodeAndSignCTL(/*in*/dwMsgEncodingType uint32, /*in*/pCtlInfo *CTL_INFO, /*in*/pSignInfo *CMSG_SIGNED_ENCODE_INFO, /*in*/dwFlags uint32, /*out*//*optional*/pbEncoded *uint8, /*in*//*out*/pcbEncoded *uint32) (BOOL) = crypt32.CryptMsgEncodeAndSignCTL
-//sys	CertFindSubjectInSortedCTL(/*in*/pSubjectIdentifier *CRYPTOAPI_BLOB, /*in*/pCtlContext *CTL_CONTEXT, /*in*/dwFlags uint32, /*in*//*out*/pvReserved unsafe.Pointer, /*out*//*optional*/pEncodedAttributes *CRYPTOAPI_BLOB) (BOOL) = crypt32.CertFindSubjectInSortedCTL
-//sys	CertEnumSubjectInSortedCTL(/*in*/pCtlContext *CTL_CONTEXT, /*in*//*out*/ppvNextSubject *unsafe.Pointer, /*out*//*optional*/pSubjectIdentifier *CRYPTOAPI_BLOB, /*out*//*optional*/pEncodedAttributes *CRYPTOAPI_BLOB) (BOOL) = crypt32.CertEnumSubjectInSortedCTL
-//sys	CertVerifyCTLUsage(/*in*/dwEncodingType uint32, /*in*/dwSubjectType uint32, /*in*/pvSubject unsafe.Pointer, /*in*/pSubjectUsage *CTL_USAGE, /*in*/dwFlags uint32, /*in*//*optional*/pVerifyUsagePara *CTL_VERIFY_USAGE_PARA, /*in*//*out*/pVerifyUsageStatus *CTL_VERIFY_USAGE_STATUS) (BOOL) = crypt32.CertVerifyCTLUsage
-//sys	CertVerifyRevocation(/*in*/dwEncodingType uint32, /*in*/dwRevType uint32, /*in*/cContext uint32, /*in*/rgpvContext *unsafe.Pointer, /*in*/dwFlags uint32, /*in*//*optional*/pRevPara *CERT_REVOCATION_PARA, /*in*//*out*/pRevStatus *CERT_REVOCATION_STATUS) (BOOL) = crypt32.CertVerifyRevocation
-//sys	CertCompareIntegerBlob(/*in*/pInt1 *CRYPTOAPI_BLOB, /*in*/pInt2 *CRYPTOAPI_BLOB) (BOOL) = crypt32.CertCompareIntegerBlob
-//sys	CertCompareCertificate(/*in*/dwCertEncodingType uint32, /*in*/pCertId1 *CERT_INFO, /*in*/pCertId2 *CERT_INFO) (BOOL) = crypt32.CertCompareCertificate
-//sys	CertCompareCertificateName(/*in*/dwCertEncodingType uint32, /*in*/pCertName1 *CRYPTOAPI_BLOB, /*in*/pCertName2 *CRYPTOAPI_BLOB) (BOOL) = crypt32.CertCompareCertificateName
-//sys	CertIsRDNAttrsInCertificateName(/*in*/dwCertEncodingType uint32, /*in*/dwFlags uint32, /*in*/pCertName *CRYPTOAPI_BLOB, /*in*/pRDN *CERT_RDN) (BOOL) = crypt32.CertIsRDNAttrsInCertificateName
-//sys	CertComparePublicKeyInfo(/*in*/dwCertEncodingType uint32, /*in*/pPublicKey1 *CERT_PUBLIC_KEY_INFO, /*in*/pPublicKey2 *CERT_PUBLIC_KEY_INFO) (BOOL) = crypt32.CertComparePublicKeyInfo
-//sys	CertGetPublicKeyLength(/*in*/dwCertEncodingType uint32, /*in*/pPublicKey *CERT_PUBLIC_KEY_INFO) (uint32) = crypt32.CertGetPublicKeyLength
-//sys	CryptVerifyCertificateSignature(/*in*//*optional*/hCryptProv HCRYPTPROV_LEGACY, /*in*/dwCertEncodingType uint32, /*in*/pbEncoded *uint8, /*in*/cbEncoded uint32, /*in*/pPublicKey *CERT_PUBLIC_KEY_INFO) (BOOL) = crypt32.CryptVerifyCertificateSignature
-//sys	CryptVerifyCertificateSignatureEx(/*in*//*optional*/hCryptProv HCRYPTPROV_LEGACY, /*in*/dwCertEncodingType uint32, /*in*/dwSubjectType uint32, /*in*/pvSubject unsafe.Pointer, /*in*/dwIssuerType uint32, /*in*//*optional*/pvIssuer unsafe.Pointer, /*in*/dwFlags CRYPT_VERIFY_CERT_FLAGS, /*in*//*out*//*optional*/pvExtra unsafe.Pointer) (BOOL) = crypt32.CryptVerifyCertificateSignatureEx
-//sys	CertIsStrongHashToSign(/*in*/pStrongSignPara *CERT_STRONG_SIGN_PARA, /*in*/pwszCNGHashAlgid PWSTR, /*in*//*optional*/pSigningCert *CERT_CONTEXT) (BOOL) = crypt32.CertIsStrongHashToSign
-//sys	CryptHashToBeSigned(/*in*//*optional*/hCryptProv HCRYPTPROV_LEGACY, /*in*/dwCertEncodingType uint32, /*in*/pbEncoded *uint8, /*in*/cbEncoded uint32, /*out*//*optional*/pbComputedHash *uint8, /*in*//*out*/pcbComputedHash *uint32) (BOOL) = crypt32.CryptHashToBeSigned
-//sys	CryptHashCertificate(/*in*//*optional*/hCryptProv HCRYPTPROV_LEGACY, /*in*/Algid uint32, /*in*/dwFlags uint32, /*in*/pbEncoded *uint8, /*in*/cbEncoded uint32, /*out*//*optional*/pbComputedHash *uint8, /*in*//*out*/pcbComputedHash *uint32) (BOOL) = crypt32.CryptHashCertificate
-//sys	CryptHashCertificate2(/*in*/pwszCNGHashAlgid PWSTR, /*in*/dwFlags uint32, /*in*//*out*/pvReserved unsafe.Pointer, /*in*//*optional*/pbEncoded *uint8, /*in*/cbEncoded uint32, /*out*//*optional*/pbComputedHash *uint8, /*in*//*out*/pcbComputedHash *uint32) (BOOL) = crypt32.CryptHashCertificate2
-//sys	CryptSignCertificate(/*in*//*optional*/hCryptProvOrNCryptKey HCRYPTPROV_OR_NCRYPT_KEY_HANDLE, /*in*//*optional*/dwKeySpec uint32, /*in*/dwCertEncodingType uint32, /*in*/pbEncodedToBeSigned *uint8, /*in*/cbEncodedToBeSigned uint32, /*in*/pSignatureAlgorithm *CRYPT_ALGORITHM_IDENTIFIER, /*in*//*optional*/pvHashAuxInfo unsafe.Pointer, /*out*//*optional*/pbSignature *uint8, /*in*//*out*/pcbSignature *uint32) (BOOL) = crypt32.CryptSignCertificate
-//sys	CryptSignAndEncodeCertificate(/*in*//*optional*/hCryptProvOrNCryptKey HCRYPTPROV_OR_NCRYPT_KEY_HANDLE, /*in*//*optional*/dwKeySpec CERT_KEY_SPEC, /*in*/dwCertEncodingType uint32, /*in*/lpszStructType PSTR, /*in*/pvStructInfo unsafe.Pointer, /*in*/pSignatureAlgorithm *CRYPT_ALGORITHM_IDENTIFIER, /*in*//*optional*/pvHashAuxInfo unsafe.Pointer, /*out*//*optional*/pbEncoded *uint8, /*in*//*out*/pcbEncoded *uint32) (BOOL) = crypt32.CryptSignAndEncodeCertificate
-//sys	CertVerifyTimeValidity(/*in*//*optional*/pTimeToVerify *FILETIME, /*in*/pCertInfo *CERT_INFO) (int32) = crypt32.CertVerifyTimeValidity
-//sys	CertVerifyCRLTimeValidity(/*in*//*optional*/pTimeToVerify *FILETIME, /*in*/pCrlInfo *CRL_INFO) (int32) = crypt32.CertVerifyCRLTimeValidity
-//sys	CertVerifyValidityNesting(/*in*/pSubjectInfo *CERT_INFO, /*in*/pIssuerInfo *CERT_INFO) (BOOL) = crypt32.CertVerifyValidityNesting
-//sys	CertVerifyCRLRevocation(/*in*/dwCertEncodingType uint32, /*in*/pCertId *CERT_INFO, /*in*/cCrlInfo uint32, /*in*/rgpCrlInfo **CRL_INFO) (BOOL) = crypt32.CertVerifyCRLRevocation
-//sys	CertAlgIdToOID(/*in*/dwAlgId uint32) (PSTR) = crypt32.CertAlgIdToOID
-//sys	CertOIDToAlgId(/*in*/pszObjId PSTR) (uint32) = crypt32.CertOIDToAlgId
-//sys	CertFindExtension(/*in*/pszObjId PSTR, /*in*/cExtensions uint32, /*in*/rgExtensions *CERT_EXTENSION) (*CERT_EXTENSION) = crypt32.CertFindExtension
-//sys	CertFindAttribute(/*in*/pszObjId PSTR, /*in*/cAttr uint32, /*in*/rgAttr *CRYPT_ATTRIBUTE) (*CRYPT_ATTRIBUTE) = crypt32.CertFindAttribute
-//sys	CertFindRDNAttr(/*in*/pszObjId PSTR, /*in*/pName *CERT_NAME_INFO) (*CERT_RDN_ATTR) = crypt32.CertFindRDNAttr
-//sys	CertGetIntendedKeyUsage(/*in*/dwCertEncodingType uint32, /*in*/pCertInfo *CERT_INFO, /*out*/pbKeyUsage *uint8, /*in*/cbKeyUsage uint32) (BOOL) = crypt32.CertGetIntendedKeyUsage
-//sys	CryptInstallDefaultContext(/*in*/hCryptProv uintptr, /*in*/dwDefaultType CRYPT_DEFAULT_CONTEXT_TYPE, /*in*//*optional*/pvDefaultPara unsafe.Pointer, /*in*/dwFlags CRYPT_DEFAULT_CONTEXT_FLAGS, /*in*//*out*/pvReserved unsafe.Pointer, /*out*/phDefaultContext *unsafe.Pointer) (BOOL) = crypt32.CryptInstallDefaultContext
-//sys	CryptUninstallDefaultContext(/*in*//*optional*/hDefaultContext unsafe.Pointer, /*in*/dwFlags uint32, /*in*//*out*/pvReserved unsafe.Pointer) (BOOL) = crypt32.CryptUninstallDefaultContext
-//sys	CryptExportPublicKeyInfo(/*in*/hCryptProvOrNCryptKey HCRYPTPROV_OR_NCRYPT_KEY_HANDLE, /*in*//*optional*/dwKeySpec uint32, /*in*/dwCertEncodingType uint32, /*out*//*optional*/pInfo *CERT_PUBLIC_KEY_INFO, /*in*//*out*/pcbInfo *uint32) (BOOL) = crypt32.CryptExportPublicKeyInfo
-//sys	CryptExportPublicKeyInfoEx(/*in*/hCryptProvOrNCryptKey HCRYPTPROV_OR_NCRYPT_KEY_HANDLE, /*in*//*optional*/dwKeySpec uint32, /*in*/dwCertEncodingType uint32, /*in*//*optional*/pszPublicKeyObjId PSTR, /*in*/dwFlags uint32, /*in*//*optional*/pvAuxInfo unsafe.Pointer, /*out*//*optional*/pInfo *CERT_PUBLIC_KEY_INFO, /*in*//*out*/pcbInfo *uint32) (BOOL) = crypt32.CryptExportPublicKeyInfoEx
-//sys	CryptExportPublicKeyInfoFromBCryptKeyHandle(/*in*/hBCryptKey BCRYPT_KEY_HANDLE, /*in*/dwCertEncodingType uint32, /*in*//*optional*/pszPublicKeyObjId PSTR, /*in*/dwFlags uint32, /*in*//*optional*/pvAuxInfo unsafe.Pointer, /*out*//*optional*/pInfo *CERT_PUBLIC_KEY_INFO, /*in*//*out*/pcbInfo *uint32) (BOOL) = crypt32.CryptExportPublicKeyInfoFromBCryptKeyHandle
-//sys	CryptImportPublicKeyInfo(/*in*/hCryptProv uintptr, /*in*/dwCertEncodingType uint32, /*in*/pInfo *CERT_PUBLIC_KEY_INFO, /*out*/phKey *uintptr) (BOOL) = crypt32.CryptImportPublicKeyInfo
-//sys	CryptImportPublicKeyInfoEx(/*in*/hCryptProv uintptr, /*in*/dwCertEncodingType uint32, /*in*/pInfo *CERT_PUBLIC_KEY_INFO, /*in*/aiKeyAlg uint32, /*in*/dwFlags uint32, /*in*//*optional*/pvAuxInfo unsafe.Pointer, /*out*/phKey *uintptr) (BOOL) = crypt32.CryptImportPublicKeyInfoEx
-//sys	CryptImportPublicKeyInfoEx2(/*in*/dwCertEncodingType uint32, /*in*/pInfo *CERT_PUBLIC_KEY_INFO, /*in*/dwFlags CRYPT_IMPORT_PUBLIC_KEY_FLAGS, /*in*//*optional*/pvAuxInfo unsafe.Pointer, /*out*/phKey *BCRYPT_KEY_HANDLE) (BOOL) = crypt32.CryptImportPublicKeyInfoEx2
-//sys	CryptAcquireCertificatePrivateKey(/*in*/pCert *CERT_CONTEXT, /*in*/dwFlags CRYPT_ACQUIRE_FLAGS, /*in*//*optional*/pvParameters unsafe.Pointer, /*out*/phCryptProvOrNCryptKey *HCRYPTPROV_OR_NCRYPT_KEY_HANDLE, /*out*//*optional*/pdwKeySpec *CERT_KEY_SPEC, /*out*//*optional*/pfCallerFreeProvOrNCryptKey *BOOL) (BOOL) = crypt32.CryptAcquireCertificatePrivateKey
-//sys	CryptFindCertificateKeyProvInfo(/*in*/pCert *CERT_CONTEXT, /*in*/dwFlags CRYPT_FIND_FLAGS, /*in*//*out*/pvReserved unsafe.Pointer) (BOOL) = crypt32.CryptFindCertificateKeyProvInfo
-//sys	CryptImportPKCS8(/*in*/sPrivateKeyAndParams CRYPT_PKCS8_IMPORT_PARAMS, /*in*/dwFlags CRYPT_KEY_FLAGS, /*out*//*optional*/phCryptProv *uintptr, /*in*//*optional*/pvAuxInfo unsafe.Pointer) (BOOL) = crypt32.CryptImportPKCS8
-//sys	CryptExportPKCS8(/*in*/hCryptProv uintptr, /*in*/dwKeySpec uint32, /*in*/pszPrivateKeyObjId PSTR, /*in*/dwFlags uint32, /*in*//*optional*/pvAuxInfo unsafe.Pointer, /*out*//*optional*/pbPrivateKeyBlob *uint8, /*in*//*out*/pcbPrivateKeyBlob *uint32) (BOOL) = crypt32.CryptExportPKCS8
-//sys	CryptHashPublicKeyInfo(/*in*//*optional*/hCryptProv HCRYPTPROV_LEGACY, /*in*/Algid uint32, /*in*/dwFlags uint32, /*in*/dwCertEncodingType uint32, /*in*/pInfo *CERT_PUBLIC_KEY_INFO, /*out*//*optional*/pbComputedHash *uint8, /*in*//*out*/pcbComputedHash *uint32) (BOOL) = crypt32.CryptHashPublicKeyInfo
-//sys	CertRDNValueToStrA(/*in*/dwValueType uint32, /*in*/pValue *CRYPTOAPI_BLOB, /*out*//*optional*/psz PSTR, /*in*/csz uint32) (uint32) = crypt32.CertRDNValueToStrA
-//sys	CertRDNValueToStrW(/*in*/dwValueType uint32, /*in*/pValue *CRYPTOAPI_BLOB, /*out*//*optional*/psz PWSTR, /*in*/csz uint32) (uint32) = crypt32.CertRDNValueToStrW
-//sys	CertNameToStrA(/*in*/dwCertEncodingType uint32, /*in*/pName *CRYPTOAPI_BLOB, /*in*/dwStrType CERT_STRING_TYPE, /*out*//*optional*/psz PSTR, /*in*/csz uint32) (uint32) = crypt32.CertNameToStrA
-//sys	CertNameToStrW(/*in*/dwCertEncodingType uint32, /*in*/pName *CRYPTOAPI_BLOB, /*in*/dwStrType CERT_STRING_TYPE, /*out*//*optional*/psz PWSTR, /*in*/csz uint32) (uint32) = crypt32.CertNameToStrW
-//sys	CertStrToNameA(/*in*/dwCertEncodingType uint32, /*in*/pszX500 PSTR, /*in*/dwStrType CERT_STRING_TYPE, /*in*//*out*/pvReserved unsafe.Pointer, /*out*//*optional*/pbEncoded *uint8, /*in*//*out*/pcbEncoded *uint32, /*out*//*optional*/ppszError *PSTR) (BOOL) = crypt32.CertStrToNameA
-//sys	CertStrToNameW(/*in*/dwCertEncodingType uint32, /*in*/pszX500 PWSTR, /*in*/dwStrType CERT_STRING_TYPE, /*in*//*out*/pvReserved unsafe.Pointer, /*out*//*optional*/pbEncoded *uint8, /*in*//*out*/pcbEncoded *uint32, /*out*//*optional*/ppszError *PWSTR) (BOOL) = crypt32.CertStrToNameW
-//sys	CertGetNameStringA(/*in*/pCertContext *CERT_CONTEXT, /*in*/dwType uint32, /*in*/dwFlags uint32, /*in*//*optional*/pvTypePara unsafe.Pointer, /*out*//*optional*/pszNameString PSTR, /*in*/cchNameString uint32) (uint32) = crypt32.CertGetNameStringA
-//sys	CertGetNameStringW(/*in*/pCertContext *CERT_CONTEXT, /*in*/dwType uint32, /*in*/dwFlags uint32, /*in*//*optional*/pvTypePara unsafe.Pointer, /*out*//*optional*/pszNameString PWSTR, /*in*/cchNameString uint32) (uint32) = crypt32.CertGetNameStringW
-//sys	CryptSignMessage(/*in*/pSignPara *CRYPT_SIGN_MESSAGE_PARA, /*in*/fDetachedSignature BOOL, /*in*/cToBeSigned uint32, /*in*//*optional*/rgpbToBeSigned **uint8, /*in*/rgcbToBeSigned *uint32, /*out*//*optional*/pbSignedBlob *uint8, /*in*//*out*/pcbSignedBlob *uint32) (BOOL) = crypt32.CryptSignMessage
-//sys	CryptVerifyMessageSignature(/*in*/pVerifyPara *CRYPT_VERIFY_MESSAGE_PARA, /*in*/dwSignerIndex uint32, /*in*/pbSignedBlob *uint8, /*in*/cbSignedBlob uint32, /*out*//*optional*/pbDecoded *uint8, /*in*//*out*//*optional*/pcbDecoded *uint32, /*out*//*optional*/ppSignerCert **CERT_CONTEXT) (BOOL) = crypt32.CryptVerifyMessageSignature
-//sys	CryptGetMessageSignerCount(/*in*/dwMsgEncodingType uint32, /*in*/pbSignedBlob *uint8, /*in*/cbSignedBlob uint32) (int32) = crypt32.CryptGetMessageSignerCount
-//sys	CryptGetMessageCertificates(/*in*/dwMsgAndCertEncodingType uint32, /*in*//*optional*/hCryptProv HCRYPTPROV_LEGACY, /*in*/dwFlags uint32, /*in*/pbSignedBlob *uint8, /*in*/cbSignedBlob uint32) (HCERTSTORE) = crypt32.CryptGetMessageCertificates
-//sys	CryptVerifyDetachedMessageSignature(/*in*/pVerifyPara *CRYPT_VERIFY_MESSAGE_PARA, /*in*/dwSignerIndex uint32, /*in*/pbDetachedSignBlob *uint8, /*in*/cbDetachedSignBlob uint32, /*in*/cToBeSigned uint32, /*in*/rgpbToBeSigned **uint8, /*in*/rgcbToBeSigned *uint32, /*out*//*optional*/ppSignerCert **CERT_CONTEXT) (BOOL) = crypt32.CryptVerifyDetachedMessageSignature
-//sys	CryptEncryptMessage(/*in*/pEncryptPara *CRYPT_ENCRYPT_MESSAGE_PARA, /*in*/cRecipientCert uint32, /*in*/rgpRecipientCert **CERT_CONTEXT, /*in*//*optional*/pbToBeEncrypted *uint8, /*in*/cbToBeEncrypted uint32, /*out*//*optional*/pbEncryptedBlob *uint8, /*in*//*out*/pcbEncryptedBlob *uint32) (BOOL) = crypt32.CryptEncryptMessage
-//sys	CryptDecryptMessage(/*in*/pDecryptPara *CRYPT_DECRYPT_MESSAGE_PARA, /*in*/pbEncryptedBlob *uint8, /*in*/cbEncryptedBlob uint32, /*out*//*optional*/pbDecrypted *uint8, /*in*//*out*//*optional*/pcbDecrypted *uint32, /*out*//*optional*/ppXchgCert **CERT_CONTEXT) (BOOL) = crypt32.CryptDecryptMessage
-//sys	CryptSignAndEncryptMessage(/*in*/pSignPara *CRYPT_SIGN_MESSAGE_PARA, /*in*/pEncryptPara *CRYPT_ENCRYPT_MESSAGE_PARA, /*in*/cRecipientCert uint32, /*in*/rgpRecipientCert **CERT_CONTEXT, /*in*/pbToBeSignedAndEncrypted *uint8, /*in*/cbToBeSignedAndEncrypted uint32, /*out*//*optional*/pbSignedAndEncryptedBlob *uint8, /*in*//*out*/pcbSignedAndEncryptedBlob *uint32) (BOOL) = crypt32.CryptSignAndEncryptMessage
-//sys	CryptDecryptAndVerifyMessageSignature(/*in*/pDecryptPara *CRYPT_DECRYPT_MESSAGE_PARA, /*in*/pVerifyPara *CRYPT_VERIFY_MESSAGE_PARA, /*in*/dwSignerIndex uint32, /*in*/pbEncryptedBlob *uint8, /*in*/cbEncryptedBlob uint32, /*out*//*optional*/pbDecrypted *uint8, /*in*//*out*//*optional*/pcbDecrypted *uint32, /*out*//*optional*/ppXchgCert **CERT_CONTEXT, /*out*//*optional*/ppSignerCert **CERT_CONTEXT) (BOOL) = crypt32.CryptDecryptAndVerifyMessageSignature
-//sys	CryptDecodeMessage(/*in*/dwMsgTypeFlags uint32, /*in*//*optional*/pDecryptPara *CRYPT_DECRYPT_MESSAGE_PARA, /*in*//*optional*/pVerifyPara *CRYPT_VERIFY_MESSAGE_PARA, /*in*/dwSignerIndex uint32, /*in*/pbEncodedBlob *uint8, /*in*/cbEncodedBlob uint32, /*in*/dwPrevInnerContentType uint32, /*out*//*optional*/pdwMsgType *uint32, /*out*//*optional*/pdwInnerContentType *uint32, /*out*//*optional*/pbDecoded *uint8, /*in*//*out*//*optional*/pcbDecoded *uint32, /*out*//*optional*/ppXchgCert **CERT_CONTEXT, /*out*//*optional*/ppSignerCert **CERT_CONTEXT) (BOOL) = crypt32.CryptDecodeMessage
-//sys	CryptHashMessage(/*in*/pHashPara *CRYPT_HASH_MESSAGE_PARA, /*in*/fDetachedHash BOOL, /*in*/cToBeHashed uint32, /*in*/rgpbToBeHashed **uint8, /*in*/rgcbToBeHashed *uint32, /*out*//*optional*/pbHashedBlob *uint8, /*in*//*out*//*optional*/pcbHashedBlob *uint32, /*out*//*optional*/pbComputedHash *uint8, /*in*//*out*//*optional*/pcbComputedHash *uint32) (BOOL) = crypt32.CryptHashMessage
-//sys	CryptVerifyMessageHash(/*in*/pHashPara *CRYPT_HASH_MESSAGE_PARA, /*in*/pbHashedBlob *uint8, /*in*/cbHashedBlob uint32, /*out*//*optional*/pbToBeHashed *uint8, /*in*//*out*//*optional*/pcbToBeHashed *uint32, /*out*//*optional*/pbComputedHash *uint8, /*in*//*out*//*optional*/pcbComputedHash *uint32) (BOOL) = crypt32.CryptVerifyMessageHash
-//sys	CryptVerifyDetachedMessageHash(/*in*/pHashPara *CRYPT_HASH_MESSAGE_PARA, /*in*/pbDetachedHashBlob *uint8, /*in*/cbDetachedHashBlob uint32, /*in*/cToBeHashed uint32, /*in*/rgpbToBeHashed **uint8, /*in*/rgcbToBeHashed *uint32, /*out*//*optional*/pbComputedHash *uint8, /*in*//*out*//*optional*/pcbComputedHash *uint32) (BOOL) = crypt32.CryptVerifyDetachedMessageHash
-//sys	CryptSignMessageWithKey(/*in*/pSignPara *CRYPT_KEY_SIGN_MESSAGE_PARA, /*in*/pbToBeSigned *uint8, /*in*/cbToBeSigned uint32, /*out*//*optional*/pbSignedBlob *uint8, /*in*//*out*/pcbSignedBlob *uint32) (BOOL) = crypt32.CryptSignMessageWithKey
-//sys	CryptVerifyMessageSignatureWithKey(/*in*/pVerifyPara *CRYPT_KEY_VERIFY_MESSAGE_PARA, /*in*//*optional*/pPublicKeyInfo *CERT_PUBLIC_KEY_INFO, /*in*/pbSignedBlob *uint8, /*in*/cbSignedBlob uint32, /*out*//*optional*/pbDecoded *uint8, /*in*//*out*//*optional*/pcbDecoded *uint32) (BOOL) = crypt32.CryptVerifyMessageSignatureWithKey
-//sys	CertOpenSystemStoreA(/*in*//*optional*/hProv HCRYPTPROV_LEGACY, /*in*/szSubsystemProtocol PSTR) (HCERTSTORE) = crypt32.CertOpenSystemStoreA
-//sys	CertOpenSystemStoreW(/*in*//*optional*/hProv HCRYPTPROV_LEGACY, /*in*/szSubsystemProtocol PWSTR) (HCERTSTORE) = crypt32.CertOpenSystemStoreW
-//sys	CertAddEncodedCertificateToSystemStoreA(/*in*/szCertStoreName PSTR, /*in*/pbCertEncoded *uint8, /*in*/cbCertEncoded uint32) (BOOL) = crypt32.CertAddEncodedCertificateToSystemStoreA
-//sys	CertAddEncodedCertificateToSystemStoreW(/*in*/szCertStoreName PWSTR, /*in*/pbCertEncoded *uint8, /*in*/cbCertEncoded uint32) (BOOL) = crypt32.CertAddEncodedCertificateToSystemStoreW
-//sys	FindCertsByIssuer(/*out*//*optional*/pCertChains *CERT_CHAIN, /*in*//*out*/pcbCertChains *uint32, /*out*/pcCertChains *uint32, /*in*//*optional*/pbEncodedIssuerName *uint8, /*in*/cbEncodedIssuerName uint32, /*in*//*optional*/pwszPurpose PWSTR, /*in*/dwKeySpec uint32) (HRESULT) = wintrust.FindCertsByIssuer
-//sys	CryptQueryObject(/*in*/dwObjectType CERT_QUERY_OBJECT_TYPE, /*in*/pvObject unsafe.Pointer, /*in*/dwExpectedContentTypeFlags CERT_QUERY_CONTENT_TYPE_FLAGS, /*in*/dwExpectedFormatTypeFlags CERT_QUERY_FORMAT_TYPE_FLAGS, /*in*/dwFlags uint32, /*out*//*optional*/pdwMsgAndCertEncodingType *CERT_QUERY_ENCODING_TYPE, /*out*//*optional*/pdwContentType *CERT_QUERY_CONTENT_TYPE, /*out*//*optional*/pdwFormatType *CERT_QUERY_FORMAT_TYPE, /*out*//*optional*/phCertStore *HCERTSTORE, /*out*//*optional*/phMsg *unsafe.Pointer, /*out*//*optional*/ppvContext *unsafe.Pointer) (BOOL) = crypt32.CryptQueryObject
-//sys	CryptMemAlloc(/*in*/cbSize uint32) (unsafe.Pointer) = crypt32.CryptMemAlloc
-//sys	CryptMemRealloc(/*in*//*optional*/pv unsafe.Pointer, /*in*/cbSize uint32) (unsafe.Pointer) = crypt32.CryptMemRealloc
-//sys	CryptMemFree(/*in*//*optional*/pv unsafe.Pointer) = crypt32.CryptMemFree
-//sys	CryptCreateAsyncHandle(/*in*/dwFlags uint32, /*out*/phAsync *HCRYPTASYNC) (BOOL) = crypt32.CryptCreateAsyncHandle
-//sys	CryptSetAsyncParam(/*in*/hAsync HCRYPTASYNC, /*in*/pszParamOid PSTR, /*in*//*optional*/pvParam unsafe.Pointer, /*in*/pfnFree PFN_CRYPT_ASYNC_PARAM_FREE_FUNC) (BOOL) = crypt32.CryptSetAsyncParam
-//sys	CryptGetAsyncParam(/*in*/hAsync HCRYPTASYNC, /*in*/pszParamOid PSTR, /*out*//*optional*/ppvParam *unsafe.Pointer, /*out*//*optional*/ppfnFree *PFN_CRYPT_ASYNC_PARAM_FREE_FUNC) (BOOL) = crypt32.CryptGetAsyncParam
-//sys	CryptCloseAsyncHandle(/*in*//*optional*/hAsync HCRYPTASYNC) (BOOL) = crypt32.CryptCloseAsyncHandle
-//sys	CryptRetrieveObjectByUrlA(/*in*/pszUrl PSTR, /*in*//*optional*/pszObjectOid PSTR, /*in*/dwRetrievalFlags uint32, /*in*/dwTimeout uint32, /*out*/ppvObject *unsafe.Pointer, /*in*//*optional*/hAsyncRetrieve HCRYPTASYNC, /*in*//*optional*/pCredentials *CRYPT_CREDENTIALS, /*in*//*optional*/pvVerify unsafe.Pointer, /*in*//*out*//*optional*/pAuxInfo *CRYPT_RETRIEVE_AUX_INFO) (BOOL) = cryptnet.CryptRetrieveObjectByUrlA
-//sys	CryptRetrieveObjectByUrlW(/*in*/pszUrl PWSTR, /*in*//*optional*/pszObjectOid PSTR, /*in*/dwRetrievalFlags uint32, /*in*/dwTimeout uint32, /*out*/ppvObject *unsafe.Pointer, /*in*//*optional*/hAsyncRetrieve HCRYPTASYNC, /*in*//*optional*/pCredentials *CRYPT_CREDENTIALS, /*in*//*optional*/pvVerify unsafe.Pointer, /*in*//*out*//*optional*/pAuxInfo *CRYPT_RETRIEVE_AUX_INFO) (BOOL) = cryptnet.CryptRetrieveObjectByUrlW
-//sys	CryptInstallCancelRetrieval(/*in*/pfnCancel PFN_CRYPT_CANCEL_RETRIEVAL, /*in*//*optional*/pvArg unsafe.Pointer, /*in*/dwFlags uint32, /*in*//*out*/pvReserved unsafe.Pointer) (BOOL) = cryptnet.CryptInstallCancelRetrieval
-//sys	CryptUninstallCancelRetrieval(/*in*/dwFlags uint32, /*in*//*out*/pvReserved unsafe.Pointer) (BOOL) = cryptnet.CryptUninstallCancelRetrieval
-//sys	CryptGetObjectUrl(/*in*/pszUrlOid PSTR, /*in*/pvPara unsafe.Pointer, /*in*/dwFlags CRYPT_GET_URL_FLAGS, /*out*//*optional*/pUrlArray *CRYPT_URL_ARRAY, /*in*//*out*/pcbUrlArray *uint32, /*out*//*optional*/pUrlInfo *CRYPT_URL_INFO, /*in*//*out*//*optional*/pcbUrlInfo *uint32, /*in*//*out*/pvReserved unsafe.Pointer) (BOOL) = cryptnet.CryptGetObjectUrl
-//sys	CertCreateSelfSignCertificate(/*in*//*optional*/hCryptProvOrNCryptKey HCRYPTPROV_OR_NCRYPT_KEY_HANDLE, /*in*/pSubjectIssuerBlob *CRYPTOAPI_BLOB, /*in*/dwFlags CERT_CREATE_SELFSIGN_FLAGS, /*in*//*optional*/pKeyProvInfo *CRYPT_KEY_PROV_INFO, /*in*//*optional*/pSignatureAlgorithm *CRYPT_ALGORITHM_IDENTIFIER, /*in*//*optional*/pStartTime *SYSTEMTIME, /*in*//*optional*/pEndTime *SYSTEMTIME, /*in*//*optional*/pExtensions *CERT_EXTENSIONS) (*CERT_CONTEXT) = crypt32.CertCreateSelfSignCertificate
-//sys	CryptGetKeyIdentifierProperty(/*in*/pKeyIdentifier *CRYPTOAPI_BLOB, /*in*/dwPropId uint32, /*in*/dwFlags uint32, /*in*//*optional*/pwszComputerName PWSTR, /*in*//*out*/pvReserved unsafe.Pointer, /*out*//*optional*/pvData unsafe.Pointer, /*in*//*out*/pcbData *uint32) (BOOL) = crypt32.CryptGetKeyIdentifierProperty
-//sys	CryptSetKeyIdentifierProperty(/*in*/pKeyIdentifier *CRYPTOAPI_BLOB, /*in*/dwPropId uint32, /*in*/dwFlags uint32, /*in*//*optional*/pwszComputerName PWSTR, /*in*//*out*/pvReserved unsafe.Pointer, /*in*//*optional*/pvData unsafe.Pointer) (BOOL) = crypt32.CryptSetKeyIdentifierProperty
-//sys	CryptEnumKeyIdentifierProperties(/*in*//*optional*/pKeyIdentifier *CRYPTOAPI_BLOB, /*in*/dwPropId uint32, /*in*/dwFlags uint32, /*in*//*optional*/pwszComputerName PWSTR, /*in*//*out*/pvReserved unsafe.Pointer, /*in*//*out*//*optional*/pvArg unsafe.Pointer, /*in*/pfnEnum PFN_CRYPT_ENUM_KEYID_PROP) (BOOL) = crypt32.CryptEnumKeyIdentifierProperties
-//sys	CryptCreateKeyIdentifierFromCSP(/*in*/dwCertEncodingType uint32, /*in*//*optional*/pszPubKeyOID PSTR, /*in*/pPubKeyStruc *PUBLICKEYSTRUC, /*in*/cbPubKeyStruc uint32, /*in*/dwFlags uint32, /*in*//*out*/pvReserved unsafe.Pointer, /*out*//*optional*/pbHash *uint8, /*in*//*out*/pcbHash *uint32) (BOOL) = crypt32.CryptCreateKeyIdentifierFromCSP
-//sys	CertCreateCertificateChainEngine(/*in*/pConfig *CERT_CHAIN_ENGINE_CONFIG, /*out*/phChainEngine *HCERTCHAINENGINE) (BOOL) = crypt32.CertCreateCertificateChainEngine
-//sys	CertFreeCertificateChainEngine(/*in*//*optional*/hChainEngine HCERTCHAINENGINE) = crypt32.CertFreeCertificateChainEngine
-//sys	CertResyncCertificateChainEngine(/*in*//*optional*/hChainEngine HCERTCHAINENGINE) (BOOL) = crypt32.CertResyncCertificateChainEngine
-//sys	CertGetCertificateChain(/*in*//*optional*/hChainEngine HCERTCHAINENGINE, /*in*/pCertContext *CERT_CONTEXT, /*in*//*optional*/pTime *FILETIME, /*in*//*optional*/hAdditionalStore HCERTSTORE, /*in*/pChainPara *CERT_CHAIN_PARA, /*in*/dwFlags uint32, /*in*//*out*/pvReserved unsafe.Pointer, /*out*/ppChainContext **CERT_CHAIN_CONTEXT) (BOOL) = crypt32.CertGetCertificateChain
-//sys	CertFreeCertificateChain(/*in*/pChainContext *CERT_CHAIN_CONTEXT) = crypt32.CertFreeCertificateChain
-//sys	CertDuplicateCertificateChain(/*in*/pChainContext *CERT_CHAIN_CONTEXT) (*CERT_CHAIN_CONTEXT) = crypt32.CertDuplicateCertificateChain
-//sys	CertFindChainInStore(/*in*/hCertStore HCERTSTORE, /*in*/dwCertEncodingType uint32, /*in*/dwFindFlags CERT_FIND_CHAIN_IN_STORE_FLAGS, /*in*/dwFindType uint32, /*in*//*optional*/pvFindPara unsafe.Pointer, /*in*//*optional*/pPrevChainContext *CERT_CHAIN_CONTEXT) (*CERT_CHAIN_CONTEXT) = crypt32.CertFindChainInStore
-//sys	CertVerifyCertificateChainPolicy(/*in*/pszPolicyOID PSTR, /*in*/pChainContext *CERT_CHAIN_CONTEXT, /*in*/pPolicyPara *CERT_CHAIN_POLICY_PARA, /*in*//*out*/pPolicyStatus *CERT_CHAIN_POLICY_STATUS) (BOOL) = crypt32.CertVerifyCertificateChainPolicy
-//sys	CryptStringToBinaryA(/*in*/pszString PSTR, /*in*/cchString uint32, /*in*/dwFlags CRYPT_STRING, /*out*//*optional*/pbBinary *uint8, /*in*//*out*/pcbBinary *uint32, /*out*//*optional*/pdwSkip *uint32, /*out*//*optional*/pdwFlags *uint32) (BOOL) = crypt32.CryptStringToBinaryA
-//sys	CryptStringToBinaryW(/*in*/pszString PWSTR, /*in*/cchString uint32, /*in*/dwFlags CRYPT_STRING, /*out*//*optional*/pbBinary *uint8, /*in*//*out*/pcbBinary *uint32, /*out*//*optional*/pdwSkip *uint32, /*out*//*optional*/pdwFlags *uint32) (BOOL) = crypt32.CryptStringToBinaryW
-//sys	CryptBinaryToStringA(/*in*/pbBinary *uint8, /*in*/cbBinary uint32, /*in*/dwFlags CRYPT_STRING, /*out*//*optional*/pszString PSTR, /*in*//*out*/pcchString *uint32) (BOOL) = crypt32.CryptBinaryToStringA
-//sys	CryptBinaryToStringW(/*in*/pbBinary *uint8, /*in*/cbBinary uint32, /*in*/dwFlags CRYPT_STRING, /*out*//*optional*/pszString PWSTR, /*in*//*out*/pcchString *uint32) (BOOL) = crypt32.CryptBinaryToStringW
-//sys	PFXImportCertStore(/*in*/pPFX *CRYPTOAPI_BLOB, /*in*/szPassword PWSTR, /*in*/dwFlags CRYPT_KEY_FLAGS) (HCERTSTORE) = crypt32.PFXImportCertStore
-//sys	PFXIsPFXBlob(/*in*/pPFX *CRYPTOAPI_BLOB) (BOOL) = crypt32.PFXIsPFXBlob
-//sys	PFXVerifyPassword(/*in*/pPFX *CRYPTOAPI_BLOB, /*in*/szPassword PWSTR, /*in*/dwFlags uint32) (BOOL) = crypt32.PFXVerifyPassword
-//sys	PFXExportCertStoreEx(/*in*/hStore HCERTSTORE, /*in*//*out*/pPFX *CRYPTOAPI_BLOB, /*in*/szPassword PWSTR, /*in*/pvPara unsafe.Pointer, /*in*/dwFlags uint32) (BOOL) = crypt32.PFXExportCertStoreEx
-//sys	PFXExportCertStore(/*in*/hStore HCERTSTORE, /*in*//*out*/pPFX *CRYPTOAPI_BLOB, /*in*/szPassword PWSTR, /*in*/dwFlags uint32) (BOOL) = crypt32.PFXExportCertStore
-//sys	CertOpenServerOcspResponse(/*in*/pChainContext *CERT_CHAIN_CONTEXT, /*in*/dwFlags uint32, /*in*//*optional*/pOpenPara *CERT_SERVER_OCSP_RESPONSE_OPEN_PARA) (unsafe.Pointer) = crypt32.CertOpenServerOcspResponse
-//sys	CertAddRefServerOcspResponse(/*in*//*optional*/hServerOcspResponse unsafe.Pointer) = crypt32.CertAddRefServerOcspResponse
-//sys	CertCloseServerOcspResponse(/*in*//*optional*/hServerOcspResponse unsafe.Pointer, /*in*/dwFlags uint32) = crypt32.CertCloseServerOcspResponse
-//sys	CertGetServerOcspResponseContext(/*in*/hServerOcspResponse unsafe.Pointer, /*in*/dwFlags uint32, /*in*//*out*/pvReserved unsafe.Pointer) (*CERT_SERVER_OCSP_RESPONSE_CONTEXT) = crypt32.CertGetServerOcspResponseContext
-//sys	CertAddRefServerOcspResponseContext(/*in*//*optional*/pServerOcspResponseContext *CERT_SERVER_OCSP_RESPONSE_CONTEXT) = crypt32.CertAddRefServerOcspResponseContext
-//sys	CertFreeServerOcspResponseContext(/*in*//*optional*/pServerOcspResponseContext *CERT_SERVER_OCSP_RESPONSE_CONTEXT) = crypt32.CertFreeServerOcspResponseContext
-//sys	CertRetrieveLogoOrBiometricInfo(/*in*/pCertContext *CERT_CONTEXT, /*in*/lpszLogoOrBiometricType PSTR, /*in*/dwRetrievalFlags uint32, /*in*/dwTimeout uint32, /*in*/dwFlags uint32, /*in*//*out*/pvReserved unsafe.Pointer, /*out*/ppbData **uint8, /*out*/pcbData *uint32, /*out*//*optional*/ppwszMimeType *PWSTR) (BOOL) = crypt32.CertRetrieveLogoOrBiometricInfo
-//sys	CertSelectCertificateChains(/*in*//*optional*/pSelectionContext *Guid, /*in*/dwFlags uint32, /*in*//*optional*/pChainParameters *CERT_SELECT_CHAIN_PARA, /*in*/cCriteria uint32, /*in*//*optional*/rgpCriteria *CERT_SELECT_CRITERIA, /*in*/hStore HCERTSTORE, /*out*/pcSelection *uint32, /*out*/pprgpSelection ***CERT_CHAIN_CONTEXT) (BOOL) = crypt32.CertSelectCertificateChains
-//sys	CertFreeCertificateChainList(/*in*/prgpSelection **CERT_CHAIN_CONTEXT) = crypt32.CertFreeCertificateChainList
-//sys	CryptRetrieveTimeStamp(/*in*/wszUrl PWSTR, /*in*/dwRetrievalFlags uint32, /*in*/dwTimeout uint32, /*in*/pszHashId PSTR, /*in*//*optional*/pPara *CRYPT_TIMESTAMP_PARA, /*in*/pbData *uint8, /*in*/cbData uint32, /*out*/ppTsContext **CRYPT_TIMESTAMP_CONTEXT, /*out*//*optional*/ppTsSigner **CERT_CONTEXT, /*out*//*optional*/phStore *HCERTSTORE) (BOOL) = crypt32.CryptRetrieveTimeStamp
-//sys	CryptVerifyTimeStampSignature(/*in*/pbTSContentInfo *uint8, /*in*/cbTSContentInfo uint32, /*in*//*optional*/pbData *uint8, /*in*/cbData uint32, /*in*//*optional*/hAdditionalStore HCERTSTORE, /*out*/ppTsContext **CRYPT_TIMESTAMP_CONTEXT, /*out*//*optional*/ppTsSigner **CERT_CONTEXT, /*out*//*optional*/phStore *HCERTSTORE) (BOOL) = crypt32.CryptVerifyTimeStampSignature
-//sys	CertIsWeakHash(/*in*/dwHashUseType uint32, /*in*/pwszCNGHashAlgid PWSTR, /*in*/dwChainFlags uint32, /*in*//*optional*/pSignerChainContext *CERT_CHAIN_CONTEXT, /*in*//*optional*/pTimeStamp *FILETIME, /*in*//*optional*/pwszFileName PWSTR) (BOOL) = crypt32.CertIsWeakHash
-//sys	CryptProtectData(/*in*/pDataIn *CRYPTOAPI_BLOB, /*in*//*optional*/szDataDescr PWSTR, /*in*//*optional*/pOptionalEntropy *CRYPTOAPI_BLOB, /*in*//*out*/pvReserved unsafe.Pointer, /*in*//*optional*/pPromptStruct *CRYPTPROTECT_PROMPTSTRUCT, /*in*/dwFlags uint32, /*out*/pDataOut *CRYPTOAPI_BLOB) (BOOL) = crypt32.CryptProtectData
-//sys	CryptUnprotectData(/*in*/pDataIn *CRYPTOAPI_BLOB, /*out*//*optional*/ppszDataDescr *PWSTR, /*in*//*optional*/pOptionalEntropy *CRYPTOAPI_BLOB, /*in*//*out*/pvReserved unsafe.Pointer, /*in*//*optional*/pPromptStruct *CRYPTPROTECT_PROMPTSTRUCT, /*in*/dwFlags uint32, /*out*/pDataOut *CRYPTOAPI_BLOB) (BOOL) = crypt32.CryptUnprotectData
-//sys	CryptUpdateProtectedState(/*in*//*optional*/pOldSid PSID, /*in*//*optional*/pwszOldPassword PWSTR, /*in*/dwFlags uint32, /*out*//*optional*/pdwSuccessCount *uint32, /*out*//*optional*/pdwFailureCount *uint32) (BOOL) = crypt32.CryptUpdateProtectedState
-//sys	CryptProtectMemory(/*in*//*out*/pDataIn unsafe.Pointer, /*in*/cbDataIn uint32, /*in*/dwFlags uint32) (BOOL) = crypt32.CryptProtectMemory
-//sys	CryptUnprotectMemory(/*in*//*out*/pDataIn unsafe.Pointer, /*in*/cbDataIn uint32, /*in*/dwFlags uint32) (BOOL) = crypt32.CryptUnprotectMemory
-//sys	NCryptRegisterProtectionDescriptorName(/*in*/pwszName PWSTR, /*in*//*optional*/pwszDescriptorString PWSTR, /*in*/dwFlags uint32) (HRESULT) = ncrypt.NCryptRegisterProtectionDescriptorName
-//sys	NCryptQueryProtectionDescriptorName(/*in*/pwszName PWSTR, /*out*//*optional*/pwszDescriptorString PWSTR, /*in*//*out*/pcDescriptorString *uintptr, /*in*/dwFlags uint32) (HRESULT) = ncrypt.NCryptQueryProtectionDescriptorName
-//sys	NCryptCreateProtectionDescriptor(/*in*/pwszDescriptorString PWSTR, /*in*/dwFlags uint32, /*out*/phDescriptor *NCRYPT_DESCRIPTOR_HANDLE) (HRESULT) = ncrypt.NCryptCreateProtectionDescriptor
-//sys	NCryptCloseProtectionDescriptor(/*in*/hDescriptor NCRYPT_DESCRIPTOR_HANDLE) (HRESULT) = ncrypt.NCryptCloseProtectionDescriptor
-//sys	NCryptGetProtectionDescriptorInfo(/*in*/hDescriptor NCRYPT_DESCRIPTOR_HANDLE, /*in*//*optional*/pMemPara *NCRYPT_ALLOC_PARA, /*in*/dwInfoType uint32, /*out*/ppvInfo *unsafe.Pointer) (HRESULT) = ncrypt.NCryptGetProtectionDescriptorInfo
-//sys	NCryptProtectSecret(/*in*/hDescriptor NCRYPT_DESCRIPTOR_HANDLE, /*in*/dwFlags uint32, /*in*/pbData *uint8, /*in*/cbData uint32, /*in*//*optional*/pMemPara *NCRYPT_ALLOC_PARA, /*in*//*optional*/hWnd HWND, /*out*/ppbProtectedBlob **uint8, /*out*/pcbProtectedBlob *uint32) (HRESULT) = ncrypt.NCryptProtectSecret
-//sys	NCryptUnprotectSecret(/*out*//*optional*/phDescriptor *NCRYPT_DESCRIPTOR_HANDLE, /*in*/dwFlags NCRYPT_FLAGS, /*in*/pbProtectedBlob *uint8, /*in*/cbProtectedBlob uint32, /*in*//*optional*/pMemPara *NCRYPT_ALLOC_PARA, /*in*//*optional*/hWnd HWND, /*out*/ppbData **uint8, /*out*/pcbData *uint32) (HRESULT) = ncrypt.NCryptUnprotectSecret
-//sys	NCryptStreamOpenToProtect(/*in*/hDescriptor NCRYPT_DESCRIPTOR_HANDLE, /*in*/dwFlags uint32, /*in*//*optional*/hWnd HWND, /*in*/pStreamInfo *NCRYPT_PROTECT_STREAM_INFO, /*out*/phStream *NCRYPT_STREAM_HANDLE) (HRESULT) = ncrypt.NCryptStreamOpenToProtect
-//sys	NCryptStreamOpenToUnprotect(/*in*/pStreamInfo *NCRYPT_PROTECT_STREAM_INFO, /*in*/dwFlags uint32, /*in*//*optional*/hWnd HWND, /*out*/phStream *NCRYPT_STREAM_HANDLE) (HRESULT) = ncrypt.NCryptStreamOpenToUnprotect
-//sys	NCryptStreamOpenToUnprotectEx(/*in*/pStreamInfo *NCRYPT_PROTECT_STREAM_INFO_EX, /*in*/dwFlags uint32, /*in*//*optional*/hWnd HWND, /*out*/phStream *NCRYPT_STREAM_HANDLE) (HRESULT) = ncrypt.NCryptStreamOpenToUnprotectEx
-//sys	NCryptStreamUpdate(/*in*/hStream NCRYPT_STREAM_HANDLE, /*in*/pbData *uint8, /*in*/cbData uintptr, /*in*/fFinal BOOL) (HRESULT) = ncrypt.NCryptStreamUpdate
-//sys	NCryptStreamClose(/*in*/hStream NCRYPT_STREAM_HANDLE) (HRESULT) = ncrypt.NCryptStreamClose
-//sys	CryptXmlClose(/*in*/hCryptXml unsafe.Pointer) (HRESULT) = cryptxml.CryptXmlClose
-//sys	CryptXmlGetTransforms(/*out*/ppConfig **CRYPT_XML_TRANSFORM_CHAIN_CONFIG) (HRESULT) = cryptxml.CryptXmlGetTransforms
-//sys	CryptXmlOpenToEncode(/*in*//*optional*/pConfig *CRYPT_XML_TRANSFORM_CHAIN_CONFIG, /*in*/dwFlags CRYPT_XML_FLAGS, /*in*//*optional*/wszId PWSTR, /*in*//*optional*/rgProperty *CRYPT_XML_PROPERTY, /*in*/cProperty uint32, /*in*//*optional*/pEncoded *CRYPT_XML_BLOB, /*out*/phSignature *unsafe.Pointer) (HRESULT) = cryptxml.CryptXmlOpenToEncode
-//sys	CryptXmlOpenToDecode(/*in*//*optional*/pConfig *CRYPT_XML_TRANSFORM_CHAIN_CONFIG, /*in*/dwFlags CRYPT_XML_FLAGS, /*in*//*optional*/rgProperty *CRYPT_XML_PROPERTY, /*in*/cProperty uint32, /*in*/pEncoded *CRYPT_XML_BLOB, /*out*/phCryptXml *unsafe.Pointer) (HRESULT) = cryptxml.CryptXmlOpenToDecode
-//sys	CryptXmlAddObject(/*in*/hSignatureOrObject unsafe.Pointer, /*in*/dwFlags uint32, /*in*//*optional*/rgProperty *CRYPT_XML_PROPERTY, /*in*/cProperty uint32, /*in*/pEncoded *CRYPT_XML_BLOB, /*out*//*optional*/ppObject **CRYPT_XML_OBJECT) (HRESULT) = cryptxml.CryptXmlAddObject
-//sys	CryptXmlCreateReference(/*in*/hCryptXml unsafe.Pointer, /*in*/dwFlags uint32, /*in*//*optional*/wszId PWSTR, /*in*//*optional*/wszURI PWSTR, /*in*//*optional*/wszType PWSTR, /*in*/pDigestMethod *CRYPT_XML_ALGORITHM, /*in*/cTransform uint32, /*in*//*optional*/rgTransform *CRYPT_XML_ALGORITHM, /*out*/phReference *unsafe.Pointer) (HRESULT) = cryptxml.CryptXmlCreateReference
-//sys	CryptXmlDigestReference(/*in*/hReference unsafe.Pointer, /*in*/dwFlags uint32, /*in*/pDataProviderIn *CRYPT_XML_DATA_PROVIDER) (HRESULT) = cryptxml.CryptXmlDigestReference
-//sys	CryptXmlSetHMACSecret(/*in*/hSignature unsafe.Pointer, /*in*/pbSecret *uint8, /*in*/cbSecret uint32) (HRESULT) = cryptxml.CryptXmlSetHMACSecret
-//sys	CryptXmlSign(/*in*/hSignature unsafe.Pointer, /*in*//*optional*/hKey HCRYPTPROV_OR_NCRYPT_KEY_HANDLE, /*in*/dwKeySpec CERT_KEY_SPEC, /*in*/dwFlags CRYPT_XML_FLAGS, /*in*/dwKeyInfoSpec CRYPT_XML_KEYINFO_SPEC, /*in*//*optional*/pvKeyInfoSpec unsafe.Pointer, /*in*/pSignatureMethod *CRYPT_XML_ALGORITHM, /*in*/pCanonicalization *CRYPT_XML_ALGORITHM) (HRESULT) = cryptxml.CryptXmlSign
-//sys	CryptXmlImportPublicKey(/*in*/dwFlags CRYPT_XML_FLAGS, /*in*/pKeyValue *CRYPT_XML_KEY_VALUE, /*out*/phKey *BCRYPT_KEY_HANDLE) (HRESULT) = cryptxml.CryptXmlImportPublicKey
-//sys	CryptXmlVerifySignature(/*in*/hSignature unsafe.Pointer, /*in*//*optional*/hKey BCRYPT_KEY_HANDLE, /*in*/dwFlags CRYPT_XML_FLAGS) (HRESULT) = cryptxml.CryptXmlVerifySignature
-//sys	CryptXmlGetDocContext(/*in*/hCryptXml unsafe.Pointer, /*out*/ppStruct **CRYPT_XML_DOC_CTXT) (HRESULT) = cryptxml.CryptXmlGetDocContext
-//sys	CryptXmlGetSignature(/*in*/hCryptXml unsafe.Pointer, /*out*/ppStruct **CRYPT_XML_SIGNATURE) (HRESULT) = cryptxml.CryptXmlGetSignature
-//sys	CryptXmlGetReference(/*in*/hCryptXml unsafe.Pointer, /*out*/ppStruct **CRYPT_XML_REFERENCE) (HRESULT) = cryptxml.CryptXmlGetReference
-//sys	CryptXmlGetStatus(/*in*/hCryptXml unsafe.Pointer, /*out*/pStatus *CRYPT_XML_STATUS) (HRESULT) = cryptxml.CryptXmlGetStatus
-//sys	CryptXmlEncode(/*in*/hCryptXml unsafe.Pointer, /*in*/dwCharset CRYPT_XML_CHARSET, /*in*//*optional*/rgProperty *CRYPT_XML_PROPERTY, /*in*/cProperty uint32, /*in*//*out*/pvCallbackState unsafe.Pointer, /*in*/pfnWrite PFN_CRYPT_XML_WRITE_CALLBACK) (HRESULT) = cryptxml.CryptXmlEncode
-//sys	CryptXmlGetAlgorithmInfo(/*in*/pXmlAlgorithm *CRYPT_XML_ALGORITHM, /*in*/dwFlags CRYPT_XML_FLAGS, /*out*/ppAlgInfo **CRYPT_XML_ALGORITHM_INFO) (HRESULT) = cryptxml.CryptXmlGetAlgorithmInfo
-//sys	CryptXmlFindAlgorithmInfo(/*in*/dwFindByType uint32, /*in*/pvFindBy unsafe.Pointer, /*in*/dwGroupId uint32, /*in*/dwFlags uint32) (*CRYPT_XML_ALGORITHM_INFO) = cryptxml.CryptXmlFindAlgorithmInfo
-//sys	CryptXmlEnumAlgorithmInfo(/*in*/dwGroupId uint32, /*in*/dwFlags uint32, /*in*//*out*//*optional*/pvArg unsafe.Pointer, /*in*/pfnEnumAlgInfo PFN_CRYPT_XML_ENUM_ALG_INFO) (HRESULT) = cryptxml.CryptXmlEnumAlgorithmInfo
-//sys	GetToken(/*in*/cPolicyChain uint32, /*in*/pPolicyChain *POLICY_ELEMENT, /*out*/securityToken **GENERIC_XML_TOKEN, /*out*/phProofTokenCrypto **INFORMATIONCARD_CRYPTO_HANDLE) (HRESULT) = infocardapi.GetToken
+//sys	CryptAcquireContextA(phProv *uintptr, szContainer PSTR, szProvider PSTR, dwProvType uint32, dwFlags uint32) (BOOL) = advapi32.CryptAcquireContextA
+//sys	CryptAcquireContextW(phProv *uintptr, szContainer PWSTR, szProvider PWSTR, dwProvType uint32, dwFlags uint32) (BOOL) = advapi32.CryptAcquireContextW
+//sys	CryptReleaseContext(hProv uintptr, dwFlags uint32) (BOOL) = advapi32.CryptReleaseContext
+//sys	CryptGenKey(hProv uintptr, Algid uint32, dwFlags CRYPT_KEY_FLAGS, phKey *uintptr) (BOOL) = advapi32.CryptGenKey
+//sys	CryptDeriveKey(hProv uintptr, Algid uint32, hBaseData uintptr, dwFlags uint32, phKey *uintptr) (BOOL) = advapi32.CryptDeriveKey
+//sys	CryptDestroyKey(hKey uintptr) (BOOL) = advapi32.CryptDestroyKey
+//sys	CryptSetKeyParam(hKey uintptr, dwParam CRYPT_KEY_PARAM_ID, pbData *uint8, dwFlags uint32) (BOOL) = advapi32.CryptSetKeyParam
+//sys	CryptGetKeyParam(hKey uintptr, dwParam CRYPT_KEY_PARAM_ID, pbData *uint8, pdwDataLen *uint32, dwFlags uint32) (BOOL) = advapi32.CryptGetKeyParam
+//sys	CryptSetHashParam(hHash uintptr, dwParam CRYPT_SET_HASH_PARAM, pbData *uint8, dwFlags uint32) (BOOL) = advapi32.CryptSetHashParam
+//sys	CryptGetHashParam(hHash uintptr, dwParam uint32, pbData *uint8, pdwDataLen *uint32, dwFlags uint32) (BOOL) = advapi32.CryptGetHashParam
+//sys	CryptSetProvParam(hProv uintptr, dwParam CRYPT_SET_PROV_PARAM_ID, pbData *uint8, dwFlags uint32) (BOOL) = advapi32.CryptSetProvParam
+//sys	CryptGetProvParam(hProv uintptr, dwParam uint32, pbData *uint8, pdwDataLen *uint32, dwFlags uint32) (BOOL) = advapi32.CryptGetProvParam
+//sys	CryptGenRandom(hProv uintptr, dwLen uint32, pbBuffer *uint8) (BOOL) = advapi32.CryptGenRandom
+//sys	CryptGetUserKey(hProv uintptr, dwKeySpec uint32, phUserKey *uintptr) (BOOL) = advapi32.CryptGetUserKey
+//sys	CryptExportKey(hKey uintptr, hExpKey uintptr, dwBlobType uint32, dwFlags CRYPT_KEY_FLAGS, pbData *uint8, pdwDataLen *uint32) (BOOL) = advapi32.CryptExportKey
+//sys	CryptImportKey(hProv uintptr, pbData *uint8, dwDataLen uint32, hPubKey uintptr, dwFlags CRYPT_KEY_FLAGS, phKey *uintptr) (BOOL) = advapi32.CryptImportKey
+//sys	CryptEncrypt(hKey uintptr, hHash uintptr, Final BOOL, dwFlags uint32, pbData *uint8, pdwDataLen *uint32, dwBufLen uint32) (BOOL) = advapi32.CryptEncrypt
+//sys	CryptDecrypt(hKey uintptr, hHash uintptr, Final BOOL, dwFlags uint32, pbData *uint8, pdwDataLen *uint32) (BOOL) = advapi32.CryptDecrypt
+//sys	CryptCreateHash(hProv uintptr, Algid uint32, hKey uintptr, dwFlags uint32, phHash *uintptr) (BOOL) = advapi32.CryptCreateHash
+//sys	CryptHashData(hHash uintptr, pbData *uint8, dwDataLen uint32, dwFlags uint32) (BOOL) = advapi32.CryptHashData
+//sys	CryptHashSessionKey(hHash uintptr, hKey uintptr, dwFlags uint32) (BOOL) = advapi32.CryptHashSessionKey
+//sys	CryptDestroyHash(hHash uintptr) (BOOL) = advapi32.CryptDestroyHash
+//sys	CryptSignHashA(hHash uintptr, dwKeySpec uint32, szDescription PSTR, dwFlags uint32, pbSignature *uint8, pdwSigLen *uint32) (BOOL) = advapi32.CryptSignHashA
+//sys	CryptSignHashW(hHash uintptr, dwKeySpec uint32, szDescription PWSTR, dwFlags uint32, pbSignature *uint8, pdwSigLen *uint32) (BOOL) = advapi32.CryptSignHashW
+//sys	CryptVerifySignatureA(hHash uintptr, pbSignature *uint8, dwSigLen uint32, hPubKey uintptr, szDescription PSTR, dwFlags uint32) (BOOL) = advapi32.CryptVerifySignatureA
+//sys	CryptVerifySignatureW(hHash uintptr, pbSignature *uint8, dwSigLen uint32, hPubKey uintptr, szDescription PWSTR, dwFlags uint32) (BOOL) = advapi32.CryptVerifySignatureW
+//sys	CryptSetProviderA(pszProvName PSTR, dwProvType uint32) (BOOL) = advapi32.CryptSetProviderA
+//sys	CryptSetProviderW(pszProvName PWSTR, dwProvType uint32) (BOOL) = advapi32.CryptSetProviderW
+//sys	CryptSetProviderExA(pszProvName PSTR, dwProvType uint32, pdwReserved *uint32, dwFlags uint32) (BOOL) = advapi32.CryptSetProviderExA
+//sys	CryptSetProviderExW(pszProvName PWSTR, dwProvType uint32, pdwReserved *uint32, dwFlags uint32) (BOOL) = advapi32.CryptSetProviderExW
+//sys	CryptGetDefaultProviderA(dwProvType uint32, pdwReserved *uint32, dwFlags uint32, pszProvName PSTR, pcbProvName *uint32) (BOOL) = advapi32.CryptGetDefaultProviderA
+//sys	CryptGetDefaultProviderW(dwProvType uint32, pdwReserved *uint32, dwFlags uint32, pszProvName PWSTR, pcbProvName *uint32) (BOOL) = advapi32.CryptGetDefaultProviderW
+//sys	CryptEnumProviderTypesA(dwIndex uint32, pdwReserved *uint32, dwFlags uint32, pdwProvType *uint32, szTypeName PSTR, pcbTypeName *uint32) (BOOL) = advapi32.CryptEnumProviderTypesA
+//sys	CryptEnumProviderTypesW(dwIndex uint32, pdwReserved *uint32, dwFlags uint32, pdwProvType *uint32, szTypeName PWSTR, pcbTypeName *uint32) (BOOL) = advapi32.CryptEnumProviderTypesW
+//sys	CryptEnumProvidersA(dwIndex uint32, pdwReserved *uint32, dwFlags uint32, pdwProvType *uint32, szProvName PSTR, pcbProvName *uint32) (BOOL) = advapi32.CryptEnumProvidersA
+//sys	CryptEnumProvidersW(dwIndex uint32, pdwReserved *uint32, dwFlags uint32, pdwProvType *uint32, szProvName PWSTR, pcbProvName *uint32) (BOOL) = advapi32.CryptEnumProvidersW
+//sys	CryptContextAddRef(hProv uintptr, pdwReserved *uint32, dwFlags uint32) (BOOL) = advapi32.CryptContextAddRef
+//sys	CryptDuplicateKey(hKey uintptr, pdwReserved *uint32, dwFlags uint32, phKey *uintptr) (BOOL) = advapi32.CryptDuplicateKey
+//sys	CryptDuplicateHash(hHash uintptr, pdwReserved *uint32, dwFlags uint32, phHash *uintptr) (BOOL) = advapi32.CryptDuplicateHash
+//sys	BCryptOpenAlgorithmProvider(phAlgorithm *BCRYPT_ALG_HANDLE, pszAlgId PWSTR, pszImplementation PWSTR, dwFlags BCRYPT_OPEN_ALGORITHM_PROVIDER_FLAGS) (NTSTATUS) = bcrypt.BCryptOpenAlgorithmProvider
+//sys	BCryptEnumAlgorithms(dwAlgOperations BCRYPT_OPERATION, pAlgCount *uint32, ppAlgList **BCRYPT_ALGORITHM_IDENTIFIER, dwFlags uint32) (NTSTATUS) = bcrypt.BCryptEnumAlgorithms
+//sys	BCryptEnumProviders(pszAlgId PWSTR, pImplCount *uint32, ppImplList **BCRYPT_PROVIDER_NAME, dwFlags uint32) (NTSTATUS) = bcrypt.BCryptEnumProviders
+//sys	BCryptGetProperty(hObject unsafe.Pointer, pszProperty PWSTR, pbOutput *uint8, cbOutput uint32, pcbResult *uint32, dwFlags uint32) (NTSTATUS) = bcrypt.BCryptGetProperty
+//sys	BCryptSetProperty(hObject unsafe.Pointer, pszProperty PWSTR, pbInput *uint8, cbInput uint32, dwFlags uint32) (NTSTATUS) = bcrypt.BCryptSetProperty
+//sys	BCryptCloseAlgorithmProvider(hAlgorithm BCRYPT_ALG_HANDLE, dwFlags uint32) (NTSTATUS) = bcrypt.BCryptCloseAlgorithmProvider
+//sys	BCryptFreeBuffer(pvBuffer unsafe.Pointer) = bcrypt.BCryptFreeBuffer
+//sys	BCryptGenerateSymmetricKey(hAlgorithm BCRYPT_ALG_HANDLE, phKey *BCRYPT_KEY_HANDLE, pbKeyObject *uint8, cbKeyObject uint32, pbSecret *uint8, cbSecret uint32, dwFlags uint32) (NTSTATUS) = bcrypt.BCryptGenerateSymmetricKey
+//sys	BCryptGenerateKeyPair(hAlgorithm BCRYPT_ALG_HANDLE, phKey *BCRYPT_KEY_HANDLE, dwLength uint32, dwFlags uint32) (NTSTATUS) = bcrypt.BCryptGenerateKeyPair
+//sys	BCryptEncrypt(hKey BCRYPT_KEY_HANDLE, pbInput *uint8, cbInput uint32, pPaddingInfo unsafe.Pointer, pbIV *uint8, cbIV uint32, pbOutput *uint8, cbOutput uint32, pcbResult *uint32, dwFlags NCRYPT_FLAGS) (NTSTATUS) = bcrypt.BCryptEncrypt
+//sys	BCryptDecrypt(hKey BCRYPT_KEY_HANDLE, pbInput *uint8, cbInput uint32, pPaddingInfo unsafe.Pointer, pbIV *uint8, cbIV uint32, pbOutput *uint8, cbOutput uint32, pcbResult *uint32, dwFlags NCRYPT_FLAGS) (NTSTATUS) = bcrypt.BCryptDecrypt
+//sys	BCryptExportKey(hKey BCRYPT_KEY_HANDLE, hExportKey BCRYPT_KEY_HANDLE, pszBlobType PWSTR, pbOutput *uint8, cbOutput uint32, pcbResult *uint32, dwFlags uint32) (NTSTATUS) = bcrypt.BCryptExportKey
+//sys	BCryptImportKey(hAlgorithm BCRYPT_ALG_HANDLE, hImportKey BCRYPT_KEY_HANDLE, pszBlobType PWSTR, phKey *BCRYPT_KEY_HANDLE, pbKeyObject *uint8, cbKeyObject uint32, pbInput *uint8, cbInput uint32, dwFlags uint32) (NTSTATUS) = bcrypt.BCryptImportKey
+//sys	BCryptImportKeyPair(hAlgorithm BCRYPT_ALG_HANDLE, hImportKey BCRYPT_KEY_HANDLE, pszBlobType PWSTR, phKey *BCRYPT_KEY_HANDLE, pbInput *uint8, cbInput uint32, dwFlags uint32) (NTSTATUS) = bcrypt.BCryptImportKeyPair
+//sys	BCryptDuplicateKey(hKey BCRYPT_KEY_HANDLE, phNewKey *BCRYPT_KEY_HANDLE, pbKeyObject *uint8, cbKeyObject uint32, dwFlags uint32) (NTSTATUS) = bcrypt.BCryptDuplicateKey
+//sys	BCryptFinalizeKeyPair(hKey BCRYPT_KEY_HANDLE, dwFlags uint32) (NTSTATUS) = bcrypt.BCryptFinalizeKeyPair
+//sys	BCryptDestroyKey(hKey BCRYPT_KEY_HANDLE) (NTSTATUS) = bcrypt.BCryptDestroyKey
+//sys	BCryptDestroySecret(hSecret unsafe.Pointer) (NTSTATUS) = bcrypt.BCryptDestroySecret
+//sys	BCryptSignHash(hKey BCRYPT_KEY_HANDLE, pPaddingInfo unsafe.Pointer, pbInput *uint8, cbInput uint32, pbOutput *uint8, cbOutput uint32, pcbResult *uint32, dwFlags NCRYPT_FLAGS) (NTSTATUS) = bcrypt.BCryptSignHash
+//sys	BCryptVerifySignature(hKey BCRYPT_KEY_HANDLE, pPaddingInfo unsafe.Pointer, pbHash *uint8, cbHash uint32, pbSignature *uint8, cbSignature uint32, dwFlags NCRYPT_FLAGS) (NTSTATUS) = bcrypt.BCryptVerifySignature
+//sys	BCryptSecretAgreement(hPrivKey BCRYPT_KEY_HANDLE, hPubKey BCRYPT_KEY_HANDLE, phAgreedSecret *unsafe.Pointer, dwFlags uint32) (NTSTATUS) = bcrypt.BCryptSecretAgreement
+//sys	BCryptDeriveKey(hSharedSecret unsafe.Pointer, pwszKDF PWSTR, pParameterList *BCryptBufferDesc, pbDerivedKey *uint8, cbDerivedKey uint32, pcbResult *uint32, dwFlags uint32) (NTSTATUS) = bcrypt.BCryptDeriveKey
+//sys	BCryptKeyDerivation(hKey BCRYPT_KEY_HANDLE, pParameterList *BCryptBufferDesc, pbDerivedKey *uint8, cbDerivedKey uint32, pcbResult *uint32, dwFlags uint32) (NTSTATUS) = bcrypt.BCryptKeyDerivation
+//sys	BCryptCreateHash(hAlgorithm BCRYPT_ALG_HANDLE, phHash *unsafe.Pointer, pbHashObject *uint8, cbHashObject uint32, pbSecret *uint8, cbSecret uint32, dwFlags uint32) (NTSTATUS) = bcrypt.BCryptCreateHash
+//sys	BCryptHashData(hHash unsafe.Pointer, pbInput *uint8, cbInput uint32, dwFlags uint32) (NTSTATUS) = bcrypt.BCryptHashData
+//sys	BCryptFinishHash(hHash unsafe.Pointer, pbOutput *uint8, cbOutput uint32, dwFlags uint32) (NTSTATUS) = bcrypt.BCryptFinishHash
+//sys	BCryptCreateMultiHash(hAlgorithm BCRYPT_ALG_HANDLE, phHash *unsafe.Pointer, nHashes uint32, pbHashObject *uint8, cbHashObject uint32, pbSecret *uint8, cbSecret uint32, dwFlags uint32) (NTSTATUS) = bcrypt.BCryptCreateMultiHash
+//sys	BCryptProcessMultiOperations(hObject unsafe.Pointer, operationType BCRYPT_MULTI_OPERATION_TYPE, pOperations unsafe.Pointer, cbOperations uint32, dwFlags uint32) (NTSTATUS) = bcrypt.BCryptProcessMultiOperations
+//sys	BCryptDuplicateHash(hHash unsafe.Pointer, phNewHash *unsafe.Pointer, pbHashObject *uint8, cbHashObject uint32, dwFlags uint32) (NTSTATUS) = bcrypt.BCryptDuplicateHash
+//sys	BCryptDestroyHash(hHash unsafe.Pointer) (NTSTATUS) = bcrypt.BCryptDestroyHash
+//sys	BCryptHash(hAlgorithm BCRYPT_ALG_HANDLE, pbSecret *uint8, cbSecret uint32, pbInput *uint8, cbInput uint32, pbOutput *uint8, cbOutput uint32) (NTSTATUS) = bcrypt.BCryptHash
+//sys	BCryptGenRandom(hAlgorithm BCRYPT_ALG_HANDLE, pbBuffer *uint8, cbBuffer uint32, dwFlags uint32) (NTSTATUS) = bcrypt.BCryptGenRandom
+//sys	BCryptDeriveKeyCapi(hHash unsafe.Pointer, hTargetAlg BCRYPT_ALG_HANDLE, pbDerivedKey *uint8, cbDerivedKey uint32, dwFlags uint32) (NTSTATUS) = bcrypt.BCryptDeriveKeyCapi
+//sys	BCryptDeriveKeyPBKDF2(hPrf BCRYPT_ALG_HANDLE, pbPassword *uint8, cbPassword uint32, pbSalt *uint8, cbSalt uint32, cIterations uint64, pbDerivedKey *uint8, cbDerivedKey uint32, dwFlags uint32) (NTSTATUS) = bcrypt.BCryptDeriveKeyPBKDF2
+//sys	BCryptQueryProviderRegistration(pszProvider PWSTR, dwMode BCRYPT_QUERY_PROVIDER_MODE, dwInterface BCRYPT_INTERFACE, pcbBuffer *uint32, ppBuffer **CRYPT_PROVIDER_REG) (NTSTATUS) = bcrypt.BCryptQueryProviderRegistration
+//sys	BCryptEnumRegisteredProviders(pcbBuffer *uint32, ppBuffer **CRYPT_PROVIDERS) (NTSTATUS) = bcrypt.BCryptEnumRegisteredProviders
+//sys	BCryptCreateContext(dwTable BCRYPT_TABLE, pszContext PWSTR, pConfig *CRYPT_CONTEXT_CONFIG) (NTSTATUS) = bcrypt.BCryptCreateContext
+//sys	BCryptDeleteContext(dwTable BCRYPT_TABLE, pszContext PWSTR) (NTSTATUS) = bcrypt.BCryptDeleteContext
+//sys	BCryptEnumContexts(dwTable BCRYPT_TABLE, pcbBuffer *uint32, ppBuffer **CRYPT_CONTEXTS) (NTSTATUS) = bcrypt.BCryptEnumContexts
+//sys	BCryptConfigureContext(dwTable BCRYPT_TABLE, pszContext PWSTR, pConfig *CRYPT_CONTEXT_CONFIG) (NTSTATUS) = bcrypt.BCryptConfigureContext
+//sys	BCryptQueryContextConfiguration(dwTable BCRYPT_TABLE, pszContext PWSTR, pcbBuffer *uint32, ppBuffer **CRYPT_CONTEXT_CONFIG) (NTSTATUS) = bcrypt.BCryptQueryContextConfiguration
+//sys	BCryptAddContextFunction(dwTable BCRYPT_TABLE, pszContext PWSTR, dwInterface BCRYPT_INTERFACE, pszFunction PWSTR, dwPosition uint32) (NTSTATUS) = bcrypt.BCryptAddContextFunction
+//sys	BCryptRemoveContextFunction(dwTable BCRYPT_TABLE, pszContext PWSTR, dwInterface BCRYPT_INTERFACE, pszFunction PWSTR) (NTSTATUS) = bcrypt.BCryptRemoveContextFunction
+//sys	BCryptEnumContextFunctions(dwTable BCRYPT_TABLE, pszContext PWSTR, dwInterface BCRYPT_INTERFACE, pcbBuffer *uint32, ppBuffer **CRYPT_CONTEXT_FUNCTIONS) (NTSTATUS) = bcrypt.BCryptEnumContextFunctions
+//sys	BCryptConfigureContextFunction(dwTable BCRYPT_TABLE, pszContext PWSTR, dwInterface BCRYPT_INTERFACE, pszFunction PWSTR, pConfig *CRYPT_CONTEXT_FUNCTION_CONFIG) (NTSTATUS) = bcrypt.BCryptConfigureContextFunction
+//sys	BCryptQueryContextFunctionConfiguration(dwTable BCRYPT_TABLE, pszContext PWSTR, dwInterface BCRYPT_INTERFACE, pszFunction PWSTR, pcbBuffer *uint32, ppBuffer **CRYPT_CONTEXT_FUNCTION_CONFIG) (NTSTATUS) = bcrypt.BCryptQueryContextFunctionConfiguration
+//sys	BCryptEnumContextFunctionProviders(dwTable BCRYPT_TABLE, pszContext PWSTR, dwInterface BCRYPT_INTERFACE, pszFunction PWSTR, pcbBuffer *uint32, ppBuffer **CRYPT_CONTEXT_FUNCTION_PROVIDERS) (NTSTATUS) = bcrypt.BCryptEnumContextFunctionProviders
+//sys	BCryptSetContextFunctionProperty(dwTable BCRYPT_TABLE, pszContext PWSTR, dwInterface BCRYPT_INTERFACE, pszFunction PWSTR, pszProperty PWSTR, cbValue uint32, pbValue *uint8) (NTSTATUS) = bcrypt.BCryptSetContextFunctionProperty
+//sys	BCryptQueryContextFunctionProperty(dwTable BCRYPT_TABLE, pszContext PWSTR, dwInterface BCRYPT_INTERFACE, pszFunction PWSTR, pszProperty PWSTR, pcbValue *uint32, ppbValue **uint8) (NTSTATUS) = bcrypt.BCryptQueryContextFunctionProperty
+//sys	BCryptRegisterConfigChangeNotify(phEvent *HANDLE) (NTSTATUS) = bcrypt.BCryptRegisterConfigChangeNotify
+//sys	BCryptUnregisterConfigChangeNotify(hEvent HANDLE) (NTSTATUS) = bcrypt.BCryptUnregisterConfigChangeNotify
+//sys	BCryptResolveProviders(pszContext PWSTR, dwInterface uint32, pszFunction PWSTR, pszProvider PWSTR, dwMode BCRYPT_QUERY_PROVIDER_MODE, dwFlags BCRYPT_RESOLVE_PROVIDERS_FLAGS, pcbBuffer *uint32, ppBuffer **CRYPT_PROVIDER_REFS) (NTSTATUS) = bcrypt.BCryptResolveProviders
+//sys	BCryptGetFipsAlgorithmMode(pfEnabled *uint8) (NTSTATUS) = bcrypt.BCryptGetFipsAlgorithmMode
+//sys	NCryptOpenStorageProvider(phProvider *NCRYPT_PROV_HANDLE, pszProviderName PWSTR, dwFlags uint32) (HRESULT) = ncrypt.NCryptOpenStorageProvider
+//sys	NCryptEnumAlgorithms(hProvider NCRYPT_PROV_HANDLE, dwAlgOperations NCRYPT_OPERATION, pdwAlgCount *uint32, ppAlgList **NCryptAlgorithmName, dwFlags uint32) (HRESULT) = ncrypt.NCryptEnumAlgorithms
+//sys	NCryptIsAlgSupported(hProvider NCRYPT_PROV_HANDLE, pszAlgId PWSTR, dwFlags uint32) (HRESULT) = ncrypt.NCryptIsAlgSupported
+//sys	NCryptEnumKeys(hProvider NCRYPT_PROV_HANDLE, pszScope PWSTR, ppKeyName **NCryptKeyName, ppEnumState *unsafe.Pointer, dwFlags NCRYPT_FLAGS) (HRESULT) = ncrypt.NCryptEnumKeys
+//sys	NCryptEnumStorageProviders(pdwProviderCount *uint32, ppProviderList **NCryptProviderName, dwFlags uint32) (HRESULT) = ncrypt.NCryptEnumStorageProviders
+//sys	NCryptFreeBuffer(pvInput unsafe.Pointer) (HRESULT) = ncrypt.NCryptFreeBuffer
+//sys	NCryptOpenKey(hProvider NCRYPT_PROV_HANDLE, phKey *NCRYPT_KEY_HANDLE, pszKeyName PWSTR, dwLegacyKeySpec CERT_KEY_SPEC, dwFlags NCRYPT_FLAGS) (HRESULT) = ncrypt.NCryptOpenKey
+//sys	NCryptCreatePersistedKey(hProvider NCRYPT_PROV_HANDLE, phKey *NCRYPT_KEY_HANDLE, pszAlgId PWSTR, pszKeyName PWSTR, dwLegacyKeySpec CERT_KEY_SPEC, dwFlags NCRYPT_FLAGS) (HRESULT) = ncrypt.NCryptCreatePersistedKey
+//sys	NCryptGetProperty(hObject NCRYPT_HANDLE, pszProperty PWSTR, pbOutput *uint8, cbOutput uint32, pcbResult *uint32, dwFlags OBJECT_SECURITY_INFORMATION) (HRESULT) = ncrypt.NCryptGetProperty
+//sys	NCryptSetProperty(hObject NCRYPT_HANDLE, pszProperty PWSTR, pbInput *uint8, cbInput uint32, dwFlags NCRYPT_FLAGS) (HRESULT) = ncrypt.NCryptSetProperty
+//sys	NCryptFinalizeKey(hKey NCRYPT_KEY_HANDLE, dwFlags NCRYPT_FLAGS) (HRESULT) = ncrypt.NCryptFinalizeKey
+//sys	NCryptEncrypt(hKey NCRYPT_KEY_HANDLE, pbInput *uint8, cbInput uint32, pPaddingInfo unsafe.Pointer, pbOutput *uint8, cbOutput uint32, pcbResult *uint32, dwFlags NCRYPT_FLAGS) (HRESULT) = ncrypt.NCryptEncrypt
+//sys	NCryptDecrypt(hKey NCRYPT_KEY_HANDLE, pbInput *uint8, cbInput uint32, pPaddingInfo unsafe.Pointer, pbOutput *uint8, cbOutput uint32, pcbResult *uint32, dwFlags NCRYPT_FLAGS) (HRESULT) = ncrypt.NCryptDecrypt
+//sys	NCryptImportKey(hProvider NCRYPT_PROV_HANDLE, hImportKey NCRYPT_KEY_HANDLE, pszBlobType PWSTR, pParameterList *BCryptBufferDesc, phKey *NCRYPT_KEY_HANDLE, pbData *uint8, cbData uint32, dwFlags NCRYPT_FLAGS) (HRESULT) = ncrypt.NCryptImportKey
+//sys	NCryptExportKey(hKey NCRYPT_KEY_HANDLE, hExportKey NCRYPT_KEY_HANDLE, pszBlobType PWSTR, pParameterList *BCryptBufferDesc, pbOutput *uint8, cbOutput uint32, pcbResult *uint32, dwFlags NCRYPT_FLAGS) (HRESULT) = ncrypt.NCryptExportKey
+//sys	NCryptSignHash(hKey NCRYPT_KEY_HANDLE, pPaddingInfo unsafe.Pointer, pbHashValue *uint8, cbHashValue uint32, pbSignature *uint8, cbSignature uint32, pcbResult *uint32, dwFlags NCRYPT_FLAGS) (HRESULT) = ncrypt.NCryptSignHash
+//sys	NCryptVerifySignature(hKey NCRYPT_KEY_HANDLE, pPaddingInfo unsafe.Pointer, pbHashValue *uint8, cbHashValue uint32, pbSignature *uint8, cbSignature uint32, dwFlags NCRYPT_FLAGS) (HRESULT) = ncrypt.NCryptVerifySignature
+//sys	NCryptDeleteKey(hKey NCRYPT_KEY_HANDLE, dwFlags uint32) (HRESULT) = ncrypt.NCryptDeleteKey
+//sys	NCryptFreeObject(hObject NCRYPT_HANDLE) (HRESULT) = ncrypt.NCryptFreeObject
+//sys	NCryptIsKeyHandle(hKey NCRYPT_KEY_HANDLE) (BOOL) = ncrypt.NCryptIsKeyHandle
+//sys	NCryptTranslateHandle(phProvider *NCRYPT_PROV_HANDLE, phKey *NCRYPT_KEY_HANDLE, hLegacyProv uintptr, hLegacyKey uintptr, dwLegacyKeySpec CERT_KEY_SPEC, dwFlags uint32) (HRESULT) = ncrypt.NCryptTranslateHandle
+//sys	NCryptNotifyChangeKey(hProvider NCRYPT_PROV_HANDLE, phEvent *HANDLE, dwFlags NCRYPT_FLAGS) (HRESULT) = ncrypt.NCryptNotifyChangeKey
+//sys	NCryptSecretAgreement(hPrivKey NCRYPT_KEY_HANDLE, hPubKey NCRYPT_KEY_HANDLE, phAgreedSecret *NCRYPT_SECRET_HANDLE, dwFlags NCRYPT_FLAGS) (HRESULT) = ncrypt.NCryptSecretAgreement
+//sys	NCryptDeriveKey(hSharedSecret NCRYPT_SECRET_HANDLE, pwszKDF PWSTR, pParameterList *BCryptBufferDesc, pbDerivedKey *uint8, cbDerivedKey uint32, pcbResult *uint32, dwFlags uint32) (HRESULT) = ncrypt.NCryptDeriveKey
+//sys	NCryptKeyDerivation(hKey NCRYPT_KEY_HANDLE, pParameterList *BCryptBufferDesc, pbDerivedKey *uint8, cbDerivedKey uint32, pcbResult *uint32, dwFlags uint32) (HRESULT) = ncrypt.NCryptKeyDerivation
+//sys	NCryptCreateClaim(hSubjectKey NCRYPT_KEY_HANDLE, hAuthorityKey NCRYPT_KEY_HANDLE, dwClaimType uint32, pParameterList *BCryptBufferDesc, pbClaimBlob *uint8, cbClaimBlob uint32, pcbResult *uint32, dwFlags uint32) (HRESULT) = ncrypt.NCryptCreateClaim
+//sys	NCryptVerifyClaim(hSubjectKey NCRYPT_KEY_HANDLE, hAuthorityKey NCRYPT_KEY_HANDLE, dwClaimType uint32, pParameterList *BCryptBufferDesc, pbClaimBlob *uint8, cbClaimBlob uint32, pOutput *BCryptBufferDesc, dwFlags uint32) (HRESULT) = ncrypt.NCryptVerifyClaim
+//sys	CryptFormatObject(dwCertEncodingType uint32, dwFormatType uint32, dwFormatStrType uint32, pFormatStruct unsafe.Pointer, lpszStructType PSTR, pbEncoded *uint8, cbEncoded uint32, pbFormat unsafe.Pointer, pcbFormat *uint32) (BOOL) = crypt32.CryptFormatObject
+//sys	CryptEncodeObjectEx(dwCertEncodingType CERT_QUERY_ENCODING_TYPE, lpszStructType PSTR, pvStructInfo unsafe.Pointer, dwFlags CRYPT_ENCODE_OBJECT_FLAGS, pEncodePara *CRYPT_ENCODE_PARA, pvEncoded unsafe.Pointer, pcbEncoded *uint32) (BOOL) = crypt32.CryptEncodeObjectEx
+//sys	CryptEncodeObject(dwCertEncodingType uint32, lpszStructType PSTR, pvStructInfo unsafe.Pointer, pbEncoded *uint8, pcbEncoded *uint32) (BOOL) = crypt32.CryptEncodeObject
+//sys	CryptDecodeObjectEx(dwCertEncodingType uint32, lpszStructType PSTR, pbEncoded *uint8, cbEncoded uint32, dwFlags uint32, pDecodePara *CRYPT_DECODE_PARA, pvStructInfo unsafe.Pointer, pcbStructInfo *uint32) (BOOL) = crypt32.CryptDecodeObjectEx
+//sys	CryptDecodeObject(dwCertEncodingType uint32, lpszStructType PSTR, pbEncoded *uint8, cbEncoded uint32, dwFlags uint32, pvStructInfo unsafe.Pointer, pcbStructInfo *uint32) (BOOL) = crypt32.CryptDecodeObject
+//sys	CryptInstallOIDFunctionAddress(hModule HINSTANCE, dwEncodingType uint32, pszFuncName PSTR, cFuncEntry uint32, rgFuncEntry *CRYPT_OID_FUNC_ENTRY, dwFlags uint32) (BOOL) = crypt32.CryptInstallOIDFunctionAddress
+//sys	CryptInitOIDFunctionSet(pszFuncName PSTR, dwFlags uint32) (unsafe.Pointer) = crypt32.CryptInitOIDFunctionSet
+//sys	CryptGetOIDFunctionAddress(hFuncSet unsafe.Pointer, dwEncodingType uint32, pszOID PSTR, dwFlags uint32, ppvFuncAddr *unsafe.Pointer, phFuncAddr *unsafe.Pointer) (BOOL) = crypt32.CryptGetOIDFunctionAddress
+//sys	CryptGetDefaultOIDDllList(hFuncSet unsafe.Pointer, dwEncodingType uint32, pwszDllList PWSTR, pcchDllList *uint32) (BOOL) = crypt32.CryptGetDefaultOIDDllList
+//sys	CryptGetDefaultOIDFunctionAddress(hFuncSet unsafe.Pointer, dwEncodingType uint32, pwszDll PWSTR, dwFlags uint32, ppvFuncAddr *unsafe.Pointer, phFuncAddr *unsafe.Pointer) (BOOL) = crypt32.CryptGetDefaultOIDFunctionAddress
+//sys	CryptFreeOIDFunctionAddress(hFuncAddr unsafe.Pointer, dwFlags uint32) (BOOL) = crypt32.CryptFreeOIDFunctionAddress
+//sys	CryptRegisterOIDFunction(dwEncodingType uint32, pszFuncName PSTR, pszOID PSTR, pwszDll PWSTR, pszOverrideFuncName PSTR) (BOOL) = crypt32.CryptRegisterOIDFunction
+//sys	CryptUnregisterOIDFunction(dwEncodingType uint32, pszFuncName PSTR, pszOID PSTR) (BOOL) = crypt32.CryptUnregisterOIDFunction
+//sys	CryptRegisterDefaultOIDFunction(dwEncodingType uint32, pszFuncName PSTR, dwIndex uint32, pwszDll PWSTR) (BOOL) = crypt32.CryptRegisterDefaultOIDFunction
+//sys	CryptUnregisterDefaultOIDFunction(dwEncodingType uint32, pszFuncName PSTR, pwszDll PWSTR) (BOOL) = crypt32.CryptUnregisterDefaultOIDFunction
+//sys	CryptSetOIDFunctionValue(dwEncodingType uint32, pszFuncName PSTR, pszOID PSTR, pwszValueName PWSTR, dwValueType REG_VALUE_TYPE, pbValueData *uint8, cbValueData uint32) (BOOL) = crypt32.CryptSetOIDFunctionValue
+//sys	CryptGetOIDFunctionValue(dwEncodingType uint32, pszFuncName PSTR, pszOID PSTR, pwszValueName PWSTR, pdwValueType *uint32, pbValueData *uint8, pcbValueData *uint32) (BOOL) = crypt32.CryptGetOIDFunctionValue
+//sys	CryptEnumOIDFunction(dwEncodingType uint32, pszFuncName PSTR, pszOID PSTR, dwFlags uint32, pvArg unsafe.Pointer, pfnEnumOIDFunc PFN_CRYPT_ENUM_OID_FUNC) (BOOL) = crypt32.CryptEnumOIDFunction
+//sys	CryptFindOIDInfo(dwKeyType uint32, pvKey unsafe.Pointer, dwGroupId uint32) (*CRYPT_OID_INFO) = crypt32.CryptFindOIDInfo
+//sys	CryptRegisterOIDInfo(pInfo *CRYPT_OID_INFO, dwFlags uint32) (BOOL) = crypt32.CryptRegisterOIDInfo
+//sys	CryptUnregisterOIDInfo(pInfo *CRYPT_OID_INFO) (BOOL) = crypt32.CryptUnregisterOIDInfo
+//sys	CryptEnumOIDInfo(dwGroupId uint32, dwFlags uint32, pvArg unsafe.Pointer, pfnEnumOIDInfo PFN_CRYPT_ENUM_OID_INFO) (BOOL) = crypt32.CryptEnumOIDInfo
+//sys	CryptFindLocalizedName(pwszCryptName PWSTR) (PWSTR) = crypt32.CryptFindLocalizedName
+//sys	CryptMsgOpenToEncode(dwMsgEncodingType uint32, dwFlags uint32, dwMsgType CRYPT_MSG_TYPE, pvMsgEncodeInfo unsafe.Pointer, pszInnerContentObjID PSTR, pStreamInfo *CMSG_STREAM_INFO) (unsafe.Pointer) = crypt32.CryptMsgOpenToEncode
+//sys	CryptMsgCalculateEncodedLength(dwMsgEncodingType uint32, dwFlags uint32, dwMsgType uint32, pvMsgEncodeInfo unsafe.Pointer, pszInnerContentObjID PSTR, cbData uint32) (uint32) = crypt32.CryptMsgCalculateEncodedLength
+//sys	CryptMsgOpenToDecode(dwMsgEncodingType uint32, dwFlags uint32, dwMsgType uint32, hCryptProv HCRYPTPROV_LEGACY, pRecipientInfo *CERT_INFO, pStreamInfo *CMSG_STREAM_INFO) (unsafe.Pointer) = crypt32.CryptMsgOpenToDecode
+//sys	CryptMsgDuplicate(hCryptMsg unsafe.Pointer) (unsafe.Pointer) = crypt32.CryptMsgDuplicate
+//sys	CryptMsgClose(hCryptMsg unsafe.Pointer) (BOOL) = crypt32.CryptMsgClose
+//sys	CryptMsgUpdate(hCryptMsg unsafe.Pointer, pbData *uint8, cbData uint32, fFinal BOOL) (BOOL) = crypt32.CryptMsgUpdate
+//sys	CryptMsgGetParam(hCryptMsg unsafe.Pointer, dwParamType uint32, dwIndex uint32, pvData unsafe.Pointer, pcbData *uint32) (BOOL) = crypt32.CryptMsgGetParam
+//sys	CryptMsgControl(hCryptMsg unsafe.Pointer, dwFlags uint32, dwCtrlType uint32, pvCtrlPara unsafe.Pointer) (BOOL) = crypt32.CryptMsgControl
+//sys	CryptMsgVerifyCountersignatureEncoded(hCryptProv HCRYPTPROV_LEGACY, dwEncodingType uint32, pbSignerInfo *uint8, cbSignerInfo uint32, pbSignerInfoCountersignature *uint8, cbSignerInfoCountersignature uint32, pciCountersigner *CERT_INFO) (BOOL) = crypt32.CryptMsgVerifyCountersignatureEncoded
+//sys	CryptMsgVerifyCountersignatureEncodedEx(hCryptProv HCRYPTPROV_LEGACY, dwEncodingType uint32, pbSignerInfo *uint8, cbSignerInfo uint32, pbSignerInfoCountersignature *uint8, cbSignerInfoCountersignature uint32, dwSignerType uint32, pvSigner unsafe.Pointer, dwFlags uint32, pvExtra unsafe.Pointer) (BOOL) = crypt32.CryptMsgVerifyCountersignatureEncodedEx
+//sys	CryptMsgCountersign(hCryptMsg unsafe.Pointer, dwIndex uint32, cCountersigners uint32, rgCountersigners *CMSG_SIGNER_ENCODE_INFO) (BOOL) = crypt32.CryptMsgCountersign
+//sys	CryptMsgCountersignEncoded(dwEncodingType uint32, pbSignerInfo *uint8, cbSignerInfo uint32, cCountersigners uint32, rgCountersigners *CMSG_SIGNER_ENCODE_INFO, pbCountersignature *uint8, pcbCountersignature *uint32) (BOOL) = crypt32.CryptMsgCountersignEncoded
+//sys	CertOpenStore(lpszStoreProvider PSTR, dwEncodingType CERT_QUERY_ENCODING_TYPE, hCryptProv HCRYPTPROV_LEGACY, dwFlags CERT_OPEN_STORE_FLAGS, pvPara unsafe.Pointer) (HCERTSTORE) = crypt32.CertOpenStore
+//sys	CertDuplicateStore(hCertStore HCERTSTORE) (HCERTSTORE) = crypt32.CertDuplicateStore
+//sys	CertSaveStore(hCertStore HCERTSTORE, dwEncodingType CERT_QUERY_ENCODING_TYPE, dwSaveAs CERT_STORE_SAVE_AS, dwSaveTo CERT_STORE_SAVE_TO, pvSaveToPara unsafe.Pointer, dwFlags uint32) (BOOL) = crypt32.CertSaveStore
+//sys	CertCloseStore(hCertStore HCERTSTORE, dwFlags uint32) (BOOL) = crypt32.CertCloseStore
+//sys	CertGetSubjectCertificateFromStore(hCertStore HCERTSTORE, dwCertEncodingType uint32, pCertId *CERT_INFO) (*CERT_CONTEXT) = crypt32.CertGetSubjectCertificateFromStore
+//sys	CertEnumCertificatesInStore(hCertStore HCERTSTORE, pPrevCertContext *CERT_CONTEXT) (*CERT_CONTEXT) = crypt32.CertEnumCertificatesInStore
+//sys	CertFindCertificateInStore(hCertStore HCERTSTORE, dwCertEncodingType uint32, dwFindFlags uint32, dwFindType CERT_FIND_FLAGS, pvFindPara unsafe.Pointer, pPrevCertContext *CERT_CONTEXT) (*CERT_CONTEXT) = crypt32.CertFindCertificateInStore
+//sys	CertGetIssuerCertificateFromStore(hCertStore HCERTSTORE, pSubjectContext *CERT_CONTEXT, pPrevIssuerContext *CERT_CONTEXT, pdwFlags *uint32) (*CERT_CONTEXT) = crypt32.CertGetIssuerCertificateFromStore
+//sys	CertVerifySubjectCertificateContext(pSubject *CERT_CONTEXT, pIssuer *CERT_CONTEXT, pdwFlags *uint32) (BOOL) = crypt32.CertVerifySubjectCertificateContext
+//sys	CertDuplicateCertificateContext(pCertContext *CERT_CONTEXT) (*CERT_CONTEXT) = crypt32.CertDuplicateCertificateContext
+//sys	CertCreateCertificateContext(dwCertEncodingType uint32, pbCertEncoded *uint8, cbCertEncoded uint32) (*CERT_CONTEXT) = crypt32.CertCreateCertificateContext
+//sys	CertFreeCertificateContext(pCertContext *CERT_CONTEXT) (BOOL) = crypt32.CertFreeCertificateContext
+//sys	CertSetCertificateContextProperty(pCertContext *CERT_CONTEXT, dwPropId uint32, dwFlags uint32, pvData unsafe.Pointer) (BOOL) = crypt32.CertSetCertificateContextProperty
+//sys	CertGetCertificateContextProperty(pCertContext *CERT_CONTEXT, dwPropId uint32, pvData unsafe.Pointer, pcbData *uint32) (BOOL) = crypt32.CertGetCertificateContextProperty
+//sys	CertEnumCertificateContextProperties(pCertContext *CERT_CONTEXT, dwPropId uint32) (uint32) = crypt32.CertEnumCertificateContextProperties
+//sys	CertCreateCTLEntryFromCertificateContextProperties(pCertContext *CERT_CONTEXT, cOptAttr uint32, rgOptAttr *CRYPT_ATTRIBUTE, dwFlags uint32, pvReserved unsafe.Pointer, pCtlEntry *CTL_ENTRY, pcbCtlEntry *uint32) (BOOL) = crypt32.CertCreateCTLEntryFromCertificateContextProperties
+//sys	CertSetCertificateContextPropertiesFromCTLEntry(pCertContext *CERT_CONTEXT, pCtlEntry *CTL_ENTRY, dwFlags uint32) (BOOL) = crypt32.CertSetCertificateContextPropertiesFromCTLEntry
+//sys	CertGetCRLFromStore(hCertStore HCERTSTORE, pIssuerContext *CERT_CONTEXT, pPrevCrlContext *CRL_CONTEXT, pdwFlags *uint32) (*CRL_CONTEXT) = crypt32.CertGetCRLFromStore
+//sys	CertEnumCRLsInStore(hCertStore HCERTSTORE, pPrevCrlContext *CRL_CONTEXT) (*CRL_CONTEXT) = crypt32.CertEnumCRLsInStore
+//sys	CertFindCRLInStore(hCertStore HCERTSTORE, dwCertEncodingType uint32, dwFindFlags uint32, dwFindType uint32, pvFindPara unsafe.Pointer, pPrevCrlContext *CRL_CONTEXT) (*CRL_CONTEXT) = crypt32.CertFindCRLInStore
+//sys	CertDuplicateCRLContext(pCrlContext *CRL_CONTEXT) (*CRL_CONTEXT) = crypt32.CertDuplicateCRLContext
+//sys	CertCreateCRLContext(dwCertEncodingType uint32, pbCrlEncoded *uint8, cbCrlEncoded uint32) (*CRL_CONTEXT) = crypt32.CertCreateCRLContext
+//sys	CertFreeCRLContext(pCrlContext *CRL_CONTEXT) (BOOL) = crypt32.CertFreeCRLContext
+//sys	CertSetCRLContextProperty(pCrlContext *CRL_CONTEXT, dwPropId uint32, dwFlags uint32, pvData unsafe.Pointer) (BOOL) = crypt32.CertSetCRLContextProperty
+//sys	CertGetCRLContextProperty(pCrlContext *CRL_CONTEXT, dwPropId uint32, pvData unsafe.Pointer, pcbData *uint32) (BOOL) = crypt32.CertGetCRLContextProperty
+//sys	CertEnumCRLContextProperties(pCrlContext *CRL_CONTEXT, dwPropId uint32) (uint32) = crypt32.CertEnumCRLContextProperties
+//sys	CertFindCertificateInCRL(pCert *CERT_CONTEXT, pCrlContext *CRL_CONTEXT, dwFlags uint32, pvReserved unsafe.Pointer, ppCrlEntry **CRL_ENTRY) (BOOL) = crypt32.CertFindCertificateInCRL
+//sys	CertIsValidCRLForCertificate(pCert *CERT_CONTEXT, pCrl *CRL_CONTEXT, dwFlags uint32, pvReserved unsafe.Pointer) (BOOL) = crypt32.CertIsValidCRLForCertificate
+//sys	CertAddEncodedCertificateToStore(hCertStore HCERTSTORE, dwCertEncodingType uint32, pbCertEncoded *uint8, cbCertEncoded uint32, dwAddDisposition uint32, ppCertContext **CERT_CONTEXT) (BOOL) = crypt32.CertAddEncodedCertificateToStore
+//sys	CertAddCertificateContextToStore(hCertStore HCERTSTORE, pCertContext *CERT_CONTEXT, dwAddDisposition uint32, ppStoreContext **CERT_CONTEXT) (BOOL) = crypt32.CertAddCertificateContextToStore
+//sys	CertAddSerializedElementToStore(hCertStore HCERTSTORE, pbElement *uint8, cbElement uint32, dwAddDisposition uint32, dwFlags uint32, dwContextTypeFlags uint32, pdwContextType *uint32, ppvContext *unsafe.Pointer) (BOOL) = crypt32.CertAddSerializedElementToStore
+//sys	CertDeleteCertificateFromStore(pCertContext *CERT_CONTEXT) (BOOL) = crypt32.CertDeleteCertificateFromStore
+//sys	CertAddEncodedCRLToStore(hCertStore HCERTSTORE, dwCertEncodingType uint32, pbCrlEncoded *uint8, cbCrlEncoded uint32, dwAddDisposition uint32, ppCrlContext **CRL_CONTEXT) (BOOL) = crypt32.CertAddEncodedCRLToStore
+//sys	CertAddCRLContextToStore(hCertStore HCERTSTORE, pCrlContext *CRL_CONTEXT, dwAddDisposition uint32, ppStoreContext **CRL_CONTEXT) (BOOL) = crypt32.CertAddCRLContextToStore
+//sys	CertDeleteCRLFromStore(pCrlContext *CRL_CONTEXT) (BOOL) = crypt32.CertDeleteCRLFromStore
+//sys	CertSerializeCertificateStoreElement(pCertContext *CERT_CONTEXT, dwFlags uint32, pbElement *uint8, pcbElement *uint32) (BOOL) = crypt32.CertSerializeCertificateStoreElement
+//sys	CertSerializeCRLStoreElement(pCrlContext *CRL_CONTEXT, dwFlags uint32, pbElement *uint8, pcbElement *uint32) (BOOL) = crypt32.CertSerializeCRLStoreElement
+//sys	CertDuplicateCTLContext(pCtlContext *CTL_CONTEXT) (*CTL_CONTEXT) = crypt32.CertDuplicateCTLContext
+//sys	CertCreateCTLContext(dwMsgAndCertEncodingType uint32, pbCtlEncoded *uint8, cbCtlEncoded uint32) (*CTL_CONTEXT) = crypt32.CertCreateCTLContext
+//sys	CertFreeCTLContext(pCtlContext *CTL_CONTEXT) (BOOL) = crypt32.CertFreeCTLContext
+//sys	CertSetCTLContextProperty(pCtlContext *CTL_CONTEXT, dwPropId uint32, dwFlags uint32, pvData unsafe.Pointer) (BOOL) = crypt32.CertSetCTLContextProperty
+//sys	CertGetCTLContextProperty(pCtlContext *CTL_CONTEXT, dwPropId uint32, pvData unsafe.Pointer, pcbData *uint32) (BOOL) = crypt32.CertGetCTLContextProperty
+//sys	CertEnumCTLContextProperties(pCtlContext *CTL_CONTEXT, dwPropId uint32) (uint32) = crypt32.CertEnumCTLContextProperties
+//sys	CertEnumCTLsInStore(hCertStore HCERTSTORE, pPrevCtlContext *CTL_CONTEXT) (*CTL_CONTEXT) = crypt32.CertEnumCTLsInStore
+//sys	CertFindSubjectInCTL(dwEncodingType uint32, dwSubjectType uint32, pvSubject unsafe.Pointer, pCtlContext *CTL_CONTEXT, dwFlags uint32) (*CTL_ENTRY) = crypt32.CertFindSubjectInCTL
+//sys	CertFindCTLInStore(hCertStore HCERTSTORE, dwMsgAndCertEncodingType uint32, dwFindFlags uint32, dwFindType CERT_FIND_TYPE, pvFindPara unsafe.Pointer, pPrevCtlContext *CTL_CONTEXT) (*CTL_CONTEXT) = crypt32.CertFindCTLInStore
+//sys	CertAddEncodedCTLToStore(hCertStore HCERTSTORE, dwMsgAndCertEncodingType uint32, pbCtlEncoded *uint8, cbCtlEncoded uint32, dwAddDisposition uint32, ppCtlContext **CTL_CONTEXT) (BOOL) = crypt32.CertAddEncodedCTLToStore
+//sys	CertAddCTLContextToStore(hCertStore HCERTSTORE, pCtlContext *CTL_CONTEXT, dwAddDisposition uint32, ppStoreContext **CTL_CONTEXT) (BOOL) = crypt32.CertAddCTLContextToStore
+//sys	CertSerializeCTLStoreElement(pCtlContext *CTL_CONTEXT, dwFlags uint32, pbElement *uint8, pcbElement *uint32) (BOOL) = crypt32.CertSerializeCTLStoreElement
+//sys	CertDeleteCTLFromStore(pCtlContext *CTL_CONTEXT) (BOOL) = crypt32.CertDeleteCTLFromStore
+//sys	CertAddCertificateLinkToStore(hCertStore HCERTSTORE, pCertContext *CERT_CONTEXT, dwAddDisposition uint32, ppStoreContext **CERT_CONTEXT) (BOOL) = crypt32.CertAddCertificateLinkToStore
+//sys	CertAddCRLLinkToStore(hCertStore HCERTSTORE, pCrlContext *CRL_CONTEXT, dwAddDisposition uint32, ppStoreContext **CRL_CONTEXT) (BOOL) = crypt32.CertAddCRLLinkToStore
+//sys	CertAddCTLLinkToStore(hCertStore HCERTSTORE, pCtlContext *CTL_CONTEXT, dwAddDisposition uint32, ppStoreContext **CTL_CONTEXT) (BOOL) = crypt32.CertAddCTLLinkToStore
+//sys	CertAddStoreToCollection(hCollectionStore HCERTSTORE, hSiblingStore HCERTSTORE, dwUpdateFlags uint32, dwPriority uint32) (BOOL) = crypt32.CertAddStoreToCollection
+//sys	CertRemoveStoreFromCollection(hCollectionStore HCERTSTORE, hSiblingStore HCERTSTORE) = crypt32.CertRemoveStoreFromCollection
+//sys	CertControlStore(hCertStore HCERTSTORE, dwFlags CERT_CONTROL_STORE_FLAGS, dwCtrlType uint32, pvCtrlPara unsafe.Pointer) (BOOL) = crypt32.CertControlStore
+//sys	CertSetStoreProperty(hCertStore HCERTSTORE, dwPropId uint32, dwFlags uint32, pvData unsafe.Pointer) (BOOL) = crypt32.CertSetStoreProperty
+//sys	CertGetStoreProperty(hCertStore HCERTSTORE, dwPropId uint32, pvData unsafe.Pointer, pcbData *uint32) (BOOL) = crypt32.CertGetStoreProperty
+//sys	CertCreateContext(dwContextType uint32, dwEncodingType uint32, pbEncoded *uint8, cbEncoded uint32, dwFlags uint32, pCreatePara *CERT_CREATE_CONTEXT_PARA) (unsafe.Pointer) = crypt32.CertCreateContext
+//sys	CertRegisterSystemStore(pvSystemStore unsafe.Pointer, dwFlags uint32, pStoreInfo *CERT_SYSTEM_STORE_INFO, pvReserved unsafe.Pointer) (BOOL) = crypt32.CertRegisterSystemStore
+//sys	CertRegisterPhysicalStore(pvSystemStore unsafe.Pointer, dwFlags uint32, pwszStoreName PWSTR, pStoreInfo *CERT_PHYSICAL_STORE_INFO, pvReserved unsafe.Pointer) (BOOL) = crypt32.CertRegisterPhysicalStore
+//sys	CertUnregisterSystemStore(pvSystemStore unsafe.Pointer, dwFlags uint32) (BOOL) = crypt32.CertUnregisterSystemStore
+//sys	CertUnregisterPhysicalStore(pvSystemStore unsafe.Pointer, dwFlags uint32, pwszStoreName PWSTR) (BOOL) = crypt32.CertUnregisterPhysicalStore
+//sys	CertEnumSystemStoreLocation(dwFlags uint32, pvArg unsafe.Pointer, pfnEnum PFN_CERT_ENUM_SYSTEM_STORE_LOCATION) (BOOL) = crypt32.CertEnumSystemStoreLocation
+//sys	CertEnumSystemStore(dwFlags uint32, pvSystemStoreLocationPara unsafe.Pointer, pvArg unsafe.Pointer, pfnEnum PFN_CERT_ENUM_SYSTEM_STORE) (BOOL) = crypt32.CertEnumSystemStore
+//sys	CertEnumPhysicalStore(pvSystemStore unsafe.Pointer, dwFlags uint32, pvArg unsafe.Pointer, pfnEnum PFN_CERT_ENUM_PHYSICAL_STORE) (BOOL) = crypt32.CertEnumPhysicalStore
+//sys	CertGetEnhancedKeyUsage(pCertContext *CERT_CONTEXT, dwFlags uint32, pUsage *CTL_USAGE, pcbUsage *uint32) (BOOL) = crypt32.CertGetEnhancedKeyUsage
+//sys	CertSetEnhancedKeyUsage(pCertContext *CERT_CONTEXT, pUsage *CTL_USAGE) (BOOL) = crypt32.CertSetEnhancedKeyUsage
+//sys	CertAddEnhancedKeyUsageIdentifier(pCertContext *CERT_CONTEXT, pszUsageIdentifier PSTR) (BOOL) = crypt32.CertAddEnhancedKeyUsageIdentifier
+//sys	CertRemoveEnhancedKeyUsageIdentifier(pCertContext *CERT_CONTEXT, pszUsageIdentifier PSTR) (BOOL) = crypt32.CertRemoveEnhancedKeyUsageIdentifier
+//sys	CertGetValidUsages(cCerts uint32, rghCerts **CERT_CONTEXT, cNumOIDs *int32, rghOIDs *PSTR, pcbOIDs *uint32) (BOOL) = crypt32.CertGetValidUsages
+//sys	CryptMsgGetAndVerifySigner(hCryptMsg unsafe.Pointer, cSignerStore uint32, rghSignerStore *HCERTSTORE, dwFlags uint32, ppSigner **CERT_CONTEXT, pdwSignerIndex *uint32) (BOOL) = crypt32.CryptMsgGetAndVerifySigner
+//sys	CryptMsgSignCTL(dwMsgEncodingType uint32, pbCtlContent *uint8, cbCtlContent uint32, pSignInfo *CMSG_SIGNED_ENCODE_INFO, dwFlags uint32, pbEncoded *uint8, pcbEncoded *uint32) (BOOL) = crypt32.CryptMsgSignCTL
+//sys	CryptMsgEncodeAndSignCTL(dwMsgEncodingType uint32, pCtlInfo *CTL_INFO, pSignInfo *CMSG_SIGNED_ENCODE_INFO, dwFlags uint32, pbEncoded *uint8, pcbEncoded *uint32) (BOOL) = crypt32.CryptMsgEncodeAndSignCTL
+//sys	CertFindSubjectInSortedCTL(pSubjectIdentifier *CRYPTOAPI_BLOB, pCtlContext *CTL_CONTEXT, dwFlags uint32, pvReserved unsafe.Pointer, pEncodedAttributes *CRYPTOAPI_BLOB) (BOOL) = crypt32.CertFindSubjectInSortedCTL
+//sys	CertEnumSubjectInSortedCTL(pCtlContext *CTL_CONTEXT, ppvNextSubject *unsafe.Pointer, pSubjectIdentifier *CRYPTOAPI_BLOB, pEncodedAttributes *CRYPTOAPI_BLOB) (BOOL) = crypt32.CertEnumSubjectInSortedCTL
+//sys	CertVerifyCTLUsage(dwEncodingType uint32, dwSubjectType uint32, pvSubject unsafe.Pointer, pSubjectUsage *CTL_USAGE, dwFlags uint32, pVerifyUsagePara *CTL_VERIFY_USAGE_PARA, pVerifyUsageStatus *CTL_VERIFY_USAGE_STATUS) (BOOL) = crypt32.CertVerifyCTLUsage
+//sys	CertVerifyRevocation(dwEncodingType uint32, dwRevType uint32, cContext uint32, rgpvContext *unsafe.Pointer, dwFlags uint32, pRevPara *CERT_REVOCATION_PARA, pRevStatus *CERT_REVOCATION_STATUS) (BOOL) = crypt32.CertVerifyRevocation
+//sys	CertCompareIntegerBlob(pInt1 *CRYPTOAPI_BLOB, pInt2 *CRYPTOAPI_BLOB) (BOOL) = crypt32.CertCompareIntegerBlob
+//sys	CertCompareCertificate(dwCertEncodingType uint32, pCertId1 *CERT_INFO, pCertId2 *CERT_INFO) (BOOL) = crypt32.CertCompareCertificate
+//sys	CertCompareCertificateName(dwCertEncodingType uint32, pCertName1 *CRYPTOAPI_BLOB, pCertName2 *CRYPTOAPI_BLOB) (BOOL) = crypt32.CertCompareCertificateName
+//sys	CertIsRDNAttrsInCertificateName(dwCertEncodingType uint32, dwFlags uint32, pCertName *CRYPTOAPI_BLOB, pRDN *CERT_RDN) (BOOL) = crypt32.CertIsRDNAttrsInCertificateName
+//sys	CertComparePublicKeyInfo(dwCertEncodingType uint32, pPublicKey1 *CERT_PUBLIC_KEY_INFO, pPublicKey2 *CERT_PUBLIC_KEY_INFO) (BOOL) = crypt32.CertComparePublicKeyInfo
+//sys	CertGetPublicKeyLength(dwCertEncodingType uint32, pPublicKey *CERT_PUBLIC_KEY_INFO) (uint32) = crypt32.CertGetPublicKeyLength
+//sys	CryptVerifyCertificateSignature(hCryptProv HCRYPTPROV_LEGACY, dwCertEncodingType uint32, pbEncoded *uint8, cbEncoded uint32, pPublicKey *CERT_PUBLIC_KEY_INFO) (BOOL) = crypt32.CryptVerifyCertificateSignature
+//sys	CryptVerifyCertificateSignatureEx(hCryptProv HCRYPTPROV_LEGACY, dwCertEncodingType uint32, dwSubjectType uint32, pvSubject unsafe.Pointer, dwIssuerType uint32, pvIssuer unsafe.Pointer, dwFlags CRYPT_VERIFY_CERT_FLAGS, pvExtra unsafe.Pointer) (BOOL) = crypt32.CryptVerifyCertificateSignatureEx
+//sys	CertIsStrongHashToSign(pStrongSignPara *CERT_STRONG_SIGN_PARA, pwszCNGHashAlgid PWSTR, pSigningCert *CERT_CONTEXT) (BOOL) = crypt32.CertIsStrongHashToSign
+//sys	CryptHashToBeSigned(hCryptProv HCRYPTPROV_LEGACY, dwCertEncodingType uint32, pbEncoded *uint8, cbEncoded uint32, pbComputedHash *uint8, pcbComputedHash *uint32) (BOOL) = crypt32.CryptHashToBeSigned
+//sys	CryptHashCertificate(hCryptProv HCRYPTPROV_LEGACY, Algid uint32, dwFlags uint32, pbEncoded *uint8, cbEncoded uint32, pbComputedHash *uint8, pcbComputedHash *uint32) (BOOL) = crypt32.CryptHashCertificate
+//sys	CryptHashCertificate2(pwszCNGHashAlgid PWSTR, dwFlags uint32, pvReserved unsafe.Pointer, pbEncoded *uint8, cbEncoded uint32, pbComputedHash *uint8, pcbComputedHash *uint32) (BOOL) = crypt32.CryptHashCertificate2
+//sys	CryptSignCertificate(hCryptProvOrNCryptKey HCRYPTPROV_OR_NCRYPT_KEY_HANDLE, dwKeySpec uint32, dwCertEncodingType uint32, pbEncodedToBeSigned *uint8, cbEncodedToBeSigned uint32, pSignatureAlgorithm *CRYPT_ALGORITHM_IDENTIFIER, pvHashAuxInfo unsafe.Pointer, pbSignature *uint8, pcbSignature *uint32) (BOOL) = crypt32.CryptSignCertificate
+//sys	CryptSignAndEncodeCertificate(hCryptProvOrNCryptKey HCRYPTPROV_OR_NCRYPT_KEY_HANDLE, dwKeySpec CERT_KEY_SPEC, dwCertEncodingType uint32, lpszStructType PSTR, pvStructInfo unsafe.Pointer, pSignatureAlgorithm *CRYPT_ALGORITHM_IDENTIFIER, pvHashAuxInfo unsafe.Pointer, pbEncoded *uint8, pcbEncoded *uint32) (BOOL) = crypt32.CryptSignAndEncodeCertificate
+//sys	CertVerifyTimeValidity(pTimeToVerify *FILETIME, pCertInfo *CERT_INFO) (int32) = crypt32.CertVerifyTimeValidity
+//sys	CertVerifyCRLTimeValidity(pTimeToVerify *FILETIME, pCrlInfo *CRL_INFO) (int32) = crypt32.CertVerifyCRLTimeValidity
+//sys	CertVerifyValidityNesting(pSubjectInfo *CERT_INFO, pIssuerInfo *CERT_INFO) (BOOL) = crypt32.CertVerifyValidityNesting
+//sys	CertVerifyCRLRevocation(dwCertEncodingType uint32, pCertId *CERT_INFO, cCrlInfo uint32, rgpCrlInfo **CRL_INFO) (BOOL) = crypt32.CertVerifyCRLRevocation
+//sys	CertAlgIdToOID(dwAlgId uint32) (PSTR) = crypt32.CertAlgIdToOID
+//sys	CertOIDToAlgId(pszObjId PSTR) (uint32) = crypt32.CertOIDToAlgId
+//sys	CertFindExtension(pszObjId PSTR, cExtensions uint32, rgExtensions *CERT_EXTENSION) (*CERT_EXTENSION) = crypt32.CertFindExtension
+//sys	CertFindAttribute(pszObjId PSTR, cAttr uint32, rgAttr *CRYPT_ATTRIBUTE) (*CRYPT_ATTRIBUTE) = crypt32.CertFindAttribute
+//sys	CertFindRDNAttr(pszObjId PSTR, pName *CERT_NAME_INFO) (*CERT_RDN_ATTR) = crypt32.CertFindRDNAttr
+//sys	CertGetIntendedKeyUsage(dwCertEncodingType uint32, pCertInfo *CERT_INFO, pbKeyUsage *uint8, cbKeyUsage uint32) (BOOL) = crypt32.CertGetIntendedKeyUsage
+//sys	CryptInstallDefaultContext(hCryptProv uintptr, dwDefaultType CRYPT_DEFAULT_CONTEXT_TYPE, pvDefaultPara unsafe.Pointer, dwFlags CRYPT_DEFAULT_CONTEXT_FLAGS, pvReserved unsafe.Pointer, phDefaultContext *unsafe.Pointer) (BOOL) = crypt32.CryptInstallDefaultContext
+//sys	CryptUninstallDefaultContext(hDefaultContext unsafe.Pointer, dwFlags uint32, pvReserved unsafe.Pointer) (BOOL) = crypt32.CryptUninstallDefaultContext
+//sys	CryptExportPublicKeyInfo(hCryptProvOrNCryptKey HCRYPTPROV_OR_NCRYPT_KEY_HANDLE, dwKeySpec uint32, dwCertEncodingType uint32, pInfo *CERT_PUBLIC_KEY_INFO, pcbInfo *uint32) (BOOL) = crypt32.CryptExportPublicKeyInfo
+//sys	CryptExportPublicKeyInfoEx(hCryptProvOrNCryptKey HCRYPTPROV_OR_NCRYPT_KEY_HANDLE, dwKeySpec uint32, dwCertEncodingType uint32, pszPublicKeyObjId PSTR, dwFlags uint32, pvAuxInfo unsafe.Pointer, pInfo *CERT_PUBLIC_KEY_INFO, pcbInfo *uint32) (BOOL) = crypt32.CryptExportPublicKeyInfoEx
+//sys	CryptExportPublicKeyInfoFromBCryptKeyHandle(hBCryptKey BCRYPT_KEY_HANDLE, dwCertEncodingType uint32, pszPublicKeyObjId PSTR, dwFlags uint32, pvAuxInfo unsafe.Pointer, pInfo *CERT_PUBLIC_KEY_INFO, pcbInfo *uint32) (BOOL) = crypt32.CryptExportPublicKeyInfoFromBCryptKeyHandle
+//sys	CryptImportPublicKeyInfo(hCryptProv uintptr, dwCertEncodingType uint32, pInfo *CERT_PUBLIC_KEY_INFO, phKey *uintptr) (BOOL) = crypt32.CryptImportPublicKeyInfo
+//sys	CryptImportPublicKeyInfoEx(hCryptProv uintptr, dwCertEncodingType uint32, pInfo *CERT_PUBLIC_KEY_INFO, aiKeyAlg uint32, dwFlags uint32, pvAuxInfo unsafe.Pointer, phKey *uintptr) (BOOL) = crypt32.CryptImportPublicKeyInfoEx
+//sys	CryptImportPublicKeyInfoEx2(dwCertEncodingType uint32, pInfo *CERT_PUBLIC_KEY_INFO, dwFlags CRYPT_IMPORT_PUBLIC_KEY_FLAGS, pvAuxInfo unsafe.Pointer, phKey *BCRYPT_KEY_HANDLE) (BOOL) = crypt32.CryptImportPublicKeyInfoEx2
+//sys	CryptAcquireCertificatePrivateKey(pCert *CERT_CONTEXT, dwFlags CRYPT_ACQUIRE_FLAGS, pvParameters unsafe.Pointer, phCryptProvOrNCryptKey *HCRYPTPROV_OR_NCRYPT_KEY_HANDLE, pdwKeySpec *CERT_KEY_SPEC, pfCallerFreeProvOrNCryptKey *BOOL) (BOOL) = crypt32.CryptAcquireCertificatePrivateKey
+//sys	CryptFindCertificateKeyProvInfo(pCert *CERT_CONTEXT, dwFlags CRYPT_FIND_FLAGS, pvReserved unsafe.Pointer) (BOOL) = crypt32.CryptFindCertificateKeyProvInfo
+//sys	CryptImportPKCS8(sPrivateKeyAndParams CRYPT_PKCS8_IMPORT_PARAMS, dwFlags CRYPT_KEY_FLAGS, phCryptProv *uintptr, pvAuxInfo unsafe.Pointer) (BOOL) = crypt32.CryptImportPKCS8
+//sys	CryptExportPKCS8(hCryptProv uintptr, dwKeySpec uint32, pszPrivateKeyObjId PSTR, dwFlags uint32, pvAuxInfo unsafe.Pointer, pbPrivateKeyBlob *uint8, pcbPrivateKeyBlob *uint32) (BOOL) = crypt32.CryptExportPKCS8
+//sys	CryptHashPublicKeyInfo(hCryptProv HCRYPTPROV_LEGACY, Algid uint32, dwFlags uint32, dwCertEncodingType uint32, pInfo *CERT_PUBLIC_KEY_INFO, pbComputedHash *uint8, pcbComputedHash *uint32) (BOOL) = crypt32.CryptHashPublicKeyInfo
+//sys	CertRDNValueToStrA(dwValueType uint32, pValue *CRYPTOAPI_BLOB, psz PSTR, csz uint32) (uint32) = crypt32.CertRDNValueToStrA
+//sys	CertRDNValueToStrW(dwValueType uint32, pValue *CRYPTOAPI_BLOB, psz PWSTR, csz uint32) (uint32) = crypt32.CertRDNValueToStrW
+//sys	CertNameToStrA(dwCertEncodingType uint32, pName *CRYPTOAPI_BLOB, dwStrType CERT_STRING_TYPE, psz PSTR, csz uint32) (uint32) = crypt32.CertNameToStrA
+//sys	CertNameToStrW(dwCertEncodingType uint32, pName *CRYPTOAPI_BLOB, dwStrType CERT_STRING_TYPE, psz PWSTR, csz uint32) (uint32) = crypt32.CertNameToStrW
+//sys	CertStrToNameA(dwCertEncodingType uint32, pszX500 PSTR, dwStrType CERT_STRING_TYPE, pvReserved unsafe.Pointer, pbEncoded *uint8, pcbEncoded *uint32, ppszError *PSTR) (BOOL) = crypt32.CertStrToNameA
+//sys	CertStrToNameW(dwCertEncodingType uint32, pszX500 PWSTR, dwStrType CERT_STRING_TYPE, pvReserved unsafe.Pointer, pbEncoded *uint8, pcbEncoded *uint32, ppszError *PWSTR) (BOOL) = crypt32.CertStrToNameW
+//sys	CertGetNameStringA(pCertContext *CERT_CONTEXT, dwType uint32, dwFlags uint32, pvTypePara unsafe.Pointer, pszNameString PSTR, cchNameString uint32) (uint32) = crypt32.CertGetNameStringA
+//sys	CertGetNameStringW(pCertContext *CERT_CONTEXT, dwType uint32, dwFlags uint32, pvTypePara unsafe.Pointer, pszNameString PWSTR, cchNameString uint32) (uint32) = crypt32.CertGetNameStringW
+//sys	CryptSignMessage(pSignPara *CRYPT_SIGN_MESSAGE_PARA, fDetachedSignature BOOL, cToBeSigned uint32, rgpbToBeSigned **uint8, rgcbToBeSigned *uint32, pbSignedBlob *uint8, pcbSignedBlob *uint32) (BOOL) = crypt32.CryptSignMessage
+//sys	CryptVerifyMessageSignature(pVerifyPara *CRYPT_VERIFY_MESSAGE_PARA, dwSignerIndex uint32, pbSignedBlob *uint8, cbSignedBlob uint32, pbDecoded *uint8, pcbDecoded *uint32, ppSignerCert **CERT_CONTEXT) (BOOL) = crypt32.CryptVerifyMessageSignature
+//sys	CryptGetMessageSignerCount(dwMsgEncodingType uint32, pbSignedBlob *uint8, cbSignedBlob uint32) (int32) = crypt32.CryptGetMessageSignerCount
+//sys	CryptGetMessageCertificates(dwMsgAndCertEncodingType uint32, hCryptProv HCRYPTPROV_LEGACY, dwFlags uint32, pbSignedBlob *uint8, cbSignedBlob uint32) (HCERTSTORE) = crypt32.CryptGetMessageCertificates
+//sys	CryptVerifyDetachedMessageSignature(pVerifyPara *CRYPT_VERIFY_MESSAGE_PARA, dwSignerIndex uint32, pbDetachedSignBlob *uint8, cbDetachedSignBlob uint32, cToBeSigned uint32, rgpbToBeSigned **uint8, rgcbToBeSigned *uint32, ppSignerCert **CERT_CONTEXT) (BOOL) = crypt32.CryptVerifyDetachedMessageSignature
+//sys	CryptEncryptMessage(pEncryptPara *CRYPT_ENCRYPT_MESSAGE_PARA, cRecipientCert uint32, rgpRecipientCert **CERT_CONTEXT, pbToBeEncrypted *uint8, cbToBeEncrypted uint32, pbEncryptedBlob *uint8, pcbEncryptedBlob *uint32) (BOOL) = crypt32.CryptEncryptMessage
+//sys	CryptDecryptMessage(pDecryptPara *CRYPT_DECRYPT_MESSAGE_PARA, pbEncryptedBlob *uint8, cbEncryptedBlob uint32, pbDecrypted *uint8, pcbDecrypted *uint32, ppXchgCert **CERT_CONTEXT) (BOOL) = crypt32.CryptDecryptMessage
+//sys	CryptSignAndEncryptMessage(pSignPara *CRYPT_SIGN_MESSAGE_PARA, pEncryptPara *CRYPT_ENCRYPT_MESSAGE_PARA, cRecipientCert uint32, rgpRecipientCert **CERT_CONTEXT, pbToBeSignedAndEncrypted *uint8, cbToBeSignedAndEncrypted uint32, pbSignedAndEncryptedBlob *uint8, pcbSignedAndEncryptedBlob *uint32) (BOOL) = crypt32.CryptSignAndEncryptMessage
+//sys	CryptDecryptAndVerifyMessageSignature(pDecryptPara *CRYPT_DECRYPT_MESSAGE_PARA, pVerifyPara *CRYPT_VERIFY_MESSAGE_PARA, dwSignerIndex uint32, pbEncryptedBlob *uint8, cbEncryptedBlob uint32, pbDecrypted *uint8, pcbDecrypted *uint32, ppXchgCert **CERT_CONTEXT, ppSignerCert **CERT_CONTEXT) (BOOL) = crypt32.CryptDecryptAndVerifyMessageSignature
+//sys	CryptDecodeMessage(dwMsgTypeFlags uint32, pDecryptPara *CRYPT_DECRYPT_MESSAGE_PARA, pVerifyPara *CRYPT_VERIFY_MESSAGE_PARA, dwSignerIndex uint32, pbEncodedBlob *uint8, cbEncodedBlob uint32, dwPrevInnerContentType uint32, pdwMsgType *uint32, pdwInnerContentType *uint32, pbDecoded *uint8, pcbDecoded *uint32, ppXchgCert **CERT_CONTEXT, ppSignerCert **CERT_CONTEXT) (BOOL) = crypt32.CryptDecodeMessage
+//sys	CryptHashMessage(pHashPara *CRYPT_HASH_MESSAGE_PARA, fDetachedHash BOOL, cToBeHashed uint32, rgpbToBeHashed **uint8, rgcbToBeHashed *uint32, pbHashedBlob *uint8, pcbHashedBlob *uint32, pbComputedHash *uint8, pcbComputedHash *uint32) (BOOL) = crypt32.CryptHashMessage
+//sys	CryptVerifyMessageHash(pHashPara *CRYPT_HASH_MESSAGE_PARA, pbHashedBlob *uint8, cbHashedBlob uint32, pbToBeHashed *uint8, pcbToBeHashed *uint32, pbComputedHash *uint8, pcbComputedHash *uint32) (BOOL) = crypt32.CryptVerifyMessageHash
+//sys	CryptVerifyDetachedMessageHash(pHashPara *CRYPT_HASH_MESSAGE_PARA, pbDetachedHashBlob *uint8, cbDetachedHashBlob uint32, cToBeHashed uint32, rgpbToBeHashed **uint8, rgcbToBeHashed *uint32, pbComputedHash *uint8, pcbComputedHash *uint32) (BOOL) = crypt32.CryptVerifyDetachedMessageHash
+//sys	CryptSignMessageWithKey(pSignPara *CRYPT_KEY_SIGN_MESSAGE_PARA, pbToBeSigned *uint8, cbToBeSigned uint32, pbSignedBlob *uint8, pcbSignedBlob *uint32) (BOOL) = crypt32.CryptSignMessageWithKey
+//sys	CryptVerifyMessageSignatureWithKey(pVerifyPara *CRYPT_KEY_VERIFY_MESSAGE_PARA, pPublicKeyInfo *CERT_PUBLIC_KEY_INFO, pbSignedBlob *uint8, cbSignedBlob uint32, pbDecoded *uint8, pcbDecoded *uint32) (BOOL) = crypt32.CryptVerifyMessageSignatureWithKey
+//sys	CertOpenSystemStoreA(hProv HCRYPTPROV_LEGACY, szSubsystemProtocol PSTR) (HCERTSTORE) = crypt32.CertOpenSystemStoreA
+//sys	CertOpenSystemStoreW(hProv HCRYPTPROV_LEGACY, szSubsystemProtocol PWSTR) (HCERTSTORE) = crypt32.CertOpenSystemStoreW
+//sys	CertAddEncodedCertificateToSystemStoreA(szCertStoreName PSTR, pbCertEncoded *uint8, cbCertEncoded uint32) (BOOL) = crypt32.CertAddEncodedCertificateToSystemStoreA
+//sys	CertAddEncodedCertificateToSystemStoreW(szCertStoreName PWSTR, pbCertEncoded *uint8, cbCertEncoded uint32) (BOOL) = crypt32.CertAddEncodedCertificateToSystemStoreW
+//sys	FindCertsByIssuer(pCertChains *CERT_CHAIN, pcbCertChains *uint32, pcCertChains *uint32, pbEncodedIssuerName *uint8, cbEncodedIssuerName uint32, pwszPurpose PWSTR, dwKeySpec uint32) (HRESULT) = wintrust.FindCertsByIssuer
+//sys	CryptQueryObject(dwObjectType CERT_QUERY_OBJECT_TYPE, pvObject unsafe.Pointer, dwExpectedContentTypeFlags CERT_QUERY_CONTENT_TYPE_FLAGS, dwExpectedFormatTypeFlags CERT_QUERY_FORMAT_TYPE_FLAGS, dwFlags uint32, pdwMsgAndCertEncodingType *CERT_QUERY_ENCODING_TYPE, pdwContentType *CERT_QUERY_CONTENT_TYPE, pdwFormatType *CERT_QUERY_FORMAT_TYPE, phCertStore *HCERTSTORE, phMsg *unsafe.Pointer, ppvContext *unsafe.Pointer) (BOOL) = crypt32.CryptQueryObject
+//sys	CryptMemAlloc(cbSize uint32) (unsafe.Pointer) = crypt32.CryptMemAlloc
+//sys	CryptMemRealloc(pv unsafe.Pointer, cbSize uint32) (unsafe.Pointer) = crypt32.CryptMemRealloc
+//sys	CryptMemFree(pv unsafe.Pointer) = crypt32.CryptMemFree
+//sys	CryptCreateAsyncHandle(dwFlags uint32, phAsync *HCRYPTASYNC) (BOOL) = crypt32.CryptCreateAsyncHandle
+//sys	CryptSetAsyncParam(hAsync HCRYPTASYNC, pszParamOid PSTR, pvParam unsafe.Pointer, pfnFree PFN_CRYPT_ASYNC_PARAM_FREE_FUNC) (BOOL) = crypt32.CryptSetAsyncParam
+//sys	CryptGetAsyncParam(hAsync HCRYPTASYNC, pszParamOid PSTR, ppvParam *unsafe.Pointer, ppfnFree *PFN_CRYPT_ASYNC_PARAM_FREE_FUNC) (BOOL) = crypt32.CryptGetAsyncParam
+//sys	CryptCloseAsyncHandle(hAsync HCRYPTASYNC) (BOOL) = crypt32.CryptCloseAsyncHandle
+//sys	CryptRetrieveObjectByUrlA(pszUrl PSTR, pszObjectOid PSTR, dwRetrievalFlags uint32, dwTimeout uint32, ppvObject *unsafe.Pointer, hAsyncRetrieve HCRYPTASYNC, pCredentials *CRYPT_CREDENTIALS, pvVerify unsafe.Pointer, pAuxInfo *CRYPT_RETRIEVE_AUX_INFO) (BOOL) = cryptnet.CryptRetrieveObjectByUrlA
+//sys	CryptRetrieveObjectByUrlW(pszUrl PWSTR, pszObjectOid PSTR, dwRetrievalFlags uint32, dwTimeout uint32, ppvObject *unsafe.Pointer, hAsyncRetrieve HCRYPTASYNC, pCredentials *CRYPT_CREDENTIALS, pvVerify unsafe.Pointer, pAuxInfo *CRYPT_RETRIEVE_AUX_INFO) (BOOL) = cryptnet.CryptRetrieveObjectByUrlW
+//sys	CryptInstallCancelRetrieval(pfnCancel PFN_CRYPT_CANCEL_RETRIEVAL, pvArg unsafe.Pointer, dwFlags uint32, pvReserved unsafe.Pointer) (BOOL) = cryptnet.CryptInstallCancelRetrieval
+//sys	CryptUninstallCancelRetrieval(dwFlags uint32, pvReserved unsafe.Pointer) (BOOL) = cryptnet.CryptUninstallCancelRetrieval
+//sys	CryptGetObjectUrl(pszUrlOid PSTR, pvPara unsafe.Pointer, dwFlags CRYPT_GET_URL_FLAGS, pUrlArray *CRYPT_URL_ARRAY, pcbUrlArray *uint32, pUrlInfo *CRYPT_URL_INFO, pcbUrlInfo *uint32, pvReserved unsafe.Pointer) (BOOL) = cryptnet.CryptGetObjectUrl
+//sys	CertCreateSelfSignCertificate(hCryptProvOrNCryptKey HCRYPTPROV_OR_NCRYPT_KEY_HANDLE, pSubjectIssuerBlob *CRYPTOAPI_BLOB, dwFlags CERT_CREATE_SELFSIGN_FLAGS, pKeyProvInfo *CRYPT_KEY_PROV_INFO, pSignatureAlgorithm *CRYPT_ALGORITHM_IDENTIFIER, pStartTime *SYSTEMTIME, pEndTime *SYSTEMTIME, pExtensions *CERT_EXTENSIONS) (*CERT_CONTEXT) = crypt32.CertCreateSelfSignCertificate
+//sys	CryptGetKeyIdentifierProperty(pKeyIdentifier *CRYPTOAPI_BLOB, dwPropId uint32, dwFlags uint32, pwszComputerName PWSTR, pvReserved unsafe.Pointer, pvData unsafe.Pointer, pcbData *uint32) (BOOL) = crypt32.CryptGetKeyIdentifierProperty
+//sys	CryptSetKeyIdentifierProperty(pKeyIdentifier *CRYPTOAPI_BLOB, dwPropId uint32, dwFlags uint32, pwszComputerName PWSTR, pvReserved unsafe.Pointer, pvData unsafe.Pointer) (BOOL) = crypt32.CryptSetKeyIdentifierProperty
+//sys	CryptEnumKeyIdentifierProperties(pKeyIdentifier *CRYPTOAPI_BLOB, dwPropId uint32, dwFlags uint32, pwszComputerName PWSTR, pvReserved unsafe.Pointer, pvArg unsafe.Pointer, pfnEnum PFN_CRYPT_ENUM_KEYID_PROP) (BOOL) = crypt32.CryptEnumKeyIdentifierProperties
+//sys	CryptCreateKeyIdentifierFromCSP(dwCertEncodingType uint32, pszPubKeyOID PSTR, pPubKeyStruc *PUBLICKEYSTRUC, cbPubKeyStruc uint32, dwFlags uint32, pvReserved unsafe.Pointer, pbHash *uint8, pcbHash *uint32) (BOOL) = crypt32.CryptCreateKeyIdentifierFromCSP
+//sys	CertCreateCertificateChainEngine(pConfig *CERT_CHAIN_ENGINE_CONFIG, phChainEngine *HCERTCHAINENGINE) (BOOL) = crypt32.CertCreateCertificateChainEngine
+//sys	CertFreeCertificateChainEngine(hChainEngine HCERTCHAINENGINE) = crypt32.CertFreeCertificateChainEngine
+//sys	CertResyncCertificateChainEngine(hChainEngine HCERTCHAINENGINE) (BOOL) = crypt32.CertResyncCertificateChainEngine
+//sys	CertGetCertificateChain(hChainEngine HCERTCHAINENGINE, pCertContext *CERT_CONTEXT, pTime *FILETIME, hAdditionalStore HCERTSTORE, pChainPara *CERT_CHAIN_PARA, dwFlags uint32, pvReserved unsafe.Pointer, ppChainContext **CERT_CHAIN_CONTEXT) (BOOL) = crypt32.CertGetCertificateChain
+//sys	CertFreeCertificateChain(pChainContext *CERT_CHAIN_CONTEXT) = crypt32.CertFreeCertificateChain
+//sys	CertDuplicateCertificateChain(pChainContext *CERT_CHAIN_CONTEXT) (*CERT_CHAIN_CONTEXT) = crypt32.CertDuplicateCertificateChain
+//sys	CertFindChainInStore(hCertStore HCERTSTORE, dwCertEncodingType uint32, dwFindFlags CERT_FIND_CHAIN_IN_STORE_FLAGS, dwFindType uint32, pvFindPara unsafe.Pointer, pPrevChainContext *CERT_CHAIN_CONTEXT) (*CERT_CHAIN_CONTEXT) = crypt32.CertFindChainInStore
+//sys	CertVerifyCertificateChainPolicy(pszPolicyOID PSTR, pChainContext *CERT_CHAIN_CONTEXT, pPolicyPara *CERT_CHAIN_POLICY_PARA, pPolicyStatus *CERT_CHAIN_POLICY_STATUS) (BOOL) = crypt32.CertVerifyCertificateChainPolicy
+//sys	CryptStringToBinaryA(pszString PSTR, cchString uint32, dwFlags CRYPT_STRING, pbBinary *uint8, pcbBinary *uint32, pdwSkip *uint32, pdwFlags *uint32) (BOOL) = crypt32.CryptStringToBinaryA
+//sys	CryptStringToBinaryW(pszString PWSTR, cchString uint32, dwFlags CRYPT_STRING, pbBinary *uint8, pcbBinary *uint32, pdwSkip *uint32, pdwFlags *uint32) (BOOL) = crypt32.CryptStringToBinaryW
+//sys	CryptBinaryToStringA(pbBinary *uint8, cbBinary uint32, dwFlags CRYPT_STRING, pszString PSTR, pcchString *uint32) (BOOL) = crypt32.CryptBinaryToStringA
+//sys	CryptBinaryToStringW(pbBinary *uint8, cbBinary uint32, dwFlags CRYPT_STRING, pszString PWSTR, pcchString *uint32) (BOOL) = crypt32.CryptBinaryToStringW
+//sys	PFXImportCertStore(pPFX *CRYPTOAPI_BLOB, szPassword PWSTR, dwFlags CRYPT_KEY_FLAGS) (HCERTSTORE) = crypt32.PFXImportCertStore
+//sys	PFXIsPFXBlob(pPFX *CRYPTOAPI_BLOB) (BOOL) = crypt32.PFXIsPFXBlob
+//sys	PFXVerifyPassword(pPFX *CRYPTOAPI_BLOB, szPassword PWSTR, dwFlags uint32) (BOOL) = crypt32.PFXVerifyPassword
+//sys	PFXExportCertStoreEx(hStore HCERTSTORE, pPFX *CRYPTOAPI_BLOB, szPassword PWSTR, pvPara unsafe.Pointer, dwFlags uint32) (BOOL) = crypt32.PFXExportCertStoreEx
+//sys	PFXExportCertStore(hStore HCERTSTORE, pPFX *CRYPTOAPI_BLOB, szPassword PWSTR, dwFlags uint32) (BOOL) = crypt32.PFXExportCertStore
+//sys	CertOpenServerOcspResponse(pChainContext *CERT_CHAIN_CONTEXT, dwFlags uint32, pOpenPara *CERT_SERVER_OCSP_RESPONSE_OPEN_PARA) (unsafe.Pointer) = crypt32.CertOpenServerOcspResponse
+//sys	CertAddRefServerOcspResponse(hServerOcspResponse unsafe.Pointer) = crypt32.CertAddRefServerOcspResponse
+//sys	CertCloseServerOcspResponse(hServerOcspResponse unsafe.Pointer, dwFlags uint32) = crypt32.CertCloseServerOcspResponse
+//sys	CertGetServerOcspResponseContext(hServerOcspResponse unsafe.Pointer, dwFlags uint32, pvReserved unsafe.Pointer) (*CERT_SERVER_OCSP_RESPONSE_CONTEXT) = crypt32.CertGetServerOcspResponseContext
+//sys	CertAddRefServerOcspResponseContext(pServerOcspResponseContext *CERT_SERVER_OCSP_RESPONSE_CONTEXT) = crypt32.CertAddRefServerOcspResponseContext
+//sys	CertFreeServerOcspResponseContext(pServerOcspResponseContext *CERT_SERVER_OCSP_RESPONSE_CONTEXT) = crypt32.CertFreeServerOcspResponseContext
+//sys	CertRetrieveLogoOrBiometricInfo(pCertContext *CERT_CONTEXT, lpszLogoOrBiometricType PSTR, dwRetrievalFlags uint32, dwTimeout uint32, dwFlags uint32, pvReserved unsafe.Pointer, ppbData **uint8, pcbData *uint32, ppwszMimeType *PWSTR) (BOOL) = crypt32.CertRetrieveLogoOrBiometricInfo
+//sys	CertSelectCertificateChains(pSelectionContext *Guid, dwFlags uint32, pChainParameters *CERT_SELECT_CHAIN_PARA, cCriteria uint32, rgpCriteria *CERT_SELECT_CRITERIA, hStore HCERTSTORE, pcSelection *uint32, pprgpSelection ***CERT_CHAIN_CONTEXT) (BOOL) = crypt32.CertSelectCertificateChains
+//sys	CertFreeCertificateChainList(prgpSelection **CERT_CHAIN_CONTEXT) = crypt32.CertFreeCertificateChainList
+//sys	CryptRetrieveTimeStamp(wszUrl PWSTR, dwRetrievalFlags uint32, dwTimeout uint32, pszHashId PSTR, pPara *CRYPT_TIMESTAMP_PARA, pbData *uint8, cbData uint32, ppTsContext **CRYPT_TIMESTAMP_CONTEXT, ppTsSigner **CERT_CONTEXT, phStore *HCERTSTORE) (BOOL) = crypt32.CryptRetrieveTimeStamp
+//sys	CryptVerifyTimeStampSignature(pbTSContentInfo *uint8, cbTSContentInfo uint32, pbData *uint8, cbData uint32, hAdditionalStore HCERTSTORE, ppTsContext **CRYPT_TIMESTAMP_CONTEXT, ppTsSigner **CERT_CONTEXT, phStore *HCERTSTORE) (BOOL) = crypt32.CryptVerifyTimeStampSignature
+//sys	CertIsWeakHash(dwHashUseType uint32, pwszCNGHashAlgid PWSTR, dwChainFlags uint32, pSignerChainContext *CERT_CHAIN_CONTEXT, pTimeStamp *FILETIME, pwszFileName PWSTR) (BOOL) = crypt32.CertIsWeakHash
+//sys	CryptProtectData(pDataIn *CRYPTOAPI_BLOB, szDataDescr PWSTR, pOptionalEntropy *CRYPTOAPI_BLOB, pvReserved unsafe.Pointer, pPromptStruct *CRYPTPROTECT_PROMPTSTRUCT, dwFlags uint32, pDataOut *CRYPTOAPI_BLOB) (BOOL) = crypt32.CryptProtectData
+//sys	CryptUnprotectData(pDataIn *CRYPTOAPI_BLOB, ppszDataDescr *PWSTR, pOptionalEntropy *CRYPTOAPI_BLOB, pvReserved unsafe.Pointer, pPromptStruct *CRYPTPROTECT_PROMPTSTRUCT, dwFlags uint32, pDataOut *CRYPTOAPI_BLOB) (BOOL) = crypt32.CryptUnprotectData
+//sys	CryptUpdateProtectedState(pOldSid PSID, pwszOldPassword PWSTR, dwFlags uint32, pdwSuccessCount *uint32, pdwFailureCount *uint32) (BOOL) = crypt32.CryptUpdateProtectedState
+//sys	CryptProtectMemory(pDataIn unsafe.Pointer, cbDataIn uint32, dwFlags uint32) (BOOL) = crypt32.CryptProtectMemory
+//sys	CryptUnprotectMemory(pDataIn unsafe.Pointer, cbDataIn uint32, dwFlags uint32) (BOOL) = crypt32.CryptUnprotectMemory
+//sys	NCryptRegisterProtectionDescriptorName(pwszName PWSTR, pwszDescriptorString PWSTR, dwFlags uint32) (HRESULT) = ncrypt.NCryptRegisterProtectionDescriptorName
+//sys	NCryptQueryProtectionDescriptorName(pwszName PWSTR, pwszDescriptorString PWSTR, pcDescriptorString *uintptr, dwFlags uint32) (HRESULT) = ncrypt.NCryptQueryProtectionDescriptorName
+//sys	NCryptCreateProtectionDescriptor(pwszDescriptorString PWSTR, dwFlags uint32, phDescriptor *NCRYPT_DESCRIPTOR_HANDLE) (HRESULT) = ncrypt.NCryptCreateProtectionDescriptor
+//sys	NCryptCloseProtectionDescriptor(hDescriptor NCRYPT_DESCRIPTOR_HANDLE) (HRESULT) = ncrypt.NCryptCloseProtectionDescriptor
+//sys	NCryptGetProtectionDescriptorInfo(hDescriptor NCRYPT_DESCRIPTOR_HANDLE, pMemPara *NCRYPT_ALLOC_PARA, dwInfoType uint32, ppvInfo *unsafe.Pointer) (HRESULT) = ncrypt.NCryptGetProtectionDescriptorInfo
+//sys	NCryptProtectSecret(hDescriptor NCRYPT_DESCRIPTOR_HANDLE, dwFlags uint32, pbData *uint8, cbData uint32, pMemPara *NCRYPT_ALLOC_PARA, hWnd HWND, ppbProtectedBlob **uint8, pcbProtectedBlob *uint32) (HRESULT) = ncrypt.NCryptProtectSecret
+//sys	NCryptUnprotectSecret(phDescriptor *NCRYPT_DESCRIPTOR_HANDLE, dwFlags NCRYPT_FLAGS, pbProtectedBlob *uint8, cbProtectedBlob uint32, pMemPara *NCRYPT_ALLOC_PARA, hWnd HWND, ppbData **uint8, pcbData *uint32) (HRESULT) = ncrypt.NCryptUnprotectSecret
+//sys	NCryptStreamOpenToProtect(hDescriptor NCRYPT_DESCRIPTOR_HANDLE, dwFlags uint32, hWnd HWND, pStreamInfo *NCRYPT_PROTECT_STREAM_INFO, phStream *NCRYPT_STREAM_HANDLE) (HRESULT) = ncrypt.NCryptStreamOpenToProtect
+//sys	NCryptStreamOpenToUnprotect(pStreamInfo *NCRYPT_PROTECT_STREAM_INFO, dwFlags uint32, hWnd HWND, phStream *NCRYPT_STREAM_HANDLE) (HRESULT) = ncrypt.NCryptStreamOpenToUnprotect
+//sys	NCryptStreamOpenToUnprotectEx(pStreamInfo *NCRYPT_PROTECT_STREAM_INFO_EX, dwFlags uint32, hWnd HWND, phStream *NCRYPT_STREAM_HANDLE) (HRESULT) = ncrypt.NCryptStreamOpenToUnprotectEx
+//sys	NCryptStreamUpdate(hStream NCRYPT_STREAM_HANDLE, pbData *uint8, cbData uintptr, fFinal BOOL) (HRESULT) = ncrypt.NCryptStreamUpdate
+//sys	NCryptStreamClose(hStream NCRYPT_STREAM_HANDLE) (HRESULT) = ncrypt.NCryptStreamClose
+//sys	CryptXmlClose(hCryptXml unsafe.Pointer) (HRESULT) = cryptxml.CryptXmlClose
+//sys	CryptXmlGetTransforms(ppConfig **CRYPT_XML_TRANSFORM_CHAIN_CONFIG) (HRESULT) = cryptxml.CryptXmlGetTransforms
+//sys	CryptXmlOpenToEncode(pConfig *CRYPT_XML_TRANSFORM_CHAIN_CONFIG, dwFlags CRYPT_XML_FLAGS, wszId PWSTR, rgProperty *CRYPT_XML_PROPERTY, cProperty uint32, pEncoded *CRYPT_XML_BLOB, phSignature *unsafe.Pointer) (HRESULT) = cryptxml.CryptXmlOpenToEncode
+//sys	CryptXmlOpenToDecode(pConfig *CRYPT_XML_TRANSFORM_CHAIN_CONFIG, dwFlags CRYPT_XML_FLAGS, rgProperty *CRYPT_XML_PROPERTY, cProperty uint32, pEncoded *CRYPT_XML_BLOB, phCryptXml *unsafe.Pointer) (HRESULT) = cryptxml.CryptXmlOpenToDecode
+//sys	CryptXmlAddObject(hSignatureOrObject unsafe.Pointer, dwFlags uint32, rgProperty *CRYPT_XML_PROPERTY, cProperty uint32, pEncoded *CRYPT_XML_BLOB, ppObject **CRYPT_XML_OBJECT) (HRESULT) = cryptxml.CryptXmlAddObject
+//sys	CryptXmlCreateReference(hCryptXml unsafe.Pointer, dwFlags uint32, wszId PWSTR, wszURI PWSTR, wszType PWSTR, pDigestMethod *CRYPT_XML_ALGORITHM, cTransform uint32, rgTransform *CRYPT_XML_ALGORITHM, phReference *unsafe.Pointer) (HRESULT) = cryptxml.CryptXmlCreateReference
+//sys	CryptXmlDigestReference(hReference unsafe.Pointer, dwFlags uint32, pDataProviderIn *CRYPT_XML_DATA_PROVIDER) (HRESULT) = cryptxml.CryptXmlDigestReference
+//sys	CryptXmlSetHMACSecret(hSignature unsafe.Pointer, pbSecret *uint8, cbSecret uint32) (HRESULT) = cryptxml.CryptXmlSetHMACSecret
+//sys	CryptXmlSign(hSignature unsafe.Pointer, hKey HCRYPTPROV_OR_NCRYPT_KEY_HANDLE, dwKeySpec CERT_KEY_SPEC, dwFlags CRYPT_XML_FLAGS, dwKeyInfoSpec CRYPT_XML_KEYINFO_SPEC, pvKeyInfoSpec unsafe.Pointer, pSignatureMethod *CRYPT_XML_ALGORITHM, pCanonicalization *CRYPT_XML_ALGORITHM) (HRESULT) = cryptxml.CryptXmlSign
+//sys	CryptXmlImportPublicKey(dwFlags CRYPT_XML_FLAGS, pKeyValue *CRYPT_XML_KEY_VALUE, phKey *BCRYPT_KEY_HANDLE) (HRESULT) = cryptxml.CryptXmlImportPublicKey
+//sys	CryptXmlVerifySignature(hSignature unsafe.Pointer, hKey BCRYPT_KEY_HANDLE, dwFlags CRYPT_XML_FLAGS) (HRESULT) = cryptxml.CryptXmlVerifySignature
+//sys	CryptXmlGetDocContext(hCryptXml unsafe.Pointer, ppStruct **CRYPT_XML_DOC_CTXT) (HRESULT) = cryptxml.CryptXmlGetDocContext
+//sys	CryptXmlGetSignature(hCryptXml unsafe.Pointer, ppStruct **CRYPT_XML_SIGNATURE) (HRESULT) = cryptxml.CryptXmlGetSignature
+//sys	CryptXmlGetReference(hCryptXml unsafe.Pointer, ppStruct **CRYPT_XML_REFERENCE) (HRESULT) = cryptxml.CryptXmlGetReference
+//sys	CryptXmlGetStatus(hCryptXml unsafe.Pointer, pStatus *CRYPT_XML_STATUS) (HRESULT) = cryptxml.CryptXmlGetStatus
+//sys	CryptXmlEncode(hCryptXml unsafe.Pointer, dwCharset CRYPT_XML_CHARSET, rgProperty *CRYPT_XML_PROPERTY, cProperty uint32, pvCallbackState unsafe.Pointer, pfnWrite PFN_CRYPT_XML_WRITE_CALLBACK) (HRESULT) = cryptxml.CryptXmlEncode
+//sys	CryptXmlGetAlgorithmInfo(pXmlAlgorithm *CRYPT_XML_ALGORITHM, dwFlags CRYPT_XML_FLAGS, ppAlgInfo **CRYPT_XML_ALGORITHM_INFO) (HRESULT) = cryptxml.CryptXmlGetAlgorithmInfo
+//sys	CryptXmlFindAlgorithmInfo(dwFindByType uint32, pvFindBy unsafe.Pointer, dwGroupId uint32, dwFlags uint32) (*CRYPT_XML_ALGORITHM_INFO) = cryptxml.CryptXmlFindAlgorithmInfo
+//sys	CryptXmlEnumAlgorithmInfo(dwGroupId uint32, dwFlags uint32, pvArg unsafe.Pointer, pfnEnumAlgInfo PFN_CRYPT_XML_ENUM_ALG_INFO) (HRESULT) = cryptxml.CryptXmlEnumAlgorithmInfo
+//sys	GetToken(cPolicyChain uint32, pPolicyChain *POLICY_ELEMENT, securityToken **GENERIC_XML_TOKEN, phProofTokenCrypto **INFORMATIONCARD_CRYPTO_HANDLE) (HRESULT) = infocardapi.GetToken
 //sys	ManageCardSpace() (HRESULT) = infocardapi.ManageCardSpace
-//sys	ImportInformationCard(/*in*/fileName PWSTR) (HRESULT) = infocardapi.ImportInformationCard
-//sys	Encrypt(/*in*/hCrypto *INFORMATIONCARD_CRYPTO_HANDLE, /*in*/fOAEP BOOL, /*in*/cbInData uint32, /*in*/pInData *uint8, /*out*/pcbOutData *uint32, /*out*/ppOutData **uint8) (HRESULT) = infocardapi.Encrypt
-//sys	Decrypt(/*in*/hCrypto *INFORMATIONCARD_CRYPTO_HANDLE, /*in*/fOAEP BOOL, /*in*/cbInData uint32, /*in*/pInData *uint8, /*out*/pcbOutData *uint32, /*out*/ppOutData **uint8) (HRESULT) = infocardapi.Decrypt
-//sys	SignHash(/*in*/hCrypto *INFORMATIONCARD_CRYPTO_HANDLE, /*in*/cbHash uint32, /*in*/pHash *uint8, /*in*/hashAlgOid PWSTR, /*out*/pcbSig *uint32, /*out*/ppSig **uint8) (HRESULT) = infocardapi.SignHash
-//sys	VerifyHash(/*in*/hCrypto *INFORMATIONCARD_CRYPTO_HANDLE, /*in*/cbHash uint32, /*in*/pHash *uint8, /*in*/hashAlgOid PWSTR, /*in*/cbSig uint32, /*in*/pSig *uint8, /*out*/pfVerified *BOOL) (HRESULT) = infocardapi.VerifyHash
-//sys	GetCryptoTransform(/*in*/hSymmetricCrypto *INFORMATIONCARD_CRYPTO_HANDLE, /*in*/mode uint32, /*in*/padding PaddingMode, /*in*/feedbackSize uint32, /*in*/direction Direction, /*in*/cbIV uint32, /*in*/pIV *uint8, /*out*/pphTransform **INFORMATIONCARD_CRYPTO_HANDLE) (HRESULT) = infocardapi.GetCryptoTransform
-//sys	GetKeyedHash(/*in*/hSymmetricCrypto *INFORMATIONCARD_CRYPTO_HANDLE, /*out*/pphHash **INFORMATIONCARD_CRYPTO_HANDLE) (HRESULT) = infocardapi.GetKeyedHash
-//sys	TransformBlock(/*in*/hCrypto *INFORMATIONCARD_CRYPTO_HANDLE, /*in*/cbInData uint32, /*in*/pInData *uint8, /*out*/pcbOutData *uint32, /*out*/ppOutData **uint8) (HRESULT) = infocardapi.TransformBlock
-//sys	TransformFinalBlock(/*in*/hCrypto *INFORMATIONCARD_CRYPTO_HANDLE, /*in*/cbInData uint32, /*in*/pInData *uint8, /*out*/pcbOutData *uint32, /*out*/ppOutData **uint8) (HRESULT) = infocardapi.TransformFinalBlock
-//sys	HashCore(/*in*/hCrypto *INFORMATIONCARD_CRYPTO_HANDLE, /*in*/cbInData uint32, /*in*/pInData *uint8) (HRESULT) = infocardapi.HashCore
-//sys	HashFinal(/*in*/hCrypto *INFORMATIONCARD_CRYPTO_HANDLE, /*in*/cbInData uint32, /*in*/pInData *uint8, /*out*/pcbOutData *uint32, /*out*/ppOutData **uint8) (HRESULT) = infocardapi.HashFinal
-//sys	FreeToken(/*in*/pAllocMemory *GENERIC_XML_TOKEN) (BOOL) = infocardapi.FreeToken
-//sys	CloseCryptoHandle(/*in*/hCrypto *INFORMATIONCARD_CRYPTO_HANDLE) (HRESULT) = infocardapi.CloseCryptoHandle
-//sys	GenerateDerivedKey(/*in*/hCrypto *INFORMATIONCARD_CRYPTO_HANDLE, /*in*/cbLabel uint32, /*in*/pLabel *uint8, /*in*/cbNonce uint32, /*in*/pNonce *uint8, /*in*/derivedKeyLength uint32, /*in*/offset uint32, /*in*/algId PWSTR, /*out*/pcbKey *uint32, /*out*/ppKey **uint8) (HRESULT) = infocardapi.GenerateDerivedKey
-//sys	GetBrowserToken(/*in*/dwParamType uint32, /*in*/pParam unsafe.Pointer, /*out*//*optional*/pcbToken *uint32, /*out*//*optional*/ppToken **uint8) (HRESULT) = infocardapi.GetBrowserToken
+//sys	ImportInformationCard(fileName PWSTR) (HRESULT) = infocardapi.ImportInformationCard
+//sys	Encrypt(hCrypto *INFORMATIONCARD_CRYPTO_HANDLE, fOAEP BOOL, cbInData uint32, pInData *uint8, pcbOutData *uint32, ppOutData **uint8) (HRESULT) = infocardapi.Encrypt
+//sys	Decrypt(hCrypto *INFORMATIONCARD_CRYPTO_HANDLE, fOAEP BOOL, cbInData uint32, pInData *uint8, pcbOutData *uint32, ppOutData **uint8) (HRESULT) = infocardapi.Decrypt
+//sys	SignHash(hCrypto *INFORMATIONCARD_CRYPTO_HANDLE, cbHash uint32, pHash *uint8, hashAlgOid PWSTR, pcbSig *uint32, ppSig **uint8) (HRESULT) = infocardapi.SignHash
+//sys	VerifyHash(hCrypto *INFORMATIONCARD_CRYPTO_HANDLE, cbHash uint32, pHash *uint8, hashAlgOid PWSTR, cbSig uint32, pSig *uint8, pfVerified *BOOL) (HRESULT) = infocardapi.VerifyHash
+//sys	GetCryptoTransform(hSymmetricCrypto *INFORMATIONCARD_CRYPTO_HANDLE, mode uint32, padding PaddingMode, feedbackSize uint32, direction Direction, cbIV uint32, pIV *uint8, pphTransform **INFORMATIONCARD_CRYPTO_HANDLE) (HRESULT) = infocardapi.GetCryptoTransform
+//sys	GetKeyedHash(hSymmetricCrypto *INFORMATIONCARD_CRYPTO_HANDLE, pphHash **INFORMATIONCARD_CRYPTO_HANDLE) (HRESULT) = infocardapi.GetKeyedHash
+//sys	TransformBlock(hCrypto *INFORMATIONCARD_CRYPTO_HANDLE, cbInData uint32, pInData *uint8, pcbOutData *uint32, ppOutData **uint8) (HRESULT) = infocardapi.TransformBlock
+//sys	TransformFinalBlock(hCrypto *INFORMATIONCARD_CRYPTO_HANDLE, cbInData uint32, pInData *uint8, pcbOutData *uint32, ppOutData **uint8) (HRESULT) = infocardapi.TransformFinalBlock
+//sys	HashCore(hCrypto *INFORMATIONCARD_CRYPTO_HANDLE, cbInData uint32, pInData *uint8) (HRESULT) = infocardapi.HashCore
+//sys	HashFinal(hCrypto *INFORMATIONCARD_CRYPTO_HANDLE, cbInData uint32, pInData *uint8, pcbOutData *uint32, ppOutData **uint8) (HRESULT) = infocardapi.HashFinal
+//sys	FreeToken(pAllocMemory *GENERIC_XML_TOKEN) (BOOL) = infocardapi.FreeToken
+//sys	CloseCryptoHandle(hCrypto *INFORMATIONCARD_CRYPTO_HANDLE) (HRESULT) = infocardapi.CloseCryptoHandle
+//sys	GenerateDerivedKey(hCrypto *INFORMATIONCARD_CRYPTO_HANDLE, cbLabel uint32, pLabel *uint8, cbNonce uint32, pNonce *uint8, derivedKeyLength uint32, offset uint32, algId PWSTR, pcbKey *uint32, ppKey **uint8) (HRESULT) = infocardapi.GenerateDerivedKey
+//sys	GetBrowserToken(dwParamType uint32, pParam unsafe.Pointer, pcbToken *uint32, ppToken **uint8) (HRESULT) = infocardapi.GetBrowserToken
 
 // Types used in generated APIs
 

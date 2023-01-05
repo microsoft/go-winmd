@@ -88,26 +88,7 @@ func WriteMethod(w io.StringWriter, metadata *winmd.Metadata, method *winmd.Meth
 }
 
 func writeParam(w io.StringWriter, p *winmd.Param) {
-	// TODO: Remove these? Or use them to help determine how to translate return types for syscalls.
-	// Include comments for param attributes to make them visible for diagnosis purposes.
-	if p.Flags&flags.ParamAttributes_In != 0 {
-		w.WriteString("/*in*/")
-	}
-	if p.Flags&flags.ParamAttributes_Out != 0 {
-		w.WriteString("/*out*/")
-	}
-	if p.Flags&flags.ParamAttributes_Optional != 0 {
-		w.WriteString("/*optional*/")
-	}
-	if p.Flags&flags.ParamAttributes_HasDefault != 0 {
-		w.WriteString("/*hasdefault*/")
-	}
-	if p.Flags&flags.ParamAttributes_HasFieldMarshal != 0 {
-		w.WriteString("/*hasfieldmarshal*/")
-	}
-	if p.Flags&flags.ParamAttributes_Unused != 0 {
-		w.WriteString("/*unused*/")
-	}
+	// TODO: Use p.Flags to determine how to translate each param to a Go type?
 	w.WriteString(p.Name.String())
 }
 
