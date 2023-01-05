@@ -133,22 +133,13 @@ func (r *ecma335Reader) coded(coded coded) CodedIndex {
 	if r.err != nil {
 		return CodedIndex{}
 	}
-	tagbits := codedTagBits(coded)
-	bitmask := (1 << tagbits) - 1
 	code := r.uint(r.layout.codedSizes[coded])
-	if code < 1 {
-		return CodedIndex{Tag: -1}
-	}
-	row, tag := code>>tagbits-1, code&uint32(bitmask)
-	_, ok := codedTable(coded, uint8(tag))
-	if !ok {
-		r.err = fmt.Errorf("unknown coded %d tag %d", coded, tag)
+	index, err := parseCoded(coded, code)
+	if err != nil {
+		r.err = err
 		return CodedIndex{}
 	}
-	return CodedIndex{
-		Index: Index(row),
-		Tag:   int8(tag),
-	}
+	return index
 }
 
 func (r *ecma335Reader) uint8() uint8 {
