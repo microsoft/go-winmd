@@ -6,7 +6,7 @@ package ecma335
 import "fmt"
 
 // DecodeCompressedUint32 converts 1-4 compressed bytes into one uint32, as defined in §II.23.2.
-// Returns the result, the number of bytes read to obtain the result, or an error.
+// Returns the result and the number of bytes read to obtain the result, or an error.
 func DecodeCompressedUint32(data []byte) (result uint32, n int, err error) {
 	// The first byte determines the amount of data to read.
 	const (
@@ -33,7 +33,7 @@ func DecodeCompressedUint32(data []byte) (result uint32, n int, err error) {
 }
 
 // DecodeCompressedInt32 converts 1-4 compressed bytes into one int32, as defined in §II.23.2.
-// Returns the result, the number of bytes read to obtain the result, or an error.
+// Returns the result and the number of bytes read to obtain the result, or an error.
 func DecodeCompressedInt32(data []byte) (result int32, n int, err error) {
 	// Based on .NET System.Reflection.Metadata.BlobReader TryReadCompressedSignedInteger.
 	// https://github.com/dotnet/runtime/blob/582e522d6e164de6f9c961bc3cce226a241b11e5/src/libraries/System.Reflection.Metadata/src/System/Reflection/Metadata/BlobReader.cs#L490
