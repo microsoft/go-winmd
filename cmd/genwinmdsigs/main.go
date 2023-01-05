@@ -101,7 +101,7 @@ func Run() error {
 }
 
 func writePrototypes(b *strings.Builder, f *winmd.Metadata, filterRegexp *regexp.Regexp) error {
-	methodImplMap, err := implMap(f)
+	context, err := genwinsyscallproto.NewContext(f)
 	if err != nil {
 		return err
 	}
@@ -142,7 +142,7 @@ func writePrototypes(b *strings.Builder, f *winmd.Metadata, filterRegexp *regexp
 
 			// Find the DllImport pseudo-custom attribute (§II.21.2.1) for the module name.
 			var moduleName string
-			if implMap, ok := methodImplMap[j]; ok {
+			if implMap, ok := context.MethodDefImplMap[j]; ok {
 				// TODO: Map of parsed module refs?
 				mr, err := f.Tables.ModuleRef.Record(implMap.ImportScope)
 				if err != nil {
@@ -185,7 +185,7 @@ func writePrototypes(b *strings.Builder, f *winmd.Metadata, filterRegexp *regexp
 				}
 			}
 
-			if err := genwinsyscallproto.WriteMethod(b, f, md, &sig, moduleName, methodName); err != nil {
+			if err := context.WriteMethod(b, md, &sig, moduleName, methodName); err != nil {
 				// Include context in the error for diag purposes.
 				// writeSys may have partially written into b. This is actually convenient for diag.
 				lines := strings.Split(b.String(), "\n")
@@ -234,7 +234,7 @@ func writePrototypes(b *strings.Builder, f *winmd.Metadata, filterRegexp *regexp
 			if err != nil {
 				return err
 			}
-			if err := genwinsyscallproto.WriteTypeDef(b, f, record); err != nil {
+			if err := context.WriteTypeDef(b, record); err != nil {
 				return err
 			}
 			b.WriteString("\n")
@@ -266,25 +266,4 @@ func addUsedTypeRefs(used map[winmd.Index]struct{}, f *winmd.Metadata, t *winmd.
 		return fmt.Errorf("not implemented: array parameter of type %#v", t)
 	}
 	return nil
-}
-
-func implMap(f *winmd.Metadata) (map[winmd.Index]*winmd.ImplMap, error) {
-	m := make(map[winmd.Index]*winmd.ImplMap)
-	for i := uint32(0); i < f.Tables.ImplMap.Len; i++ {
-		im, err := f.Tables.ImplMap.Record(winmd.Index(i))
-		if err != nil {
-			return nil, err
-		}
-		if im.MemberForwarded.Tag == coded.MemberForwarded_MethodDef {
-			if existing, ok := m[im.MemberForwarded.Index]; ok {
-				return nil, fmt.Errorf(
-					"multiple ImplMap rows found pointing at MethodDef %v; found %v; already found %v",
-					im.MemberForwarded.Index,
-					i,
-					existing)
-			}
-			m[im.MemberForwarded.Index] = im
-		}
-	}
-	return m, nil
 }
