@@ -122,6 +122,8 @@ func heapIndexSize(heapSizes uint8) (strings uint8, guids uint8, blobs uint8) {
 	return sizefn(heapSizesStringBit), sizefn(heapSizesGUIDBit), sizefn(heapSizesBlobBit)
 }
 
+// ecma335Reader reads data in ecma335 formats that appear in multiple places in the spec.
+// This reader is the basis for more advanced readers that parse tables and signatures.
 type ecma335Reader struct {
 	data   []byte
 	layout *layout
@@ -226,6 +228,7 @@ func (r *ecma335Reader) compressedInt32() (v int32) {
 	return
 }
 
+// sigReader reads signature data defined in §II.23.2.
 type sigReader struct {
 	ecma335Reader
 }
@@ -443,6 +446,7 @@ func (r *sigReader) array() (a SigArray) {
 	return
 }
 
+// recordReader reads table record data.
 type recordReader struct {
 	ecma335Reader
 	heaps heaps
