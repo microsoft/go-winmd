@@ -147,6 +147,7 @@ func writeType(b io.StringWriter, f *winmd.Metadata, p *winmd.Type) error {
 		if p.Kind == flags.ElementType_PTR {
 			b.WriteString("*")
 		}
+		// TODO: Keep track of visited types to avoid infinite recursion.
 		return writeTypeValue(b, f, p.Value)
 	}
 	return nil
