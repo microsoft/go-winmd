@@ -196,6 +196,9 @@ func writeTypeValue(b io.StringWriter, f *winmd.Metadata, value any) error {
 	// Types can nest. A pointer to another type is a very common case.
 	case winmd.Type:
 		return writeType(b, f, &v)
+	case winmd.Array:
+		b.WriteString("[]")
+		return writeType(b, f, &v.Type)
 
 	default:
 		return fmt.Errorf("unexpected type value: %#v", value)
@@ -204,6 +207,84 @@ func writeTypeValue(b io.StringWriter, f *winmd.Metadata, value any) error {
 }
 
 func WriteTypeDef(b io.StringWriter, f *winmd.Metadata, def *winmd.TypeDef) error {
+	switch def.Extends.Tag {
+	case coded.TypeDefOrRef_TypeRef:
+		// TODO: Keep track of this index rather than looking it up for each enum type.
+		record, err := f.Tables.TypeRef.Record(def.Extends.Index)
+		if err != nil {
+			return err
+		}
+		if record.Namespace.String() == "System" && record.Name.String() == "Enum" {
+			return writeTypeDefEnum(b, f, def)
+		}
+		return writeTypeDefStruct(b, f, def)
+	default:
+		return fmt.Errorf("unexpected type extends coded index: %#v", def.Extends)
+	}
+}
+
+func writeTypeDefEnum(b io.StringWriter, f *winmd.Metadata, def *winmd.TypeDef) error {
+	b.WriteString("type ")
+	b.WriteString(def.Name.String())
+
+	// Per §I.8.5.2 CLS Rule 7, the underlying type is the type of the field "__value". Find it.
+	var underlyingType *winmd.Type
+
+	type nameValuePair struct {
+		Name  string
+		Value any
+	}
+	// The number of enum members is the total number of fields minus the special "value__".
+	members := make([]nameValuePair, 0, def.FieldList.End-def.FieldList.Start-1)
+
+	maxNameLen := 0
+
+	for i := def.FieldList.Start; i < def.FieldList.End; i++ {
+		fd, err := f.Tables.Field.Record(i)
+		if err != nil {
+			return err
+		}
+		signature, err := f.FieldSignature(fd.Signature)
+		if err != nil {
+			return err
+		}
+		if fd.Name.String() == "value__" {
+			underlyingType = &signature.Type
+			continue
+		}
+
+		p := nameValuePair{fd.Name.String(), signature.Type}
+		members = append(members, p)
+		if len(p.Name) > maxNameLen {
+			maxNameLen = len(p.Name)
+		}
+	}
+	if underlyingType == nil {
+		return errors.New("failed to find underlying type for enum")
+	}
+
+	b.WriteString(" ")
+	if err := writeType(b, f, underlyingType); err != nil {
+		return err
+	}
+	b.WriteString("\n\nconst (\n")
+	for _, pair := range members {
+		b.WriteString("\t")
+		b.WriteString(pair.Name)
+		for i := 0; i < maxNameLen-len(pair.Name)+1; i++ {
+			b.WriteString(" ")
+		}
+		b.WriteString(def.Name.String())
+		b.WriteString(" = ")
+		// TODO: Look up enum member values in Constant table. Index values to avoid O(len(enums)*len(Constants))
+		b.WriteString("42")
+		b.WriteString("\n")
+	}
+	b.WriteString(")\n")
+	return nil
+}
+
+func writeTypeDefStruct(b io.StringWriter, f *winmd.Metadata, def *winmd.TypeDef) error {
 	b.WriteString("type ")
 	b.WriteString(def.Name.String())
 	b.WriteString(" struct {\n")

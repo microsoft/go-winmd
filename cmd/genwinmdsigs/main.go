@@ -12,6 +12,7 @@ import (
 	"log"
 	"os"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
@@ -105,9 +106,15 @@ func writePrototypes(b *strings.Builder, f *winmd.Metadata, filterRegexp *regexp
 		return err
 	}
 
-	usedTypeDefs := make(map[winmd.Index]struct{})
-	usedTypeRefs := make(map[winmd.Index]struct{})
+	// Track all typedefs by namespace + "::" + name for typeref resolution later.
+	// TODO: Determine if disambiguating types in winmd files with multiple modules is necessary.
 	allTypeDefs := make(map[string]winmd.Index)
+
+	// Track all typerefs that are used in parameters. These will be resolved later if possible.
+	usedTypeRefs := make(map[winmd.Index]struct{})
+	// Track all explicitly used typedefs.
+	// TODO: Add entrypoint for explicitly using a typedef.
+	usedTypeDefs := make(map[winmd.Index]struct{})
 
 	firstType := true
 	for i := uint32(0); i < f.Tables.TypeDef.Len; i++ {
@@ -211,16 +218,26 @@ func writePrototypes(b *strings.Builder, f *winmd.Metadata, filterRegexp *regexp
 			return fmt.Errorf("TypeRef %v::%v has Module resolution scope, but is not found in the module", ref.Namespace, ref.Name)
 		}
 	}
+
 	if len(usedTypeDefs) > 0 {
-		b.WriteString("\n\n// Type defs used in generated APIs\n\n")
-	}
-	for i := range usedTypeDefs {
-		record, err := f.Tables.TypeDef.Record(i)
-		if err != nil {
-			return err
+		b.WriteString("\n\n// Types used in generated APIs\n\n")
+		// Sort indices to make output stable.
+		usedTypeDefIndices := make([]winmd.Index, 0, len(usedTypeDefs))
+		for index := range usedTypeDefs {
+			usedTypeDefIndices = append(usedTypeDefIndices, index)
 		}
-		if err := genwinsyscallproto.WriteTypeDef(b, f, record); err != nil {
-			return err
+		sort.Slice(usedTypeDefIndices, func(i, j int) bool {
+			return usedTypeDefIndices[i] < usedTypeDefIndices[j]
+		})
+		for _, index := range usedTypeDefIndices {
+			record, err := f.Tables.TypeDef.Record(index)
+			if err != nil {
+				return err
+			}
+			if err := genwinsyscallproto.WriteTypeDef(b, f, record); err != nil {
+				return err
+			}
+			b.WriteString("\n")
 		}
 	}
 	return nil

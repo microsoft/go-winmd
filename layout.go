@@ -435,7 +435,7 @@ func (r *sigReader) decodeType() (v Type) {
 
 	case flags.ElementType_ARRAY:
 		v.Kind = b
-		v.Value = Array{}
+		v.Value = r.array()
 
 	case flags.ElementType_BOOLEAN,
 		flags.ElementType_CHAR,
