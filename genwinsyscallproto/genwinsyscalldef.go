@@ -199,6 +199,7 @@ func WriteTypeDef(b io.StringWriter, f *winmd.Metadata, def *winmd.TypeDef) erro
 		if record.Namespace.String() == "System" && record.Name.String() == "Enum" {
 			return writeTypeDefEnum(b, f, def)
 		}
+		// TODO: Detect NativeTypedefAttribute and generate a simple type.
 		return writeTypeDefStruct(b, f, def)
 	default:
 		return fmt.Errorf("unexpected type extends coded index: %#v", def.Extends)
@@ -256,6 +257,7 @@ func writeTypeDefEnum(b io.StringWriter, f *winmd.Metadata, def *winmd.TypeDef) 
 		for i := 0; i < maxNameLen-len(pair.Name)+1; i++ {
 			b.WriteString(" ")
 		}
+		// TODO: Add enum name prefix to enum entries if the names don't already have the prefix? This may be necessary to avoid collisions. Also might be useful to make the API clear in Go.
 		b.WriteString(def.Name.String())
 		b.WriteString(" = ")
 		// TODO: Look up enum member values in Constant table. Index values to avoid O(len(enums)*len(Constants))
