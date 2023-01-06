@@ -179,6 +179,16 @@ func (c *Context) writeParam(w io.StringWriter, p *winmd.Param) {
 }
 
 func (c *Context) writeType(b io.StringWriter, p *winmd.SigType) error {
+	return c.writeTypeCore(b, p, nil)
+}
+
+func (c *Context) writeTypeCore(b io.StringWriter, p *winmd.SigType, visited map[*winmd.SigType]struct{}) error {
+	if visited != nil {
+		if _, ok := visited[p]; ok {
+			return fmt.Errorf("cycle detected in type definition: already visited %v", p)
+		}
+	}
+
 	// Special case: *void is unsafe.Pointer
 	if p.Kind == flags.ElementType_PTR {
 		if t, ok := p.Value.(winmd.SigType); ok {
@@ -233,13 +243,16 @@ func (c *Context) writeType(b io.StringWriter, p *winmd.SigType) error {
 		if p.Kind == flags.ElementType_PTR {
 			b.WriteString("*")
 		}
-		// TODO: Keep track of visited types to avoid infinite recursion.
-		return c.writeTypeValue(b, p.Value)
+		if visited == nil {
+			visited = make(map[*winmd.SigType]struct{})
+		}
+		visited[p] = struct{}{}
+		return c.writeTypeValue(b, p.Value, visited)
 	}
 	return nil
 }
 
-func (c *Context) writeTypeValue(b io.StringWriter, value any) error {
+func (c *Context) writeTypeValue(b io.StringWriter, value any, visited map[*winmd.SigType]struct{}) error {
 	switch v := value.(type) {
 	case winmd.CodedIndex:
 		switch v.Tag {
@@ -264,10 +277,10 @@ func (c *Context) writeTypeValue(b io.StringWriter, value any) error {
 
 	// Types can nest. A pointer to another type is a very common case.
 	case winmd.SigType:
-		return c.writeType(b, &v)
+		return c.writeTypeCore(b, &v, visited)
 	case winmd.SigArray:
 		b.WriteString("[]")
-		return c.writeType(b, &v.Type)
+		return c.writeTypeCore(b, &v.Type, visited)
 
 	default:
 		return fmt.Errorf("unexpected type value: %#v", value)
