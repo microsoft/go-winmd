@@ -37,6 +37,8 @@ type Context struct {
 	MethodDefImplMap map[winmd.Index]*winmd.ImplMap
 	// FieldConstant maps Field -> Constant with the field as its parent.
 	FieldConstant map[winmd.Index]*winmd.Constant
+	// TypeDefNativeTypedefAttribute maps TypeDef -> CustomAttribute (if NativeTypedefAttribute).
+	TypeDefNativeTypedefAttribute map[winmd.Index]*winmd.CustomAttribute
 }
 
 // NewContext creates a Context. Performs some pre-processing to improve generation performance.
@@ -46,9 +48,10 @@ func NewContext(f *winmd.Metadata) (*Context, error) {
 
 		UsedTypeRefs: make(map[winmd.Index]struct{}),
 
-		AllTypeDefs:      make(map[string]winmd.Index, f.Tables.TypeDef.Len),
-		MethodDefImplMap: make(map[winmd.Index]*winmd.ImplMap),
-		FieldConstant:    make(map[winmd.Index]*winmd.Constant),
+		AllTypeDefs:                   make(map[string]winmd.Index, f.Tables.TypeDef.Len),
+		MethodDefImplMap:              make(map[winmd.Index]*winmd.ImplMap),
+		FieldConstant:                 make(map[winmd.Index]*winmd.Constant),
+		TypeDefNativeTypedefAttribute: make(map[winmd.Index]*winmd.CustomAttribute),
 	}
 	// Scan some tables to create lookups for later.
 	for i := uint32(0); i < f.Tables.TypeDef.Len; i++ {
@@ -92,6 +95,40 @@ func NewContext(f *winmd.Metadata) (*Context, error) {
 				existing)
 		}
 		l.FieldConstant[c.Parent.Index] = c
+	}
+	for i := uint32(0); i < f.Tables.CustomAttribute.Len; i++ {
+		a, err := f.Tables.CustomAttribute.Record(winmd.Index(i))
+		if err != nil {
+			return nil, err
+		}
+		if a.Type.Tag != coded.CustomAttributeType_MemberRef {
+			continue
+		}
+		m, err := f.Tables.MemberRef.Record(a.Type.Index)
+		if err != nil {
+			return nil, err
+		}
+		if m.Class.Tag != coded.MemberRefParent_TypeRef {
+			continue
+		}
+		c, err := f.Tables.TypeRef.Record(m.Class.Index)
+		if err != nil {
+			return nil, err
+		}
+		if c.Namespace.String() != "Windows.Win32.Interop" || c.Name.String() != "NativeTypedefAttribute" {
+			continue
+		}
+		if a.Parent.Tag != coded.HasCustomAttribute_TypeDef {
+			continue
+		}
+		if existing, ok := l.TypeDefNativeTypedefAttribute[a.Parent.Index]; ok {
+			return nil, fmt.Errorf(
+				"multiple NativeTypedefAttribute rows found pointing at TypeDef %v: found %v; already found %v",
+				a.Parent.Index,
+				i,
+				existing)
+		}
+		l.TypeDefNativeTypedefAttribute[a.Parent.Index] = a
 	}
 	return l, nil
 }
@@ -288,7 +325,11 @@ func (c *Context) writeTypeValue(b io.StringWriter, value any, visited map[*winm
 	return nil
 }
 
-func (c *Context) WriteTypeDef(b io.StringWriter, def *winmd.TypeDef) error {
+func (c *Context) WriteTypeDef(b io.StringWriter, i winmd.Index) error {
+	def, err := c.Metadata.Tables.TypeDef.Record(i)
+	if err != nil {
+		return err
+	}
 	switch def.Extends.Tag {
 	case coded.TypeDefOrRef_TypeRef:
 		// TODO: Keep track of this index rather than looking it up for each enum type.
@@ -299,7 +340,9 @@ func (c *Context) WriteTypeDef(b io.StringWriter, def *winmd.TypeDef) error {
 		if record.Namespace.String() == "System" && record.Name.String() == "Enum" {
 			return c.writeTypeDefEnum(b, def)
 		}
-		// TODO: Detect NativeTypedefAttribute and generate a simple type.
+		if _, ok := c.TypeDefNativeTypedefAttribute[i]; ok {
+			return c.writeTypeDefNative(b, def)
+		}
 		return c.writeTypeDefStruct(b, def)
 	default:
 		return fmt.Errorf("unexpected type extends coded index: %#v", def.Extends)
@@ -403,6 +446,28 @@ func (c *Context) writeTypeDefEnum(b io.StringWriter, def *winmd.TypeDef) error 
 	return nil
 }
 
+func (c *Context) writeTypeDefNative(b io.StringWriter, def *winmd.TypeDef) error {
+	b.WriteString("type ")
+	b.WriteString(def.Name.String())
+	b.WriteString(" ")
+	if def.FieldList.Start+1 != def.FieldList.End {
+		return fmt.Errorf("expected exactly one field for native typedef %v", def.Name)
+	}
+	fd, err := c.Metadata.Tables.Field.Record(def.FieldList.Start)
+	if err != nil {
+		return err
+	}
+	signature, err := c.Metadata.FieldSignature(fd.Signature)
+	if err != nil {
+		return err
+	}
+	if err := c.writeType(b, &signature.Type); err != nil {
+		return err
+	}
+	b.WriteString("\n")
+	return nil
+}
+
 func (c *Context) writeTypeDefStruct(b io.StringWriter, def *winmd.TypeDef) error {
 	b.WriteString("type ")
 	b.WriteString(def.Name.String())
@@ -475,11 +540,7 @@ func (c *Context) WriteUsedTypeDefs(b io.StringWriter) error {
 	}
 	b.WriteString("\n\n// Types used in generated APIs\n\n")
 	for _, index := range usedTypeDefIndices {
-		record, err := c.Metadata.Tables.TypeDef.Record(index)
-		if err != nil {
-			return err
-		}
-		if err := c.WriteTypeDef(b, record); err != nil {
+		if err := c.WriteTypeDef(b, index); err != nil {
 			return err
 		}
 		b.WriteString("\n")

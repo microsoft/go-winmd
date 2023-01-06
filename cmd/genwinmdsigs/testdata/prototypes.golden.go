@@ -1677,121 +1677,63 @@ const (
 	SYMBOLIC_LINK_FLAGS_SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE SYMBOLIC_LINK_FLAGS = 0x2
 )
 
-type FindFileHandle struct {
-	Value uintptr
-}
+type FindFileHandle uintptr
 
-type FindFileNameHandle struct {
-	Value uintptr
-}
+type FindFileNameHandle uintptr
 
-type FindStreamHandle struct {
-	Value uintptr
-}
+type FindStreamHandle uintptr
 
-type FindChangeNotificationHandle struct {
-	Value uintptr
-}
+type FindChangeNotificationHandle uintptr
 
-type FindVolumeHandle struct {
-	Value uintptr
-}
+type FindVolumeHandle uintptr
 
-type FindVolumeMointPointHandle struct {
-	Value uintptr
-}
+type FindVolumeMointPointHandle uintptr
 
-type HCRYPTASYNC struct {
-	Value uintptr
-}
+type HCRYPTASYNC uintptr
 
-type HCERTCHAINENGINE struct {
-	Value uintptr
-}
+type HCERTCHAINENGINE uintptr
 
-type BCRYPT_ALG_HANDLE struct {
-	Value uintptr
-}
+type BCRYPT_ALG_HANDLE uintptr
 
-type BCRYPT_KEY_HANDLE struct {
-	Value uintptr
-}
+type BCRYPT_KEY_HANDLE uintptr
 
-type BOOL struct {
-	Value int32
-}
+type BOOL int32
 
-type BOOLEAN struct {
-	Value uint8
-}
+type BOOLEAN uint8
 
-type HANDLE struct {
-	Value uintptr
-}
+type HANDLE uintptr
 
-type HINSTANCE struct {
-	Value uintptr
-}
+type HINSTANCE uintptr
 
-type HRESULT struct {
-	Value int32
-}
+type HRESULT int32
 
-type HWND struct {
-	Value uintptr
-}
+type HWND uintptr
 
-type NTSTATUS struct {
-	Value int32
-}
+type NTSTATUS int32
 
-type PSID struct {
-	Value unsafe.Pointer
-}
+type PSID unsafe.Pointer
 
-type PSTR struct {
-	Value *uint8
-}
+type PSTR *uint8
 
-type PWSTR struct {
-	Value *uint16
-}
+type PWSTR *uint16
 
-type NCRYPT_DESCRIPTOR_HANDLE struct {
-	Value uintptr
-}
+type NCRYPT_DESCRIPTOR_HANDLE uintptr
 
-type NCRYPT_STREAM_HANDLE struct {
-	Value uintptr
-}
+type NCRYPT_STREAM_HANDLE uintptr
 
-type NCRYPT_HANDLE struct {
-	Value uintptr
-}
+type NCRYPT_HANDLE uintptr
 
-type NCRYPT_PROV_HANDLE struct {
-	Value uintptr
-}
+type NCRYPT_PROV_HANDLE uintptr
 
-type NCRYPT_KEY_HANDLE struct {
-	Value uintptr
-}
+type NCRYPT_KEY_HANDLE uintptr
 
-type NCRYPT_SECRET_HANDLE struct {
-	Value uintptr
-}
+type NCRYPT_SECRET_HANDLE uintptr
 
-type HCRYPTPROV_LEGACY struct {
-	Value uintptr
-}
+type HCRYPTPROV_LEGACY uintptr
 
-type HCRYPTPROV_OR_NCRYPT_KEY_HANDLE struct {
-	Value uintptr
-}
+type HCRYPTPROV_OR_NCRYPT_KEY_HANDLE uintptr
 
-type HCERTSTORE struct {
-	Value unsafe.Pointer
-}
+type HCERTSTORE unsafe.Pointer
 
 type SECURITY_ATTRIBUTES struct {
 	nLength              uint32
