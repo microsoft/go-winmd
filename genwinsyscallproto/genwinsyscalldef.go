@@ -13,6 +13,7 @@ import (
 	"log"
 	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/microsoft/go-winmd"
 	"github.com/microsoft/go-winmd/coded"
@@ -368,11 +369,18 @@ func (c *Context) writeTypeDefEnum(b io.StringWriter, def *winmd.TypeDef) error 
 	b.WriteString("\n\nconst (\n")
 	for _, pair := range members {
 		b.WriteString("\t")
+		// Add enum name prefix to generated name if the original member name doesn't already have
+		// the prefix. This may be necessary to avoid collisions, and also makes the API easier to
+		// find in Go via autocomplete.
+		// TODO: Be a bit smarter? E.g. accept BCRYPT_CIPHER_OPERATION for BCRYPT_OPERATION enum without changing it.
+		if !strings.HasPrefix(pair.Name, def.Name.String()) {
+			b.WriteString(def.Name.String())
+			b.WriteString("_")
+		}
 		b.WriteString(pair.Name)
 		for i := 0; i < maxNameLen-len(pair.Name)+1; i++ {
 			b.WriteString(" ")
 		}
-		// TODO: Add enum name prefix to enum entries if the names don't already have the prefix? This may be necessary to avoid collisions. Also might be useful to make the API clear in Go.
 		b.WriteString(def.Name.String())
 		b.WriteString(" = 0x")
 		b.WriteString(pair.Value)
