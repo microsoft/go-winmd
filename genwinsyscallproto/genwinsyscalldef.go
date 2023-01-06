@@ -6,11 +6,13 @@
 package genwinsyscallproto
 
 import (
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
 	"log"
 	"sort"
+	"strconv"
 
 	"github.com/microsoft/go-winmd"
 	"github.com/microsoft/go-winmd/coded"
@@ -299,7 +301,7 @@ func (c *Context) writeTypeDefEnum(b io.StringWriter, def *winmd.TypeDef) error 
 
 	type nameValuePair struct {
 		Name  string
-		Value any
+		Value string
 	}
 	// The number of enum members is the total number of fields minus the special "value__".
 	members := make([]nameValuePair, 0, def.FieldList.End-def.FieldList.Start-1)
@@ -320,7 +322,36 @@ func (c *Context) writeTypeDefEnum(b io.StringWriter, def *winmd.TypeDef) error 
 			continue
 		}
 
-		p := nameValuePair{fd.Name.String(), signature.Type}
+		var hex string
+		if constant, ok := c.FieldConstant[i]; ok {
+			// Read the value as a hex string. §II.22.9 informative text 1 and 2 restrict the
+			// possible types further than what we can handle here, but we handle all simple integer
+			// types for simplicity and in case this code needs to be moved and reused elsewhere.
+			switch constant.Type {
+			case flags.ElementType_I1:
+				hex = strconv.FormatInt(int64(int8(constant.Value[0])), 16)
+			case flags.ElementType_I2:
+				hex = strconv.FormatInt(int64(int16(binary.LittleEndian.Uint16(constant.Value))), 16)
+			case flags.ElementType_I4:
+				hex = strconv.FormatInt(int64(int32(binary.LittleEndian.Uint32(constant.Value))), 16)
+			case flags.ElementType_I8:
+				hex = strconv.FormatInt(int64(binary.LittleEndian.Uint64(constant.Value)), 16)
+			case flags.ElementType_U1:
+				hex = strconv.FormatUint(uint64(constant.Value[0]), 16)
+			case flags.ElementType_U2:
+				hex = strconv.FormatUint(uint64(binary.LittleEndian.Uint16(constant.Value)), 16)
+			case flags.ElementType_U4:
+				hex = strconv.FormatUint(uint64(binary.LittleEndian.Uint32(constant.Value)), 16)
+			case flags.ElementType_U8:
+				hex = strconv.FormatUint(binary.LittleEndian.Uint64(constant.Value), 16)
+			default:
+				return fmt.Errorf("enum member has unexpected type: %v, field %v", constant.Type, fd.Name)
+			}
+		} else {
+			return fmt.Errorf("unable to find default value for field %v", fd.Name)
+		}
+
+		p := nameValuePair{fd.Name.String(), hex}
 		members = append(members, p)
 		if len(p.Name) > maxNameLen {
 			maxNameLen = len(p.Name)
@@ -343,9 +374,8 @@ func (c *Context) writeTypeDefEnum(b io.StringWriter, def *winmd.TypeDef) error 
 		}
 		// TODO: Add enum name prefix to enum entries if the names don't already have the prefix? This may be necessary to avoid collisions. Also might be useful to make the API clear in Go.
 		b.WriteString(def.Name.String())
-		b.WriteString(" = ")
-		// TODO: Look up enum member values in Constant table. Index values to avoid O(len(enums)*len(Constants))
-		b.WriteString("42")
+		b.WriteString(" = 0x")
+		b.WriteString(pair.Value)
 		b.WriteString("\n")
 	}
 	b.WriteString(")\n")
