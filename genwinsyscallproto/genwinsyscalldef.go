@@ -9,6 +9,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
+	"sort"
 
 	"github.com/microsoft/go-winmd"
 	"github.com/microsoft/go-winmd/coded"
@@ -22,12 +24,12 @@ import (
 type Context struct {
 	Metadata *winmd.Metadata
 
-	// AllTypeDefs is the set of all TypeDefs in the winmd file indexed by namespace + "::" + name.
-	AllTypeDefs map[string]winmd.Index
 	// UsedTypeRefs	is the set of all TypeRefs used by syscall function parameters. Go
 	// definitions of these refs also need to be generated to make the syscalls usable.
 	UsedTypeRefs map[winmd.Index]struct{}
 
+	// AllTypeDefs is the set of all TypeDefs in the winmd file indexed by namespace + "::" + name.
+	AllTypeDefs map[string]winmd.Index
 	// MethodDefImplMap maps MethodDef -> ImplMap with matching MemberForwarded index.
 	MethodDefImplMap map[winmd.Index]*winmd.ImplMap
 	// FieldConstant maps Field -> Constant with the field as its parent.
@@ -38,11 +40,22 @@ type Context struct {
 func NewContext(f *winmd.Metadata) (*Context, error) {
 	l := &Context{
 		Metadata: f,
-		// Only a subset of each table's rows are stored here, so capacity is not predictable.
+
+		UsedTypeRefs: make(map[winmd.Index]struct{}),
+
+		AllTypeDefs:      make(map[string]winmd.Index, f.Tables.TypeDef.Len),
 		MethodDefImplMap: make(map[winmd.Index]*winmd.ImplMap),
 		FieldConstant:    make(map[winmd.Index]*winmd.Constant),
 	}
-	// Scan each table only once, here, to create lookups for later.
+	// Scan some tables to create lookups for later.
+	for i := uint32(0); i < f.Tables.TypeDef.Len; i++ {
+		r, err := f.Tables.TypeDef.Record(winmd.Index(i))
+		if err != nil {
+			return nil, err
+		}
+		// TODO: Determine if disambiguating types in winmd files with multiple modules is necessary.
+		l.AllTypeDefs[r.Namespace.String()+"::"+r.Name.String()] = winmd.Index(i)
+	}
 	for i := uint32(0); i < f.Tables.ImplMap.Len; i++ {
 		im, err := f.Tables.ImplMap.Record(winmd.Index(i))
 		if err != nil {
@@ -89,10 +102,15 @@ func NewContext(f *winmd.Metadata) (*Context, error) {
 // moduleName should be the name of the module that contains the syscall, or empty string if none is
 // required. (mkwinsyscall has defaults that may be acceptable.) It is recommended to read the
 // DllImport pseudo-attribute (§II.21.2.1) to determine this value.
-func (c *Context) WriteMethod(w io.StringWriter, method *winmd.MethodDef, sig *winmd.SigMethodDef, moduleName, goName string) error {
+func (c *Context) WriteMethod(w io.StringWriter, method *winmd.MethodDef, moduleName, goName string) error {
 	w.WriteString("//sys\t")
 	w.WriteString(goName)
 	w.WriteString("(")
+
+	sig, err := c.Metadata.MethodDefSignature(method.Signature)
+	if err != nil {
+		return err
+	}
 
 	for paramRowIndex := method.ParamList.Start; paramRowIndex < method.ParamList.End; paramRowIndex++ {
 		param, err := c.Metadata.Tables.Param.Record(paramRowIndex)
@@ -234,6 +252,7 @@ func (c *Context) writeTypeValue(b io.StringWriter, value any) error {
 			if err != nil {
 				return err
 			}
+			c.UsedTypeRefs[v.Index] = struct{}{}
 			b.WriteString(record.Name.String())
 
 		default:
@@ -374,5 +393,45 @@ func (c *Context) writeTypeDefStruct(b io.StringWriter, def *winmd.TypeDef) erro
 		b.WriteString("\n")
 	}
 	b.WriteString("}\n")
+	return nil
+}
+
+func (c *Context) WriteUsedTypeDefs(b io.StringWriter) error {
+	var usedTypeDefIndices []winmd.Index
+	for i := range c.UsedTypeRefs {
+		ref, err := c.Metadata.Tables.TypeRef.Record(i)
+		if err != nil {
+			return err
+		}
+		switch ref.ResolutionScope.Tag {
+		case coded.ResolutionScope_Module:
+			// This TypeRef refers to the current module. We don't need to look at the Index.
+		default:
+			log.Printf("Skipping %v::%v: not defined in current module\n", ref.Namespace, ref.Name)
+			continue
+		}
+		if def, ok := c.AllTypeDefs[ref.Namespace.String()+"::"+ref.Name.String()]; ok {
+			usedTypeDefIndices = append(usedTypeDefIndices, def)
+		} else {
+			return fmt.Errorf("TypeRef %v::%v has Module resolution scope, but is not found in the module", ref.Namespace, ref.Name)
+		}
+	}
+	sort.Slice(usedTypeDefIndices, func(i, j int) bool {
+		return usedTypeDefIndices[i] < usedTypeDefIndices[j]
+	})
+	if len(usedTypeDefIndices) == 0 {
+		return nil
+	}
+	b.WriteString("\n\n// Types used in generated APIs\n\n")
+	for _, index := range usedTypeDefIndices {
+		record, err := c.Metadata.Tables.TypeDef.Record(index)
+		if err != nil {
+			return err
+		}
+		if err := c.WriteTypeDef(b, record); err != nil {
+			return err
+		}
+		b.WriteString("\n")
+	}
 	return nil
 }

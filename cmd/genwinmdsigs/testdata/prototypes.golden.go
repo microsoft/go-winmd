@@ -1437,11 +1437,45 @@ const (
 	VFFF_ISSHAREDFILE VER_FIND_FILE_FLAGS = 42
 )
 
+type VER_FIND_FILE_STATUS uint32
+
+const (
+	VFF_CURNEDEST    VER_FIND_FILE_STATUS = 42
+	VFF_FILEINUSE    VER_FIND_FILE_STATUS = 42
+	VFF_BUFFTOOSMALL VER_FIND_FILE_STATUS = 42
+)
+
 type VER_INSTALL_FILE_FLAGS uint32
 
 const (
 	VIFF_FORCEINSTALL  VER_INSTALL_FILE_FLAGS = 42
 	VIFF_DONTDELETEOLD VER_INSTALL_FILE_FLAGS = 42
+)
+
+type VER_INSTALL_FILE_STATUS uint32
+
+const (
+	VIF_TEMPFILE          VER_INSTALL_FILE_STATUS = 42
+	VIF_MISMATCH          VER_INSTALL_FILE_STATUS = 42
+	VIF_SRCOLD            VER_INSTALL_FILE_STATUS = 42
+	VIF_DIFFLANG          VER_INSTALL_FILE_STATUS = 42
+	VIF_DIFFCODEPG        VER_INSTALL_FILE_STATUS = 42
+	VIF_DIFFTYPE          VER_INSTALL_FILE_STATUS = 42
+	VIF_WRITEPROT         VER_INSTALL_FILE_STATUS = 42
+	VIF_FILEINUSE         VER_INSTALL_FILE_STATUS = 42
+	VIF_OUTOFSPACE        VER_INSTALL_FILE_STATUS = 42
+	VIF_ACCESSVIOLATION   VER_INSTALL_FILE_STATUS = 42
+	VIF_SHARINGVIOLATION  VER_INSTALL_FILE_STATUS = 42
+	VIF_CANNOTCREATE      VER_INSTALL_FILE_STATUS = 42
+	VIF_CANNOTDELETE      VER_INSTALL_FILE_STATUS = 42
+	VIF_CANNOTRENAME      VER_INSTALL_FILE_STATUS = 42
+	VIF_CANNOTDELETECUR   VER_INSTALL_FILE_STATUS = 42
+	VIF_OUTOFMEMORY       VER_INSTALL_FILE_STATUS = 42
+	VIF_CANNOTREADSRC     VER_INSTALL_FILE_STATUS = 42
+	VIF_CANNOTREADDST     VER_INSTALL_FILE_STATUS = 42
+	VIF_BUFFTOOSMALL      VER_INSTALL_FILE_STATUS = 42
+	VIF_CANNOTLOADLZ32    VER_INSTALL_FILE_STATUS = 42
+	VIF_CANNOTLOADCABINET VER_INSTALL_FILE_STATUS = 42
 )
 
 type FILE_CREATION_DISPOSITION uint32
@@ -1699,8 +1733,16 @@ type HINSTANCE struct {
 	Value uintptr
 }
 
+type HRESULT struct {
+	Value int32
+}
+
 type HWND struct {
 	Value uintptr
+}
+
+type NTSTATUS struct {
+	Value int32
 }
 
 type PSID struct {
@@ -1762,6 +1804,9 @@ type OVERLAPPED struct {
 	InternalHigh uintptr
 	Anonymous    _Anonymous_e__Union
 	hEvent       HANDLE
+}
+
+type LPOVERLAPPED_COMPLETION_ROUTINE struct {
 }
 
 type SYSTEMTIME struct {
@@ -1981,6 +2026,12 @@ type CLS_ARCHIVE_DESCRIPTOR struct {
 	infoContainer CLS_CONTAINER_INFORMATION
 }
 
+type CLFS_BLOCK_ALLOCATION struct {
+}
+
+type CLFS_BLOCK_DEALLOCATION struct {
+}
+
 type CLFS_LOG_ARCHIVE_MODE int32
 
 const (
@@ -2046,6 +2097,12 @@ type ENCRYPTION_CERTIFICATE_HASH_LIST struct {
 type ENCRYPTION_CERTIFICATE_LIST struct {
 	nUsers uint32
 	pUsers **ENCRYPTION_CERTIFICATE
+}
+
+type WofEnumEntryProc struct {
+}
+
+type WofEnumFilesProc struct {
 }
 
 type TXF_ID struct {
@@ -2237,6 +2294,12 @@ type CRYPT_ATTRIBUTE struct {
 	rgValue  *CRYPTOAPI_BLOB
 }
 
+type CERT_RDN_ATTR struct {
+	pszObjId    PSTR
+	dwValueType CERT_RDN_ATTR_VALUE_TYPE
+	Value       CRYPTOAPI_BLOB
+}
+
 type CERT_RDN struct {
 	cRDNAttr  uint32
 	rgRDNAttr *CERT_RDN_ATTR
@@ -2341,6 +2404,9 @@ type CRYPT_OID_FUNC_ENTRY struct {
 	pvFuncAddr unsafe.Pointer
 }
 
+type PFN_CRYPT_ENUM_OID_FUNC struct {
+}
+
 type CRYPT_OID_INFO struct {
 	cbSize    uint32
 	pszOID    PSTR
@@ -2348,6 +2414,9 @@ type CRYPT_OID_INFO struct {
 	dwGroupId uint32
 	Anonymous _Anonymous_e__Union
 	ExtraInfo CRYPTOAPI_BLOB
+}
+
+type PFN_CRYPT_ENUM_OID_INFO struct {
 }
 
 type CERT_STRONG_SIGN_PARA struct {
@@ -2442,6 +2511,15 @@ type CERT_PHYSICAL_STORE_INFO struct {
 	OpenParameters       CRYPTOAPI_BLOB
 	dwFlags              uint32
 	dwPriority           uint32
+}
+
+type PFN_CERT_ENUM_SYSTEM_STORE_LOCATION struct {
+}
+
+type PFN_CERT_ENUM_SYSTEM_STORE struct {
+}
+
+type PFN_CERT_ENUM_PHYSICAL_STORE struct {
 }
 
 type CTL_VERIFY_USAGE_PARA struct {
@@ -2554,6 +2632,9 @@ type CERT_CHAIN struct {
 	keyLocatorInfo CRYPT_KEY_PROV_INFO
 }
 
+type PFN_CRYPT_ASYNC_PARAM_FREE_FUNC struct {
+}
+
 type CRYPT_CREDENTIALS struct {
 	cbSize            uint32
 	pszCredentialsOid PSTR
@@ -2575,6 +2656,9 @@ type CRYPT_RETRIEVE_AUX_INFO struct {
 	ppErrorContentBlob         **CRYPTOAPI_BLOB
 }
 
+type PFN_CRYPT_CANCEL_RETRIEVAL struct {
+}
+
 type CRYPT_URL_ARRAY struct {
 	cUrl     uint32
 	rgwszUrl *PWSTR
@@ -2585,6 +2669,9 @@ type CRYPT_URL_INFO struct {
 	dwSyncDeltaTime uint32
 	cGroup          uint32
 	rgcGroupEntry   *uint32
+}
+
+type PFN_CRYPT_ENUM_KEYID_PROP struct {
 }
 
 type CERT_CHAIN_ENGINE_CONFIG struct {
@@ -2716,6 +2803,9 @@ type CRYPT_XML_PROPERTY struct {
 	cbValue  uint32
 }
 
+type PFN_CRYPT_XML_WRITE_CALLBACK struct {
+}
+
 type CRYPT_XML_DATA_PROVIDER struct {
 	pvCallbackState unsafe.Pointer
 	cbBufferSize    uint32
@@ -2808,6 +2898,9 @@ type CRYPT_XML_ALGORITHM_INFO struct {
 	pvExtraInfo      unsafe.Pointer
 }
 
+type PFN_CRYPT_XML_ENUM_ALG_INFO struct {
+}
+
 type PaddingMode int32
 
 const (
@@ -2886,6 +2979,15 @@ type OFSTRUCT struct {
 	Reserved1  uint16
 	Reserved2  uint16
 	szPathName []CHAR
+}
+
+type PFE_EXPORT_FUNC struct {
+}
+
+type PFE_IMPORT_FUNC struct {
+}
+
+type LPPROGRESS_ROUTINE struct {
 }
 
 type COPYFILE2_EXTENDED_PARAMETERS struct {

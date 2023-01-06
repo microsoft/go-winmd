@@ -12,13 +12,10 @@ import (
 	"log"
 	"os"
 	"regexp"
-	"sort"
 	"strings"
 	"time"
 
 	"github.com/microsoft/go-winmd"
-	"github.com/microsoft/go-winmd/coded"
-	"github.com/microsoft/go-winmd/flags"
 	"github.com/microsoft/go-winmd/genwinsyscallproto"
 )
 
@@ -106,24 +103,12 @@ func writePrototypes(b *strings.Builder, f *winmd.Metadata, filterRegexp *regexp
 		return err
 	}
 
-	// Track all typedefs by namespace + "::" + name for typeref resolution later.
-	// TODO: Determine if disambiguating types in winmd files with multiple modules is necessary.
-	allTypeDefs := make(map[string]winmd.Index)
-
-	// Track all typerefs that are used in parameters. These will be resolved later if possible.
-	usedTypeRefs := make(map[winmd.Index]struct{})
-	// Track all explicitly used typedefs.
-	// TODO: Add entrypoint for explicitly using a typedef.
-	usedTypeDefs := make(map[winmd.Index]struct{})
-
 	firstType := true
 	for i := uint32(0); i < f.Tables.TypeDef.Len; i++ {
 		r, err := f.Tables.TypeDef.Record(winmd.Index(i))
 		if err != nil {
 			return err
 		}
-
-		allTypeDefs[r.Namespace.String()+"::"+r.Name.String()] = winmd.Index(i)
 
 		if !strings.Contains(r.Name.String(), "Apis") {
 			continue
@@ -170,22 +155,7 @@ func writePrototypes(b *strings.Builder, f *winmd.Metadata, filterRegexp *regexp
 				b.WriteString("\n")
 			}
 
-			sig, err := f.MethodDefSignature(md.Signature)
-			if err != nil {
-				return err
-			}
-			for _, p := range sig.Param {
-				switch p.Kind {
-				case winmd.SigParamKind_ByValue:
-					if err := addUsedTypeRefs(usedTypeRefs, f, &p.Type); err != nil {
-						return err
-					}
-				default:
-					return fmt.Errorf("unexpected SigParamKind for %v param %#v", spec, p)
-				}
-			}
-
-			if err := context.WriteMethod(b, md, &sig, moduleName, methodName); err != nil {
+			if err := context.WriteMethod(b, md, moduleName, methodName); err != nil {
 				// Include context in the error for diag purposes.
 				// writeSys may have partially written into b. This is actually convenient for diag.
 				lines := strings.Split(b.String(), "\n")
@@ -199,71 +169,8 @@ func writePrototypes(b *strings.Builder, f *winmd.Metadata, filterRegexp *regexp
 			}
 		}
 	}
-
-	for i := range usedTypeRefs {
-		ref, err := f.Tables.TypeRef.Record(i)
-		if err != nil {
-			return err
-		}
-		switch ref.ResolutionScope.Tag {
-		case coded.ResolutionScope_Module:
-			// This TypeRef refers to the current module. We don't need to look at the Index.
-		default:
-			log.Printf("Skipping %v::%v: not defined in current module\n", ref.Namespace, ref.Name)
-			continue
-		}
-		if def, ok := allTypeDefs[ref.Namespace.String()+"::"+ref.Name.String()]; ok {
-			usedTypeDefs[def] = struct{}{}
-		} else {
-			return fmt.Errorf("TypeRef %v::%v has Module resolution scope, but is not found in the module", ref.Namespace, ref.Name)
-		}
-	}
-
-	if len(usedTypeDefs) > 0 {
-		b.WriteString("\n\n// Types used in generated APIs\n\n")
-		// Sort indices to make output stable.
-		usedTypeDefIndices := make([]winmd.Index, 0, len(usedTypeDefs))
-		for index := range usedTypeDefs {
-			usedTypeDefIndices = append(usedTypeDefIndices, index)
-		}
-		sort.Slice(usedTypeDefIndices, func(i, j int) bool {
-			return usedTypeDefIndices[i] < usedTypeDefIndices[j]
-		})
-		for _, index := range usedTypeDefIndices {
-			record, err := f.Tables.TypeDef.Record(index)
-			if err != nil {
-				return err
-			}
-			if err := context.WriteTypeDef(b, record); err != nil {
-				return err
-			}
-			b.WriteString("\n")
-		}
-	}
-	return nil
-}
-
-func addUsedTypeRefs(used map[winmd.Index]struct{}, f *winmd.Metadata, t *winmd.SigType) error {
-	switch t.Kind {
-	case flags.ElementType_PTR:
-		innerType := t.Value.(winmd.SigType)
-		if err := addUsedTypeRefs(used, f, &innerType); err != nil {
-			return err
-		}
-	case flags.ElementType_VALUETYPE:
-		switch v := t.Value.(type) {
-		case winmd.CodedIndex:
-			switch v.Tag {
-			case coded.TypeDefOrRefOrSpec_TypeRef:
-				used[v.Index] = struct{}{}
-			default:
-				return fmt.Errorf("unexpected CodedIndex tag: %v", v.Tag)
-			}
-		default:
-			return fmt.Errorf("unexpected type for VALUETYPE value %#v", v)
-		}
-	case flags.ElementType_ARRAY:
-		return fmt.Errorf("not implemented: array parameter of type %#v", t)
+	if err := context.WriteUsedTypeDefs(b); err != nil {
+		return err
 	}
 	return nil
 }
