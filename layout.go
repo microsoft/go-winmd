@@ -382,6 +382,7 @@ func (r *sigReader) decodeType() (v SigType) {
 	case flags.ElementType_VOID:
 		v.Kind = flags.ElementType_VOID
 
+	// TODO: Handle GENERICINST. Doesn't show up in Windows.Win32.winmd.
 	//case flags.ElementType_GENERICINST:
 	//	v.Kind |= flags.ElementType_GENERICINST
 	//	v.Value = r.genericInst()
