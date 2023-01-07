@@ -331,6 +331,10 @@ func (c *Context) WriteTypeDef(b io.StringWriter, i winmd.Index) error {
 	if err != nil {
 		return err
 	}
+	if def.Flags&flags.TypeAttributes_ClassSemanticsMask == flags.TypeAttributes_Interface {
+		// TODO: Handle interfaces. Currently writes a struct with no members.
+		return c.writeTypeDefStruct(b, def)
+	}
 	switch def.Extends.Tag {
 	case coded.TypeDefOrRef_TypeRef:
 		// TODO: Keep track of this index rather than looking it up for each enum type.
@@ -403,6 +407,11 @@ func (c *Context) writeTypeDefEnum(b io.StringWriter, def *winmd.TypeDef) error 
 			default:
 				return fmt.Errorf("enum member has unexpected type: %v, field %v", constant.Type, fd.Name)
 			}
+			if hex[0] == '-' {
+				hex = "-0x" + hex[1:]
+			} else {
+				hex = "0x" + hex
+			}
 		} else {
 			return fmt.Errorf("unable to find default value for field %v", fd.Name)
 		}
@@ -434,7 +443,7 @@ func (c *Context) writeTypeDefEnum(b io.StringWriter, def *winmd.TypeDef) error 
 		writeEscapedUpper(b, pair.Name)
 		b.WriteString(" ")
 		writeEscapedUpper(b, def.Name.String())
-		b.WriteString(" = 0x")
+		b.WriteString(" = ")
 		b.WriteString(pair.HexValue)
 		b.WriteString("\n")
 	}
