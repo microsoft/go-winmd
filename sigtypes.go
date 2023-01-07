@@ -137,11 +137,6 @@ type SigTypeSpec struct {
 // SigMethodSpec is defined in §II.23.2.15
 type SigMethodSpec []SigType
 
-type SigCustomModType struct {
-	Mod  *SigCustomMod
-	Type *SigType // can be nil if type is void
-}
-
 type SigGenericInst struct {
 	Class bool
 	Index CodedIndex
