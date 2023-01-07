@@ -1,3 +1,5 @@
+
+
 // APIs for Windows.Win32.Storage.FileSystem
 //sys	SearchPathW(lpPath PWSTR, lpFileName PWSTR, lpExtension PWSTR, nBufferLength uint32, lpBuffer PWSTR, lpFilePart *PWSTR) (uint32)
 //sys	SearchPathA(lpPath PSTR, lpFileName PSTR, lpExtension PSTR, nBufferLength uint32, lpBuffer PSTR, lpFilePart *PSTR) (uint32)
@@ -274,7 +276,7 @@
 //sys	NetShareSetInfo(servername PWSTR, netname PWSTR, level uint32, buf *uint8, parm_err *uint32) (uint32) = netapi32.NetShareSetInfo
 //sys	NetShareDel(servername PWSTR, netname PWSTR, reserved uint32) (uint32) = netapi32.NetShareDel
 //sys	NetShareDelSticky(servername PWSTR, netname PWSTR, reserved uint32) (uint32) = netapi32.NetShareDelSticky
-//sys	NetShareCheck(servername PWSTR, device PWSTR, type *uint32) (uint32) = netapi32.NetShareCheck
+//sys	NetShareCheck(servername PWSTR, device PWSTR, typeParam *uint32) (uint32) = netapi32.NetShareCheck
 //sys	NetShareDelEx(servername PWSTR, level uint32, buf *uint8) (uint32) = netapi32.NetShareDelEx
 //sys	NetServerAliasAdd(servername PWSTR, level uint32, buf *uint8) (uint32) = netapi32.NetServerAliasAdd
 //sys	NetServerAliasDel(servername PWSTR, level uint32, buf *uint8) (uint32) = netapi32.NetServerAliasDel
@@ -1736,56 +1738,56 @@ type HCRYPTPROV_OR_NCRYPT_KEY_HANDLE uintptr
 type HCERTSTORE unsafe.Pointer
 
 type SECURITY_ATTRIBUTES struct {
-	nLength              uint32
-	lpSecurityDescriptor unsafe.Pointer
-	bInheritHandle       BOOL
+	NLength              uint32
+	LpSecurityDescriptor unsafe.Pointer
+	BInheritHandle       BOOL
 }
 
 type OVERLAPPED struct {
 	Internal     uintptr
 	InternalHigh uintptr
 	Anonymous    _Anonymous_e__Union
-	hEvent       HANDLE
+	HEvent       HANDLE
 }
 
 type LPOVERLAPPED_COMPLETION_ROUTINE struct {
 }
 
 type SYSTEMTIME struct {
-	wYear         uint16
-	wMonth        uint16
-	wDayOfWeek    uint16
-	wDay          uint16
-	wHour         uint16
-	wMinute       uint16
-	wSecond       uint16
-	wMilliseconds uint16
+	WYear         uint16
+	WMonth        uint16
+	WDayOfWeek    uint16
+	WDay          uint16
+	WHour         uint16
+	WMinute       uint16
+	WSecond       uint16
+	WMilliseconds uint16
 }
 
 type WIN32_FIND_DATAA struct {
-	dwFileAttributes   uint32
-	ftCreationTime     FILETIME
-	ftLastAccessTime   FILETIME
-	ftLastWriteTime    FILETIME
-	nFileSizeHigh      uint32
-	nFileSizeLow       uint32
-	dwReserved0        uint32
-	dwReserved1        uint32
-	cFileName          []CHAR
-	cAlternateFileName []CHAR
+	DwFileAttributes   uint32
+	FtCreationTime     FILETIME
+	FtLastAccessTime   FILETIME
+	FtLastWriteTime    FILETIME
+	NFileSizeHigh      uint32
+	NFileSizeLow       uint32
+	DwReserved0        uint32
+	DwReserved1        uint32
+	CFileName          []CHAR
+	CAlternateFileName []CHAR
 }
 
 type WIN32_FIND_DATAW struct {
-	dwFileAttributes   uint32
-	ftCreationTime     FILETIME
-	ftLastAccessTime   FILETIME
-	ftLastWriteTime    FILETIME
-	nFileSizeHigh      uint32
-	nFileSizeLow       uint32
-	dwReserved0        uint32
-	dwReserved1        uint32
-	cFileName          []uint16
-	cAlternateFileName []uint16
+	DwFileAttributes   uint32
+	FtCreationTime     FILETIME
+	FtLastAccessTime   FILETIME
+	FtLastWriteTime    FILETIME
+	NFileSizeHigh      uint32
+	NFileSizeLow       uint32
+	DwReserved0        uint32
+	DwReserved1        uint32
+	CFileName          []uint16
+	CAlternateFileName []uint16
 }
 
 type FINDEX_INFO_LEVELS int32
@@ -1851,8 +1853,8 @@ const (
 )
 
 type FILETIME struct {
-	dwLowDateTime  uint32
-	dwHighDateTime uint32
+	DwLowDateTime  uint32
+	DwHighDateTime uint32
 }
 
 type TRANSACTION_NOTIFICATION struct {
@@ -1879,25 +1881,25 @@ type DISK_SPACE_INFORMATION struct {
 }
 
 type BY_HANDLE_FILE_INFORMATION struct {
-	dwFileAttributes     uint32
-	ftCreationTime       FILETIME
-	ftLastAccessTime     FILETIME
-	ftLastWriteTime      FILETIME
-	dwVolumeSerialNumber uint32
-	nFileSizeHigh        uint32
-	nFileSizeLow         uint32
-	nNumberOfLinks       uint32
-	nFileIndexHigh       uint32
-	nFileIndexLow        uint32
+	DwFileAttributes     uint32
+	FtCreationTime       FILETIME
+	FtLastAccessTime     FILETIME
+	FtLastWriteTime      FILETIME
+	DwVolumeSerialNumber uint32
+	NFileSizeHigh        uint32
+	NFileSizeLow         uint32
+	NNumberOfLinks       uint32
+	NFileIndexHigh       uint32
+	NFileIndexLow        uint32
 }
 
 type CREATEFILE2_EXTENDED_PARAMETERS struct {
-	dwSize               uint32
-	dwFileAttributes     uint32
-	dwFileFlags          uint32
-	dwSecurityQosFlags   uint32
-	lpSecurityAttributes *SECURITY_ATTRIBUTES
-	hTemplateFile        HANDLE
+	DwSize               uint32
+	DwFileAttributes     uint32
+	DwFileFlags          uint32
+	DwSecurityQosFlags   uint32
+	LpSecurityAttributes *SECURITY_ATTRIBUTES
+	HTemplateFile        HANDLE
 }
 
 type STREAM_INFO_LEVELS int32
@@ -1953,19 +1955,19 @@ const (
 )
 
 type CLS_SCAN_CONTEXT struct {
-	cidNode             CLFS_NODE_ID
-	hLog                HANDLE
-	cIndex              uint32
-	cContainers         uint32
-	cContainersReturned uint32
-	eScanMode           uint8
-	pinfoContainer      *CLS_CONTAINER_INFORMATION
+	CidNode             CLFS_NODE_ID
+	HLog                HANDLE
+	CIndex              uint32
+	CContainers         uint32
+	CContainersReturned uint32
+	EScanMode           uint8
+	PinfoContainer      *CLS_CONTAINER_INFORMATION
 }
 
 type CLS_ARCHIVE_DESCRIPTOR struct {
-	coffLow       uint64
-	coffHigh      uint64
-	infoContainer CLS_CONTAINER_INFORMATION
+	CoffLow       uint64
+	CoffHigh      uint64
+	InfoContainer CLS_CONTAINER_INFORMATION
 }
 
 type CLFS_BLOCK_ALLOCATION struct {
@@ -2019,26 +2021,26 @@ type LOG_MANAGEMENT_CALLBACKS struct {
 }
 
 type ENCRYPTION_CERTIFICATE struct {
-	cbTotalLength uint32
-	pUserSid      *SID
-	pCertBlob     *EFS_CERTIFICATE_BLOB
+	CbTotalLength uint32
+	PUserSid      *SID
+	PCertBlob     *EFS_CERTIFICATE_BLOB
 }
 
 type ENCRYPTION_CERTIFICATE_HASH struct {
-	cbTotalLength        uint32
-	pUserSid             *SID
-	pHash                *EFS_HASH_BLOB
-	lpDisplayInformation PWSTR
+	CbTotalLength        uint32
+	PUserSid             *SID
+	PHash                *EFS_HASH_BLOB
+	LpDisplayInformation PWSTR
 }
 
 type ENCRYPTION_CERTIFICATE_HASH_LIST struct {
-	nCert_Hash uint32
-	pUsers     **ENCRYPTION_CERTIFICATE_HASH
+	NCert_Hash uint32
+	PUsers     **ENCRYPTION_CERTIFICATE_HASH
 }
 
 type ENCRYPTION_CERTIFICATE_LIST struct {
-	nUsers uint32
-	pUsers **ENCRYPTION_CERTIFICATE
+	NUsers uint32
+	PUsers **ENCRYPTION_CERTIFICATE
 }
 
 type WofEnumEntryProc struct {
@@ -2074,7 +2076,7 @@ type IORING_BUFFER_INFO struct {
 }
 
 type HIORING__ struct {
-	unused int32
+	Unused int32
 }
 
 type IORING_SQE_FLAGS int32
@@ -2119,21 +2121,21 @@ type IORING_CQE struct {
 }
 
 type PUBLICKEYSTRUC struct {
-	bType    uint8
-	bVersion uint8
-	reserved uint16
-	aiKeyAlg uint32
+	BType    uint8
+	BVersion uint8
+	Reserved uint16
+	AiKeyAlg uint32
 }
 
 type CRYPTOAPI_BLOB struct {
-	cbData uint32
-	pbData *uint8
+	CbData uint32
+	PbData *uint8
 }
 
 type BCryptBufferDesc struct {
-	ulVersion uint32
-	cBuffers  uint32
-	pBuffers  *BCryptBuffer
+	UlVersion uint32
+	CBuffers  uint32
+	PBuffers  *BCryptBuffer
 }
 
 type BCRYPT_MULTI_OPERATION_TYPE int32
@@ -2143,113 +2145,113 @@ const (
 )
 
 type BCRYPT_ALGORITHM_IDENTIFIER struct {
-	pszName PWSTR
-	dwClass uint32
-	dwFlags uint32
+	PszName PWSTR
+	DwClass uint32
+	DwFlags uint32
 }
 
 type BCRYPT_PROVIDER_NAME struct {
-	pszProviderName PWSTR
+	PszProviderName PWSTR
 }
 
 type CRYPT_PROVIDER_REG struct {
-	cAliases     uint32
-	rgpszAliases *PWSTR
-	pUM          *CRYPT_IMAGE_REG
-	pKM          *CRYPT_IMAGE_REG
+	CAliases     uint32
+	RgpszAliases *PWSTR
+	PUM          *CRYPT_IMAGE_REG
+	PKM          *CRYPT_IMAGE_REG
 }
 
 type CRYPT_PROVIDERS struct {
-	cProviders     uint32
-	rgpszProviders *PWSTR
+	CProviders     uint32
+	RgpszProviders *PWSTR
 }
 
 type CRYPT_CONTEXT_CONFIG struct {
-	dwFlags    CRYPT_CONTEXT_CONFIG_FLAGS
-	dwReserved uint32
+	DwFlags    CRYPT_CONTEXT_CONFIG_FLAGS
+	DwReserved uint32
 }
 
 type CRYPT_CONTEXT_FUNCTION_CONFIG struct {
-	dwFlags    uint32
-	dwReserved uint32
+	DwFlags    uint32
+	DwReserved uint32
 }
 
 type CRYPT_CONTEXTS struct {
-	cContexts     uint32
-	rgpszContexts *PWSTR
+	CContexts     uint32
+	RgpszContexts *PWSTR
 }
 
 type CRYPT_CONTEXT_FUNCTIONS struct {
-	cFunctions     uint32
-	rgpszFunctions *PWSTR
+	CFunctions     uint32
+	RgpszFunctions *PWSTR
 }
 
 type CRYPT_CONTEXT_FUNCTION_PROVIDERS struct {
-	cProviders     uint32
-	rgpszProviders *PWSTR
+	CProviders     uint32
+	RgpszProviders *PWSTR
 }
 
 type CRYPT_PROVIDER_REFS struct {
-	cProviders   uint32
-	rgpProviders **CRYPT_PROVIDER_REF
+	CProviders   uint32
+	RgpProviders **CRYPT_PROVIDER_REF
 }
 
 type NCRYPT_ALLOC_PARA struct {
-	cbSize   uint32
-	pfnAlloc PFN_NCRYPT_ALLOC
-	pfnFree  PFN_NCRYPT_FREE
+	CbSize   uint32
+	PfnAlloc PFN_NCRYPT_ALLOC
+	PfnFree  PFN_NCRYPT_FREE
 }
 
 type NCryptAlgorithmName struct {
-	pszName         PWSTR
-	dwClass         NCRYPT_ALGORITHM_NAME_CLASS
-	dwAlgOperations NCRYPT_OPERATION
-	dwFlags         uint32
+	PszName         PWSTR
+	DwClass         NCRYPT_ALGORITHM_NAME_CLASS
+	DwAlgOperations NCRYPT_OPERATION
+	DwFlags         uint32
 }
 
 type NCryptKeyName struct {
-	pszName         PWSTR
-	pszAlgid        PWSTR
-	dwLegacyKeySpec CERT_KEY_SPEC
-	dwFlags         uint32
+	PszName         PWSTR
+	PszAlgid        PWSTR
+	DwLegacyKeySpec CERT_KEY_SPEC
+	DwFlags         uint32
 }
 
 type NCryptProviderName struct {
-	pszName    PWSTR
-	pszComment PWSTR
+	PszName    PWSTR
+	PszComment PWSTR
 }
 
 type CRYPT_ALGORITHM_IDENTIFIER struct {
-	pszObjId   PSTR
+	PszObjId   PSTR
 	Parameters CRYPTOAPI_BLOB
 }
 
 type CERT_EXTENSION struct {
-	pszObjId  PSTR
-	fCritical BOOL
+	PszObjId  PSTR
+	FCritical BOOL
 	Value     CRYPTOAPI_BLOB
 }
 
 type CRYPT_ATTRIBUTE struct {
-	pszObjId PSTR
-	cValue   uint32
-	rgValue  *CRYPTOAPI_BLOB
+	PszObjId PSTR
+	CValue   uint32
+	RgValue  *CRYPTOAPI_BLOB
 }
 
 type CERT_RDN_ATTR struct {
-	pszObjId    PSTR
-	dwValueType CERT_RDN_ATTR_VALUE_TYPE
+	PszObjId    PSTR
+	DwValueType CERT_RDN_ATTR_VALUE_TYPE
 	Value       CRYPTOAPI_BLOB
 }
 
 type CERT_RDN struct {
-	cRDNAttr  uint32
-	rgRDNAttr *CERT_RDN_ATTR
+	CRDNAttr  uint32
+	RgRDNAttr *CERT_RDN_ATTR
 }
 
 type CERT_NAME_INFO struct {
-	cRDN  uint32
-	rgRDN *CERT_RDN
+	CRDN  uint32
+	RgRDN *CERT_RDN
 }
 
 type CERT_PUBLIC_KEY_INFO struct {
@@ -2259,14 +2261,14 @@ type CERT_PUBLIC_KEY_INFO struct {
 
 type CRYPT_PKCS8_IMPORT_PARAMS struct {
 	PrivateKey             CRYPTOAPI_BLOB
-	pResolvehCryptProvFunc PCRYPT_RESOLVE_HCRYPTPROV_FUNC
-	pVoidResolveFunc       unsafe.Pointer
-	pDecryptPrivateKeyFunc PCRYPT_DECRYPT_PRIVATE_KEY_FUNC
-	pVoidDecryptFunc       unsafe.Pointer
+	PResolvehCryptProvFunc PCRYPT_RESOLVE_HCRYPTPROV_FUNC
+	PVoidResolveFunc       unsafe.Pointer
+	PDecryptPrivateKeyFunc PCRYPT_DECRYPT_PRIVATE_KEY_FUNC
+	PVoidDecryptFunc       unsafe.Pointer
 }
 
 type CERT_INFO struct {
-	dwVersion            uint32
+	DwVersion            uint32
 	SerialNumber         CRYPTOAPI_BLOB
 	SignatureAlgorithm   CRYPT_ALGORITHM_IDENTIFIER
 	Issuer               CRYPTOAPI_BLOB
@@ -2276,84 +2278,84 @@ type CERT_INFO struct {
 	SubjectPublicKeyInfo CERT_PUBLIC_KEY_INFO
 	IssuerUniqueId       CRYPT_BIT_BLOB
 	SubjectUniqueId      CRYPT_BIT_BLOB
-	cExtension           uint32
-	rgExtension          *CERT_EXTENSION
+	CExtension           uint32
+	RgExtension          *CERT_EXTENSION
 }
 
 type CRL_ENTRY struct {
 	SerialNumber   CRYPTOAPI_BLOB
 	RevocationDate FILETIME
-	cExtension     uint32
-	rgExtension    *CERT_EXTENSION
+	CExtension     uint32
+	RgExtension    *CERT_EXTENSION
 }
 
 type CRL_INFO struct {
-	dwVersion          uint32
+	DwVersion          uint32
 	SignatureAlgorithm CRYPT_ALGORITHM_IDENTIFIER
 	Issuer             CRYPTOAPI_BLOB
 	ThisUpdate         FILETIME
 	NextUpdate         FILETIME
-	cCRLEntry          uint32
-	rgCRLEntry         *CRL_ENTRY
-	cExtension         uint32
-	rgExtension        *CERT_EXTENSION
+	CCRLEntry          uint32
+	RgCRLEntry         *CRL_ENTRY
+	CExtension         uint32
+	RgExtension        *CERT_EXTENSION
 }
 
 type CTL_USAGE struct {
-	cUsageIdentifier     uint32
-	rgpszUsageIdentifier *PSTR
+	CUsageIdentifier     uint32
+	RgpszUsageIdentifier *PSTR
 }
 
 type CTL_ENTRY struct {
 	SubjectIdentifier CRYPTOAPI_BLOB
-	cAttribute        uint32
-	rgAttribute       *CRYPT_ATTRIBUTE
+	CAttribute        uint32
+	RgAttribute       *CRYPT_ATTRIBUTE
 }
 
 type CTL_INFO struct {
-	dwVersion        uint32
+	DwVersion        uint32
 	SubjectUsage     CTL_USAGE
 	ListIdentifier   CRYPTOAPI_BLOB
 	SequenceNumber   CRYPTOAPI_BLOB
 	ThisUpdate       FILETIME
 	NextUpdate       FILETIME
 	SubjectAlgorithm CRYPT_ALGORITHM_IDENTIFIER
-	cCTLEntry        uint32
-	rgCTLEntry       *CTL_ENTRY
-	cExtension       uint32
-	rgExtension      *CERT_EXTENSION
+	CCTLEntry        uint32
+	RgCTLEntry       *CTL_ENTRY
+	CExtension       uint32
+	RgExtension      *CERT_EXTENSION
 }
 
 type CRYPT_ENCODE_PARA struct {
-	cbSize   uint32
-	pfnAlloc PFN_CRYPT_ALLOC
-	pfnFree  PFN_CRYPT_FREE
+	CbSize   uint32
+	PfnAlloc PFN_CRYPT_ALLOC
+	PfnFree  PFN_CRYPT_FREE
 }
 
 type CRYPT_DECODE_PARA struct {
-	cbSize   uint32
-	pfnAlloc PFN_CRYPT_ALLOC
-	pfnFree  PFN_CRYPT_FREE
+	CbSize   uint32
+	PfnAlloc PFN_CRYPT_ALLOC
+	PfnFree  PFN_CRYPT_FREE
 }
 
 type CERT_EXTENSIONS struct {
-	cExtension  uint32
-	rgExtension *CERT_EXTENSION
+	CExtension  uint32
+	RgExtension *CERT_EXTENSION
 }
 
 type CRYPT_OID_FUNC_ENTRY struct {
-	pszOID     PSTR
-	pvFuncAddr unsafe.Pointer
+	PszOID     PSTR
+	PvFuncAddr unsafe.Pointer
 }
 
 type PFN_CRYPT_ENUM_OID_FUNC struct {
 }
 
 type CRYPT_OID_INFO struct {
-	cbSize    uint32
-	pszOID    PSTR
-	pwszName  PWSTR
-	dwGroupId uint32
+	CbSize    uint32
+	PszOID    PSTR
+	PwszName  PWSTR
+	DwGroupId uint32
 	Anonymous _Anonymous_e__Union
 	ExtraInfo CRYPTOAPI_BLOB
 }
@@ -2362,97 +2364,97 @@ type PFN_CRYPT_ENUM_OID_INFO struct {
 }
 
 type CERT_STRONG_SIGN_PARA struct {
-	cbSize       uint32
-	dwInfoChoice uint32
+	CbSize       uint32
+	DwInfoChoice uint32
 	Anonymous    _Anonymous_e__Union
 }
 
 type CMSG_SIGNER_ENCODE_INFO struct {
-	cbSize        uint32
-	pCertInfo     *CERT_INFO
+	CbSize        uint32
+	PCertInfo     *CERT_INFO
 	Anonymous     _Anonymous_e__Union
-	dwKeySpec     uint32
+	DwKeySpec     uint32
 	HashAlgorithm CRYPT_ALGORITHM_IDENTIFIER
-	pvHashAuxInfo unsafe.Pointer
-	cAuthAttr     uint32
-	rgAuthAttr    *CRYPT_ATTRIBUTE
-	cUnauthAttr   uint32
-	rgUnauthAttr  *CRYPT_ATTRIBUTE
+	PvHashAuxInfo unsafe.Pointer
+	CAuthAttr     uint32
+	RgAuthAttr    *CRYPT_ATTRIBUTE
+	CUnauthAttr   uint32
+	RgUnauthAttr  *CRYPT_ATTRIBUTE
 }
 
 type CMSG_SIGNED_ENCODE_INFO struct {
-	cbSize        uint32
-	cSigners      uint32
-	rgSigners     *CMSG_SIGNER_ENCODE_INFO
-	cCertEncoded  uint32
-	rgCertEncoded *CRYPTOAPI_BLOB
-	cCrlEncoded   uint32
-	rgCrlEncoded  *CRYPTOAPI_BLOB
+	CbSize        uint32
+	CSigners      uint32
+	RgSigners     *CMSG_SIGNER_ENCODE_INFO
+	CCertEncoded  uint32
+	RgCertEncoded *CRYPTOAPI_BLOB
+	CCrlEncoded   uint32
+	RgCrlEncoded  *CRYPTOAPI_BLOB
 }
 
 type CMSG_STREAM_INFO struct {
-	cbContent       uint32
-	pfnStreamOutput PFN_CMSG_STREAM_OUTPUT
-	pvArg           unsafe.Pointer
+	CbContent       uint32
+	PfnStreamOutput PFN_CMSG_STREAM_OUTPUT
+	PvArg           unsafe.Pointer
 }
 
 type CERT_CONTEXT struct {
-	dwCertEncodingType uint32
-	pbCertEncoded      *uint8
-	cbCertEncoded      uint32
-	pCertInfo          *CERT_INFO
-	hCertStore         HCERTSTORE
+	DwCertEncodingType uint32
+	PbCertEncoded      *uint8
+	CbCertEncoded      uint32
+	PCertInfo          *CERT_INFO
+	HCertStore         HCERTSTORE
 }
 
 type CRL_CONTEXT struct {
-	dwCertEncodingType uint32
-	pbCrlEncoded       *uint8
-	cbCrlEncoded       uint32
-	pCrlInfo           *CRL_INFO
-	hCertStore         HCERTSTORE
+	DwCertEncodingType uint32
+	PbCrlEncoded       *uint8
+	CbCrlEncoded       uint32
+	PCrlInfo           *CRL_INFO
+	HCertStore         HCERTSTORE
 }
 
 type CTL_CONTEXT struct {
-	dwMsgAndCertEncodingType uint32
-	pbCtlEncoded             *uint8
-	cbCtlEncoded             uint32
-	pCtlInfo                 *CTL_INFO
-	hCertStore               HCERTSTORE
-	hCryptMsg                unsafe.Pointer
-	pbCtlContent             *uint8
-	cbCtlContent             uint32
+	DwMsgAndCertEncodingType uint32
+	PbCtlEncoded             *uint8
+	CbCtlEncoded             uint32
+	PCtlInfo                 *CTL_INFO
+	HCertStore               HCERTSTORE
+	HCryptMsg                unsafe.Pointer
+	PbCtlContent             *uint8
+	CbCtlContent             uint32
 }
 
 type CRYPT_KEY_PROV_INFO struct {
-	pwszContainerName PWSTR
-	pwszProvName      PWSTR
-	dwProvType        uint32
-	dwFlags           CRYPT_KEY_FLAGS
-	cProvParam        uint32
-	rgProvParam       *CRYPT_KEY_PROV_PARAM
-	dwKeySpec         uint32
+	PwszContainerName PWSTR
+	PwszProvName      PWSTR
+	DwProvType        uint32
+	DwFlags           CRYPT_KEY_FLAGS
+	CProvParam        uint32
+	RgProvParam       *CRYPT_KEY_PROV_PARAM
+	DwKeySpec         uint32
 }
 
 type CERT_CREATE_CONTEXT_PARA struct {
-	cbSize  uint32
-	pfnFree PFN_CRYPT_FREE
-	pvFree  unsafe.Pointer
-	pfnSort PFN_CERT_CREATE_CONTEXT_SORT_FUNC
-	pvSort  unsafe.Pointer
+	CbSize  uint32
+	PfnFree PFN_CRYPT_FREE
+	PvFree  unsafe.Pointer
+	PfnSort PFN_CERT_CREATE_CONTEXT_SORT_FUNC
+	PvSort  unsafe.Pointer
 }
 
 type CERT_SYSTEM_STORE_INFO struct {
-	cbSize uint32
+	CbSize uint32
 }
 
 type CERT_PHYSICAL_STORE_INFO struct {
-	cbSize               uint32
-	pszOpenStoreProvider PSTR
-	dwOpenEncodingType   uint32
-	dwOpenFlags          uint32
+	CbSize               uint32
+	PszOpenStoreProvider PSTR
+	DwOpenEncodingType   uint32
+	DwOpenFlags          uint32
 	OpenParameters       CRYPTOAPI_BLOB
-	dwFlags              uint32
-	dwPriority           uint32
+	DwFlags              uint32
+	DwPriority           uint32
 }
 
 type PFN_CERT_ENUM_SYSTEM_STORE_LOCATION struct {
@@ -2465,263 +2467,263 @@ type PFN_CERT_ENUM_PHYSICAL_STORE struct {
 }
 
 type CTL_VERIFY_USAGE_PARA struct {
-	cbSize         uint32
+	CbSize         uint32
 	ListIdentifier CRYPTOAPI_BLOB
-	cCtlStore      uint32
-	rghCtlStore    *HCERTSTORE
-	cSignerStore   uint32
-	rghSignerStore *HCERTSTORE
+	CCtlStore      uint32
+	RghCtlStore    *HCERTSTORE
+	CSignerStore   uint32
+	RghSignerStore *HCERTSTORE
 }
 
 type CTL_VERIFY_USAGE_STATUS struct {
-	cbSize          uint32
-	dwError         uint32
-	dwFlags         uint32
-	ppCtl           **CTL_CONTEXT
-	dwCtlEntryIndex uint32
-	ppSigner        **CERT_CONTEXT
-	dwSignerIndex   uint32
+	CbSize          uint32
+	DwError         uint32
+	DwFlags         uint32
+	PpCtl           **CTL_CONTEXT
+	DwCtlEntryIndex uint32
+	PpSigner        **CERT_CONTEXT
+	DwSignerIndex   uint32
 }
 
 type CERT_REVOCATION_PARA struct {
-	cbSize       uint32
-	pIssuerCert  *CERT_CONTEXT
-	cCertStore   uint32
-	rgCertStore  *HCERTSTORE
-	hCrlStore    HCERTSTORE
-	pftTimeToUse *FILETIME
+	CbSize       uint32
+	PIssuerCert  *CERT_CONTEXT
+	CCertStore   uint32
+	RgCertStore  *HCERTSTORE
+	HCrlStore    HCERTSTORE
+	PftTimeToUse *FILETIME
 }
 
 type CERT_REVOCATION_STATUS struct {
-	cbSize            uint32
-	dwIndex           uint32
-	dwError           uint32
-	dwReason          CERT_REVOCATION_STATUS_REASON
-	fHasFreshnessTime BOOL
-	dwFreshnessTime   uint32
+	CbSize            uint32
+	DwIndex           uint32
+	DwError           uint32
+	DwReason          CERT_REVOCATION_STATUS_REASON
+	FHasFreshnessTime BOOL
+	DwFreshnessTime   uint32
 }
 
 type CRYPT_SIGN_MESSAGE_PARA struct {
-	cbSize             uint32
-	dwMsgEncodingType  uint32
-	pSigningCert       *CERT_CONTEXT
+	CbSize             uint32
+	DwMsgEncodingType  uint32
+	PSigningCert       *CERT_CONTEXT
 	HashAlgorithm      CRYPT_ALGORITHM_IDENTIFIER
-	pvHashAuxInfo      unsafe.Pointer
-	cMsgCert           uint32
-	rgpMsgCert         **CERT_CONTEXT
-	cMsgCrl            uint32
-	rgpMsgCrl          **CRL_CONTEXT
-	cAuthAttr          uint32
-	rgAuthAttr         *CRYPT_ATTRIBUTE
-	cUnauthAttr        uint32
-	rgUnauthAttr       *CRYPT_ATTRIBUTE
-	dwFlags            uint32
-	dwInnerContentType uint32
+	PvHashAuxInfo      unsafe.Pointer
+	CMsgCert           uint32
+	RgpMsgCert         **CERT_CONTEXT
+	CMsgCrl            uint32
+	RgpMsgCrl          **CRL_CONTEXT
+	CAuthAttr          uint32
+	RgAuthAttr         *CRYPT_ATTRIBUTE
+	CUnauthAttr        uint32
+	RgUnauthAttr       *CRYPT_ATTRIBUTE
+	DwFlags            uint32
+	DwInnerContentType uint32
 }
 
 type CRYPT_VERIFY_MESSAGE_PARA struct {
-	cbSize                   uint32
-	dwMsgAndCertEncodingType uint32
-	hCryptProv               HCRYPTPROV_LEGACY
-	pfnGetSignerCertificate  PFN_CRYPT_GET_SIGNER_CERTIFICATE
-	pvGetArg                 unsafe.Pointer
+	CbSize                   uint32
+	DwMsgAndCertEncodingType uint32
+	HCryptProv               HCRYPTPROV_LEGACY
+	PfnGetSignerCertificate  PFN_CRYPT_GET_SIGNER_CERTIFICATE
+	PvGetArg                 unsafe.Pointer
 }
 
 type CRYPT_ENCRYPT_MESSAGE_PARA struct {
-	cbSize                     uint32
-	dwMsgEncodingType          uint32
-	hCryptProv                 HCRYPTPROV_LEGACY
+	CbSize                     uint32
+	DwMsgEncodingType          uint32
+	HCryptProv                 HCRYPTPROV_LEGACY
 	ContentEncryptionAlgorithm CRYPT_ALGORITHM_IDENTIFIER
-	pvEncryptionAuxInfo        unsafe.Pointer
-	dwFlags                    uint32
-	dwInnerContentType         uint32
+	PvEncryptionAuxInfo        unsafe.Pointer
+	DwFlags                    uint32
+	DwInnerContentType         uint32
 }
 
 type CRYPT_DECRYPT_MESSAGE_PARA struct {
-	cbSize                   uint32
-	dwMsgAndCertEncodingType uint32
-	cCertStore               uint32
-	rghCertStore             *HCERTSTORE
+	CbSize                   uint32
+	DwMsgAndCertEncodingType uint32
+	CCertStore               uint32
+	RghCertStore             *HCERTSTORE
 }
 
 type CRYPT_HASH_MESSAGE_PARA struct {
-	cbSize            uint32
-	dwMsgEncodingType uint32
-	hCryptProv        HCRYPTPROV_LEGACY
+	CbSize            uint32
+	DwMsgEncodingType uint32
+	HCryptProv        HCRYPTPROV_LEGACY
 	HashAlgorithm     CRYPT_ALGORITHM_IDENTIFIER
-	pvHashAuxInfo     unsafe.Pointer
+	PvHashAuxInfo     unsafe.Pointer
 }
 
 type CRYPT_KEY_SIGN_MESSAGE_PARA struct {
-	cbSize                   uint32
-	dwMsgAndCertEncodingType CERT_QUERY_ENCODING_TYPE
+	CbSize                   uint32
+	DwMsgAndCertEncodingType CERT_QUERY_ENCODING_TYPE
 	Anonymous                _Anonymous_e__Union
-	dwKeySpec                CERT_KEY_SPEC
+	DwKeySpec                CERT_KEY_SPEC
 	HashAlgorithm            CRYPT_ALGORITHM_IDENTIFIER
-	pvHashAuxInfo            unsafe.Pointer
+	PvHashAuxInfo            unsafe.Pointer
 	PubKeyAlgorithm          CRYPT_ALGORITHM_IDENTIFIER
 }
 
 type CRYPT_KEY_VERIFY_MESSAGE_PARA struct {
-	cbSize            uint32
-	dwMsgEncodingType uint32
-	hCryptProv        HCRYPTPROV_LEGACY
+	CbSize            uint32
+	DwMsgEncodingType uint32
+	HCryptProv        HCRYPTPROV_LEGACY
 }
 
 type CERT_CHAIN struct {
-	cCerts         uint32
-	certs          *CRYPTOAPI_BLOB
-	keyLocatorInfo CRYPT_KEY_PROV_INFO
+	CCerts         uint32
+	Certs          *CRYPTOAPI_BLOB
+	KeyLocatorInfo CRYPT_KEY_PROV_INFO
 }
 
 type PFN_CRYPT_ASYNC_PARAM_FREE_FUNC struct {
 }
 
 type CRYPT_CREDENTIALS struct {
-	cbSize            uint32
-	pszCredentialsOid PSTR
-	pvCredentials     unsafe.Pointer
+	CbSize            uint32
+	PszCredentialsOid PSTR
+	PvCredentials     unsafe.Pointer
 }
 
 type CRYPT_RETRIEVE_AUX_INFO struct {
-	cbSize                     uint32
-	pLastSyncTime              *FILETIME
-	dwMaxUrlRetrievalByteCount uint32
-	pPreFetchInfo              *CRYPTNET_URL_CACHE_PRE_FETCH_INFO
-	pFlushInfo                 *CRYPTNET_URL_CACHE_FLUSH_INFO
-	ppResponseInfo             **CRYPTNET_URL_CACHE_RESPONSE_INFO
-	pwszCacheFileNamePrefix    PWSTR
-	pftCacheResync             *FILETIME
-	fProxyCacheRetrieval       BOOL
-	dwHttpStatusCode           uint32
-	ppwszErrorResponseHeaders  *PWSTR
-	ppErrorContentBlob         **CRYPTOAPI_BLOB
+	CbSize                     uint32
+	PLastSyncTime              *FILETIME
+	DwMaxUrlRetrievalByteCount uint32
+	PPreFetchInfo              *CRYPTNET_URL_CACHE_PRE_FETCH_INFO
+	PFlushInfo                 *CRYPTNET_URL_CACHE_FLUSH_INFO
+	PpResponseInfo             **CRYPTNET_URL_CACHE_RESPONSE_INFO
+	PwszCacheFileNamePrefix    PWSTR
+	PftCacheResync             *FILETIME
+	FProxyCacheRetrieval       BOOL
+	DwHttpStatusCode           uint32
+	PpwszErrorResponseHeaders  *PWSTR
+	PpErrorContentBlob         **CRYPTOAPI_BLOB
 }
 
 type PFN_CRYPT_CANCEL_RETRIEVAL struct {
 }
 
 type CRYPT_URL_ARRAY struct {
-	cUrl     uint32
-	rgwszUrl *PWSTR
+	CUrl     uint32
+	RgwszUrl *PWSTR
 }
 
 type CRYPT_URL_INFO struct {
-	cbSize          uint32
-	dwSyncDeltaTime uint32
-	cGroup          uint32
-	rgcGroupEntry   *uint32
+	CbSize          uint32
+	DwSyncDeltaTime uint32
+	CGroup          uint32
+	RgcGroupEntry   *uint32
 }
 
 type PFN_CRYPT_ENUM_KEYID_PROP struct {
 }
 
 type CERT_CHAIN_ENGINE_CONFIG struct {
-	cbSize                    uint32
-	hRestrictedRoot           HCERTSTORE
-	hRestrictedTrust          HCERTSTORE
-	hRestrictedOther          HCERTSTORE
-	cAdditionalStore          uint32
-	rghAdditionalStore        *HCERTSTORE
-	dwFlags                   uint32
-	dwUrlRetrievalTimeout     uint32
+	CbSize                    uint32
+	HRestrictedRoot           HCERTSTORE
+	HRestrictedTrust          HCERTSTORE
+	HRestrictedOther          HCERTSTORE
+	CAdditionalStore          uint32
+	RghAdditionalStore        *HCERTSTORE
+	DwFlags                   uint32
+	DwUrlRetrievalTimeout     uint32
 	MaximumCachedCertificates uint32
 	CycleDetectionModulus     uint32
-	hExclusiveRoot            HCERTSTORE
-	hExclusiveTrustedPeople   HCERTSTORE
-	dwExclusiveFlags          uint32
+	HExclusiveRoot            HCERTSTORE
+	HExclusiveTrustedPeople   HCERTSTORE
+	DwExclusiveFlags          uint32
 }
 
 type CERT_CHAIN_CONTEXT struct {
-	cbSize                      uint32
+	CbSize                      uint32
 	TrustStatus                 CERT_TRUST_STATUS
-	cChain                      uint32
-	rgpChain                    **CERT_SIMPLE_CHAIN
-	cLowerQualityChainContext   uint32
-	rgpLowerQualityChainContext **CERT_CHAIN_CONTEXT
-	fHasRevocationFreshnessTime BOOL
-	dwRevocationFreshnessTime   uint32
-	dwCreateFlags               uint32
+	CChain                      uint32
+	RgpChain                    **CERT_SIMPLE_CHAIN
+	CLowerQualityChainContext   uint32
+	RgpLowerQualityChainContext **CERT_CHAIN_CONTEXT
+	FHasRevocationFreshnessTime BOOL
+	DwRevocationFreshnessTime   uint32
+	DwCreateFlags               uint32
 	ChainId                     Guid
 }
 
 type CERT_CHAIN_PARA struct {
-	cbSize         uint32
+	CbSize         uint32
 	RequestedUsage CERT_USAGE_MATCH
 }
 
 type CERT_CHAIN_POLICY_PARA struct {
-	cbSize            uint32
-	dwFlags           CERT_CHAIN_POLICY_FLAGS
-	pvExtraPolicyPara unsafe.Pointer
+	CbSize            uint32
+	DwFlags           CERT_CHAIN_POLICY_FLAGS
+	PvExtraPolicyPara unsafe.Pointer
 }
 
 type CERT_CHAIN_POLICY_STATUS struct {
-	cbSize              uint32
-	dwError             uint32
-	lChainIndex         int32
-	lElementIndex       int32
-	pvExtraPolicyStatus unsafe.Pointer
+	CbSize              uint32
+	DwError             uint32
+	LChainIndex         int32
+	LElementIndex       int32
+	PvExtraPolicyStatus unsafe.Pointer
 }
 
 type CERT_SERVER_OCSP_RESPONSE_CONTEXT struct {
-	cbSize                uint32
-	pbEncodedOcspResponse *uint8
-	cbEncodedOcspResponse uint32
+	CbSize                uint32
+	PbEncodedOcspResponse *uint8
+	CbEncodedOcspResponse uint32
 }
 
 type CERT_SERVER_OCSP_RESPONSE_OPEN_PARA struct {
-	cbSize              uint32
-	dwFlags             uint32
-	pcbUsedSize         *uint32
-	pwszOcspDirectory   PWSTR
-	pfnUpdateCallback   PFN_CERT_SERVER_OCSP_RESPONSE_UPDATE_CALLBACK
-	pvUpdateCallbackArg unsafe.Pointer
+	CbSize              uint32
+	DwFlags             uint32
+	PcbUsedSize         *uint32
+	PwszOcspDirectory   PWSTR
+	PfnUpdateCallback   PFN_CERT_SERVER_OCSP_RESPONSE_UPDATE_CALLBACK
+	PvUpdateCallbackArg unsafe.Pointer
 }
 
 type CERT_SELECT_CHAIN_PARA struct {
-	hChainEngine     HCERTCHAINENGINE
-	pTime            *FILETIME
-	hAdditionalStore HCERTSTORE
-	pChainPara       *CERT_CHAIN_PARA
-	dwFlags          uint32
+	HChainEngine     HCERTCHAINENGINE
+	PTime            *FILETIME
+	HAdditionalStore HCERTSTORE
+	PChainPara       *CERT_CHAIN_PARA
+	DwFlags          uint32
 }
 
 type CERT_SELECT_CRITERIA struct {
-	dwType CERT_SELECT_CRITERIA_TYPE
-	cPara  uint32
-	ppPara *unsafe.Pointer
+	DwType CERT_SELECT_CRITERIA_TYPE
+	CPara  uint32
+	PpPara *unsafe.Pointer
 }
 
 type CRYPT_TIMESTAMP_CONTEXT struct {
-	cbEncoded  uint32
-	pbEncoded  *uint8
-	pTimeStamp *CRYPT_TIMESTAMP_INFO
+	CbEncoded  uint32
+	PbEncoded  *uint8
+	PTimeStamp *CRYPT_TIMESTAMP_INFO
 }
 
 type CRYPT_TIMESTAMP_PARA struct {
-	pszTSAPolicyId PSTR
-	fRequestCerts  BOOL
+	PszTSAPolicyId PSTR
+	FRequestCerts  BOOL
 	Nonce          CRYPTOAPI_BLOB
-	cExtension     uint32
-	rgExtension    *CERT_EXTENSION
+	CExtension     uint32
+	RgExtension    *CERT_EXTENSION
 }
 
 type CRYPTPROTECT_PROMPTSTRUCT struct {
-	cbSize        uint32
-	dwPromptFlags uint32
-	hwndApp       HWND
-	szPrompt      PWSTR
+	CbSize        uint32
+	DwPromptFlags uint32
+	HwndApp       HWND
+	SzPrompt      PWSTR
 }
 
 type NCRYPT_PROTECT_STREAM_INFO struct {
-	pfnStreamOutput PFNCryptStreamOutputCallback
-	pvCallbackCtxt  unsafe.Pointer
+	PfnStreamOutput PFNCryptStreamOutputCallback
+	PvCallbackCtxt  unsafe.Pointer
 }
 
 type NCRYPT_PROTECT_STREAM_INFO_EX struct {
-	pfnStreamOutput PFNCryptStreamOutputCallbackEx
-	pvCallbackCtxt  unsafe.Pointer
+	PfnStreamOutput PFNCryptStreamOutputCallbackEx
+	PvCallbackCtxt  unsafe.Pointer
 }
 
 type CRYPT_XML_CHARSET int32
@@ -2734,89 +2736,89 @@ const (
 )
 
 type CRYPT_XML_BLOB struct {
-	dwCharset CRYPT_XML_CHARSET
-	cbData    uint32
-	pbData    *uint8
+	DwCharset CRYPT_XML_CHARSET
+	CbData    uint32
+	PbData    *uint8
 }
 
 type CRYPT_XML_PROPERTY struct {
-	dwPropId CRYPT_XML_PROPERTY_ID
-	pvValue  unsafe.Pointer
-	cbValue  uint32
+	DwPropId CRYPT_XML_PROPERTY_ID
+	PvValue  unsafe.Pointer
+	CbValue  uint32
 }
 
 type PFN_CRYPT_XML_WRITE_CALLBACK struct {
 }
 
 type CRYPT_XML_DATA_PROVIDER struct {
-	pvCallbackState unsafe.Pointer
-	cbBufferSize    uint32
-	pfnRead         PFN_CRYPT_XML_DATA_PROVIDER_READ
-	pfnClose        PFN_CRYPT_XML_DATA_PROVIDER_CLOSE
+	PvCallbackState unsafe.Pointer
+	CbBufferSize    uint32
+	PfnRead         PFN_CRYPT_XML_DATA_PROVIDER_READ
+	PfnClose        PFN_CRYPT_XML_DATA_PROVIDER_CLOSE
 }
 
 type CRYPT_XML_STATUS struct {
-	cbSize        uint32
-	dwErrorStatus CRYPT_XML_STATUS_ERROR_STATUS
-	dwInfoStatus  CRYPT_XML_STATUS_INFO_STATUS
+	CbSize        uint32
+	DwErrorStatus CRYPT_XML_STATUS_ERROR_STATUS
+	DwInfoStatus  CRYPT_XML_STATUS_INFO_STATUS
 }
 
 type CRYPT_XML_ALGORITHM struct {
-	cbSize       uint32
-	wszAlgorithm PWSTR
+	CbSize       uint32
+	WszAlgorithm PWSTR
 	Encoded      CRYPT_XML_BLOB
 }
 
 type CRYPT_XML_TRANSFORM_CHAIN_CONFIG struct {
-	cbSize           uint32
-	cTransformInfo   uint32
-	rgpTransformInfo **CRYPT_XML_TRANSFORM_INFO
+	CbSize           uint32
+	CTransformInfo   uint32
+	RgpTransformInfo **CRYPT_XML_TRANSFORM_INFO
 }
 
 type CRYPT_XML_KEY_VALUE struct {
-	dwType    CRYPT_XML_KEY_VALUE_TYPE
+	DwType    CRYPT_XML_KEY_VALUE_TYPE
 	Anonymous _Anonymous_e__Union
 }
 
 type CRYPT_XML_REFERENCE struct {
-	cbSize       uint32
-	hReference   unsafe.Pointer
-	wszId        PWSTR
-	wszUri       PWSTR
-	wszType      PWSTR
+	CbSize       uint32
+	HReference   unsafe.Pointer
+	WszId        PWSTR
+	WszUri       PWSTR
+	WszType      PWSTR
 	DigestMethod CRYPT_XML_ALGORITHM
 	DigestValue  CRYPTOAPI_BLOB
-	cTransform   uint32
-	rgTransform  *CRYPT_XML_ALGORITHM
+	CTransform   uint32
+	RgTransform  *CRYPT_XML_ALGORITHM
 }
 
 type CRYPT_XML_OBJECT struct {
-	cbSize      uint32
-	hObject     unsafe.Pointer
-	wszId       PWSTR
-	wszMimeType PWSTR
-	wszEncoding PWSTR
+	CbSize      uint32
+	HObject     unsafe.Pointer
+	WszId       PWSTR
+	WszMimeType PWSTR
+	WszEncoding PWSTR
 	Manifest    CRYPT_XML_REFERENCES
 	Encoded     CRYPT_XML_BLOB
 }
 
 type CRYPT_XML_SIGNATURE struct {
-	cbSize         uint32
-	hSignature     unsafe.Pointer
-	wszId          PWSTR
+	CbSize         uint32
+	HSignature     unsafe.Pointer
+	WszId          PWSTR
 	SignedInfo     CRYPT_XML_SIGNED_INFO
 	SignatureValue CRYPTOAPI_BLOB
-	pKeyInfo       *CRYPT_XML_KEY_INFO
-	cObject        uint32
-	rgpObject      **CRYPT_XML_OBJECT
+	PKeyInfo       *CRYPT_XML_KEY_INFO
+	CObject        uint32
+	RgpObject      **CRYPT_XML_OBJECT
 }
 
 type CRYPT_XML_DOC_CTXT struct {
-	cbSize            uint32
-	hDocCtxt          unsafe.Pointer
-	pTransformsConfig *CRYPT_XML_TRANSFORM_CHAIN_CONFIG
-	cSignature        uint32
-	rgpSignature      **CRYPT_XML_SIGNATURE
+	CbSize            uint32
+	HDocCtxt          unsafe.Pointer
+	PTransformsConfig *CRYPT_XML_TRANSFORM_CHAIN_CONFIG
+	CSignature        uint32
+	RgpSignature      **CRYPT_XML_SIGNATURE
 }
 
 type CRYPT_XML_KEYINFO_SPEC int32
@@ -2828,16 +2830,16 @@ const (
 )
 
 type CRYPT_XML_ALGORITHM_INFO struct {
-	cbSize           uint32
-	wszAlgorithmURI  PWSTR
-	wszName          PWSTR
-	dwGroupId        CRYPT_XML_GROUP_ID
-	wszCNGAlgid      PWSTR
-	wszCNGExtraAlgid PWSTR
-	dwSignFlags      uint32
-	dwVerifyFlags    uint32
-	pvPaddingInfo    unsafe.Pointer
-	pvExtraInfo      unsafe.Pointer
+	CbSize           uint32
+	WszAlgorithmURI  PWSTR
+	WszName          PWSTR
+	DwGroupId        CRYPT_XML_GROUP_ID
+	WszCNGAlgid      PWSTR
+	WszCNGExtraAlgid PWSTR
+	DwSignFlags      uint32
+	DwVerifyFlags    uint32
+	PvPaddingInfo    unsafe.Pointer
+	PvExtraInfo      unsafe.Pointer
 }
 
 type PFN_CRYPT_XML_ENUM_ALG_INFO struct {
@@ -2861,26 +2863,26 @@ const (
 )
 
 type INFORMATIONCARD_CRYPTO_HANDLE struct {
-	type             HandleType
-	expiration       int64
-	cryptoParameters unsafe.Pointer
+	Type             HandleType
+	Expiration       int64
+	CryptoParameters unsafe.Pointer
 }
 
 type GENERIC_XML_TOKEN struct {
-	createDate             FILETIME
-	expiryDate             FILETIME
-	xmlToken               PWSTR
-	internalTokenReference PWSTR
-	externalTokenReference PWSTR
+	CreateDate             FILETIME
+	ExpiryDate             FILETIME
+	XmlToken               PWSTR
+	InternalTokenReference PWSTR
+	ExternalTokenReference PWSTR
 }
 
 type POLICY_ELEMENT struct {
-	targetEndpointAddress  PWSTR
-	issuerEndpointAddress  PWSTR
-	issuedTokenParameters  PWSTR
-	privacyNoticeLink      PWSTR
-	privacyNoticeVersion   uint32
-	useManagedPresentation BOOL
+	TargetEndpointAddress  PWSTR
+	IssuerEndpointAddress  PWSTR
+	IssuedTokenParameters  PWSTR
+	PrivacyNoticeLink      PWSTR
+	PrivacyNoticeVersion   uint32
+	UseManagedPresentation BOOL
 }
 
 type LARGE_INTEGER struct {
@@ -2915,12 +2917,12 @@ type IO_STATUS_BLOCK struct {
 }
 
 type OFSTRUCT struct {
-	cBytes     uint8
-	fFixedDisk uint8
-	nErrCode   uint16
+	CBytes     uint8
+	FFixedDisk uint8
+	NErrCode   uint16
 	Reserved1  uint16
 	Reserved2  uint16
-	szPathName []CHAR
+	SzPathName []CHAR
 }
 
 type PFE_EXPORT_FUNC struct {
@@ -2933,15 +2935,15 @@ type LPPROGRESS_ROUTINE struct {
 }
 
 type COPYFILE2_EXTENDED_PARAMETERS struct {
-	dwSize            uint32
-	dwCopyFlags       uint32
-	pfCancel          *BOOL
-	pProgressRoutine  PCOPYFILE2_PROGRESS_ROUTINE
-	pvCallbackContext unsafe.Pointer
+	DwSize            uint32
+	DwCopyFlags       uint32
+	PfCancel          *BOOL
+	PProgressRoutine  PCOPYFILE2_PROGRESS_ROUTINE
+	PvCallbackContext unsafe.Pointer
 }
 
 type FILE_ID_DESCRIPTOR struct {
-	dwSize    uint32
+	DwSize    uint32
 	Type      FILE_ID_TYPE
 	Anonymous _Anonymous_e__Union
 }

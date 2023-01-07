@@ -5,6 +5,7 @@ package main
 
 import (
 	"debug/pe"
+	"go/format"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -23,7 +24,11 @@ func TestWriteMethod(t *testing.T) {
 	if err := writePrototypes(&b, f, r); err != nil {
 		t.Fatal(err)
 	}
-	Check(t, "go test ./cmd/genwinmdsigs", filepath.Join("testdata", "prototypes.golden.go"), b.String())
+	formattedContent, err := format.Source([]byte(b.String()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	Check(t, "go test ./cmd/genwinmdsigs", filepath.Join("testdata", "prototypes.golden.go"), string(formattedContent))
 }
 
 func openTestWinmd() (*winmd.Metadata, error) {

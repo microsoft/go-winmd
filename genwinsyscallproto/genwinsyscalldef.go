@@ -9,6 +9,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"go/token"
 	"io"
 	"log"
 	"sort"
@@ -144,7 +145,7 @@ func NewContext(f *winmd.Metadata) (*Context, error) {
 // DllImport pseudo-attribute (§II.21.2.1) to determine this value.
 func (c *Context) WriteMethod(w io.StringWriter, method *winmd.MethodDef, moduleName, goName string) error {
 	w.WriteString("//sys\t")
-	w.WriteString(goName)
+	writeEscapedUpper(w, goName)
 	w.WriteString("(")
 
 	sig, err := c.Metadata.MethodDefSignature(method.Signature)
@@ -205,14 +206,14 @@ func (c *Context) WriteMethod(w io.StringWriter, method *winmd.MethodDef, module
 			w.WriteString(moduleName)
 			w.WriteString(".")
 		}
-		w.WriteString(method.Name.String())
+		writeEscapedUpper(w, method.Name.String())
 	}
 	return nil
 }
 
 func (c *Context) writeParam(w io.StringWriter, p *winmd.Param) {
 	// TODO: Use p.Flags to determine how to translate each param to a Go type?
-	w.WriteString(p.Name.String())
+	writeEscapedParam(w, p.Name.String())
 }
 
 func (c *Context) writeType(b io.StringWriter, p *winmd.SigType) error {
@@ -298,7 +299,7 @@ func (c *Context) writeTypeValue(b io.StringWriter, value any, visited map[*winm
 			if err != nil {
 				return err
 			}
-			b.WriteString(record.Name.String())
+			writeEscapedUpper(b, record.Name.String())
 
 		case coded.TypeDefOrRefOrSpec_TypeRef:
 			record, err := c.Metadata.Tables.TypeRef.Record(v.Index)
@@ -306,7 +307,7 @@ func (c *Context) writeTypeValue(b io.StringWriter, value any, visited map[*winm
 				return err
 			}
 			c.UsedTypeRefs[v.Index] = struct{}{}
-			b.WriteString(record.Name.String())
+			writeEscapedUpper(b, record.Name.String())
 
 		default:
 			return fmt.Errorf("unexpected coded index value: %#v", v)
@@ -351,19 +352,17 @@ func (c *Context) WriteTypeDef(b io.StringWriter, i winmd.Index) error {
 
 func (c *Context) writeTypeDefEnum(b io.StringWriter, def *winmd.TypeDef) error {
 	b.WriteString("type ")
-	b.WriteString(def.Name.String())
+	writeEscapedUpper(b, def.Name.String())
 
 	// Per §I.8.5.2 CLS Rule 7, the underlying type is the type of the field "__value". Find it.
 	var underlyingType *winmd.SigType
 
-	type nameValuePair struct {
-		Name  string
-		Value string
+	type member struct {
+		Name     string
+		HexValue string
 	}
 	// The number of enum members is the total number of fields minus the special "value__".
-	members := make([]nameValuePair, 0, def.FieldList.End-def.FieldList.Start-1)
-
-	maxNameLen := 0
+	members := make([]member, 0, def.FieldList.End-def.FieldList.Start-1)
 
 	for i := def.FieldList.Start; i < def.FieldList.End; i++ {
 		fd, err := c.Metadata.Tables.Field.Record(i)
@@ -408,11 +407,10 @@ func (c *Context) writeTypeDefEnum(b io.StringWriter, def *winmd.TypeDef) error 
 			return fmt.Errorf("unable to find default value for field %v", fd.Name)
 		}
 
-		p := nameValuePair{fd.Name.String(), hex}
+		// Don't write the members yet. We haven't written the enum type definition yet, and the
+		// order is important for readability in docs.
+		p := member{fd.Name.String(), hex}
 		members = append(members, p)
-		if len(p.Name) > maxNameLen {
-			maxNameLen = len(p.Name)
-		}
 	}
 	if underlyingType == nil {
 		return errors.New("failed to find underlying type for enum")
@@ -430,16 +428,14 @@ func (c *Context) writeTypeDefEnum(b io.StringWriter, def *winmd.TypeDef) error 
 		// find in Go via autocomplete.
 		// TODO: Be a bit smarter? E.g. accept BCRYPT_CIPHER_OPERATION for BCRYPT_OPERATION enum without changing it.
 		if !strings.HasPrefix(pair.Name, def.Name.String()) {
-			b.WriteString(def.Name.String())
+			writeEscapedUpper(b, def.Name.String())
 			b.WriteString("_")
 		}
-		b.WriteString(pair.Name)
-		for i := 0; i < maxNameLen-len(pair.Name)+1; i++ {
-			b.WriteString(" ")
-		}
-		b.WriteString(def.Name.String())
+		writeEscapedUpper(b, pair.Name)
+		b.WriteString(" ")
+		writeEscapedUpper(b, def.Name.String())
 		b.WriteString(" = 0x")
-		b.WriteString(pair.Value)
+		b.WriteString(pair.HexValue)
 		b.WriteString("\n")
 	}
 	b.WriteString(")\n")
@@ -448,7 +444,7 @@ func (c *Context) writeTypeDefEnum(b io.StringWriter, def *winmd.TypeDef) error 
 
 func (c *Context) writeTypeDefNative(b io.StringWriter, def *winmd.TypeDef) error {
 	b.WriteString("type ")
-	b.WriteString(def.Name.String())
+	writeEscapedUpper(b, def.Name.String())
 	b.WriteString(" ")
 	if def.FieldList.Start+1 != def.FieldList.End {
 		return fmt.Errorf("expected exactly one field for native typedef %v", def.Name)
@@ -470,15 +466,8 @@ func (c *Context) writeTypeDefNative(b io.StringWriter, def *winmd.TypeDef) erro
 
 func (c *Context) writeTypeDefStruct(b io.StringWriter, def *winmd.TypeDef) error {
 	b.WriteString("type ")
-	b.WriteString(def.Name.String())
+	writeEscapedUpper(b, def.Name.String())
 	b.WriteString(" struct {\n")
-
-	type nameTypePair struct {
-		Name string
-		Type *winmd.SigType
-	}
-	fields := make([]nameTypePair, 0, def.FieldList.End-def.FieldList.Start)
-	maxNameLen := 0
 	for i := def.FieldList.Start; i < def.FieldList.End; i++ {
 		fd, err := c.Metadata.Tables.Field.Record(i)
 		if err != nil {
@@ -488,22 +477,10 @@ func (c *Context) writeTypeDefStruct(b io.StringWriter, def *winmd.TypeDef) erro
 		if err != nil {
 			return err
 		}
-		// Don't write anything yet, just save the necessary data. We need to wait until we know the
-		// longest field name to write the correct number of spaces.
-		p := nameTypePair{fd.Name.String(), &signature.Type}
-		fields = append(fields, p)
-
-		if len(p.Name) > maxNameLen {
-			maxNameLen = len(p.Name)
-		}
-	}
-	for _, pair := range fields {
 		b.WriteString("\t")
-		b.WriteString(pair.Name)
-		for i := 0; i < maxNameLen-len(pair.Name)+1; i++ {
-			b.WriteString(" ")
-		}
-		if err := c.writeType(b, pair.Type); err != nil {
+		writeEscapedUpper(b, fd.Name.String())
+		b.WriteString(" ")
+		if err := c.writeType(b, &signature.Type); err != nil {
 			return err
 		}
 		b.WriteString("\n")
@@ -546,4 +523,23 @@ func (c *Context) WriteUsedTypeDefs(b io.StringWriter) error {
 		b.WriteString("\n")
 	}
 	return nil
+}
+
+// writeEscapedParam writes the given string, adding a suffix if it is a reserved Go keyword. Leave
+// the case as-is (unlike writeEscapedUpper) because lowercase is desirable for params.
+func writeEscapedParam(b io.StringWriter, s string) {
+	if token.IsKeyword(s) {
+		s += "Param"
+	}
+	b.WriteString(s)
+}
+
+// writeEscapedUpper writes the given string with the first character in uppercase. All Go keywords
+// are lowercase, so uppercasing the first letter does two things: escapes names like "type" and
+// exports the generated types/fields.
+func writeEscapedUpper(b io.StringWriter, s string) {
+	if len(s) > 1 {
+		s = strings.ToUpper(string(s[0])) + s[1:]
+	}
+	b.WriteString(s)
 }

@@ -8,6 +8,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"go/format"
 	"html/template"
 	"log"
 	"os"
@@ -85,11 +86,17 @@ func Run() error {
 		finalContent = content
 	}
 
+	formattedContent, err := format.Source([]byte(finalContent))
+	if err != nil {
+		log.Printf("Unable to format generated code, writing unformatted code instead. Error: %v", err)
+		formattedContent = []byte(finalContent)
+	}
+
 	end := time.Now()
 	log.Printf("Time elapsed to produce sys signatures: %v\n", end.Sub(start))
 
 	if *output != "" {
-		return os.WriteFile(*output, []byte(finalContent), 0666)
+		return os.WriteFile(*output, formattedContent, 0666)
 	}
 	log.Println("Printing signature results because no output path was specified:")
 	log.Println("---")
@@ -103,7 +110,6 @@ func writePrototypes(b *strings.Builder, f *winmd.Metadata, filterRegexp *regexp
 		return err
 	}
 
-	firstType := true
 	for i := uint32(0); i < f.Tables.TypeDef.Len; i++ {
 		r, err := f.Tables.TypeDef.Record(winmd.Index(i))
 		if err != nil {
@@ -140,20 +146,13 @@ func writePrototypes(b *strings.Builder, f *winmd.Metadata, filterRegexp *regexp
 			}
 			methodName := md.Name.String()
 
-			// Handle newlines and section headers between chunks of methods from the same typedef.
+			// Write a comment describing this chunk of methods.
 			if firstMethod {
-				if firstType {
-					firstType = false
-				} else {
-					b.WriteString("\n\n")
-				}
 				firstMethod = false
-				b.WriteString("// APIs for ")
+				b.WriteString("\n\n// APIs for ")
 				b.WriteString(r.Namespace.String())
-				b.WriteString("\n")
-			} else {
-				b.WriteString("\n")
 			}
+			b.WriteString("\n")
 
 			if err := context.WriteMethod(b, md, moduleName, methodName); err != nil {
 				// Include context in the error for diag purposes.
