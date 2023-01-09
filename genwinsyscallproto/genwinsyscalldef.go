@@ -307,7 +307,7 @@ func (c *Context) writeType(b io.StringWriter, p *winmd.SigType) error {
 					writeEscapedUpper(b, record.Name.String())
 
 				default:
-					return fmt.Errorf("unexpected coded index value: %#v", v)
+					return fmt.Errorf("unexpected coded index tag for type Value: %#v", v)
 				}
 
 				// Types can nest. A pointer to another type is a very common case.
@@ -320,7 +320,7 @@ func (c *Context) writeType(b io.StringWriter, p *winmd.SigType) error {
 				return visitType(&v.Type)
 
 			default:
-				return fmt.Errorf("unexpected type value: %#v", p.Value)
+				return fmt.Errorf("unexpected type for type Value: %#v", p.Value)
 			}
 			return nil
 		}
