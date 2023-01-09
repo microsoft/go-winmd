@@ -217,113 +217,116 @@ func (c *Context) writeParam(w io.StringWriter, p *winmd.Param) {
 }
 
 func (c *Context) writeType(b io.StringWriter, p *winmd.SigType) error {
-	return c.writeTypeCore(b, p, nil)
-}
-
-func (c *Context) writeTypeCore(b io.StringWriter, p *winmd.SigType, visited map[*winmd.SigType]struct{}) error {
-	if visited != nil {
-		if _, ok := visited[p]; ok {
-			return fmt.Errorf("cycle detected in type definition: already visited %v", p)
-		}
-	}
-
-	// Special case: *void is unsafe.Pointer
-	if p.Kind == flags.ElementType_PTR {
-		if t, ok := p.Value.(winmd.SigType); ok {
-			if t.Kind == flags.ElementType_VOID {
-				b.WriteString("unsafe.Pointer")
-				return nil
-			}
-		}
-	}
-
-	switch p.Kind {
-	// Translate ECMA-335 primitive types to Go types.
-	case flags.ElementType_BOOLEAN:
-		b.WriteString("bool")
-	case flags.ElementType_CHAR:
-		// TODO: Is there a better representation of CHAR?
-		b.WriteString("uint16")
-	case flags.ElementType_I1:
-		b.WriteString("int8")
-	case flags.ElementType_U1:
-		b.WriteString("uint8")
-	case flags.ElementType_I2:
-		b.WriteString("int16")
-	case flags.ElementType_U2:
-		b.WriteString("uint16")
-	case flags.ElementType_I4:
-		b.WriteString("int32")
-	case flags.ElementType_U4:
-		b.WriteString("uint32")
-	case flags.ElementType_I8:
-		b.WriteString("int64")
-	case flags.ElementType_U8:
-		b.WriteString("uint64")
-	case flags.ElementType_R4:
-		b.WriteString("float32")
-	case flags.ElementType_R8:
-		b.WriteString("float64")
-
-	// ECMA-335 distinguishes uintptr and intptr, Go only has uintptr used in both cases.
-	case flags.ElementType_I, flags.ElementType_U:
-		b.WriteString("uintptr")
-
-	case flags.ElementType_VOID:
-		// We catch "*void" with a special case above. We should never see simply VOID.
-		return errors.New("unexpected primitive type: VOID")
-
-	case flags.ElementType_OBJECT:
-		b.WriteString("any")
-
-	// If this is not a simple value type, there will be p.Value. Handle all those cases here.
-	default:
-		if p.Kind == flags.ElementType_PTR {
-			b.WriteString("*")
-		}
+	// Keep track of visited types to detect a cycle.
+	var visited map[*winmd.SigType]struct{}
+	markVisited := func(p *winmd.SigType) {
+		// Allocate the visited map at the last possible moment. In simple cases, it isn't needed.
 		if visited == nil {
 			visited = make(map[*winmd.SigType]struct{})
 		}
 		visited[p] = struct{}{}
-		return c.writeTypeValue(b, p.Value, visited)
 	}
-	return nil
-}
 
-func (c *Context) writeTypeValue(b io.StringWriter, value any, visited map[*winmd.SigType]struct{}) error {
-	switch v := value.(type) {
-	case winmd.CodedIndex:
-		switch v.Tag {
-		case coded.TypeDefOrRefOrSpec_TypeDef:
-			record, err := c.Metadata.Tables.TypeDef.Record(v.Index)
-			if err != nil {
-				return err
-			}
-			writeEscapedUpper(b, record.Name.String())
-
-		case coded.TypeDefOrRefOrSpec_TypeRef:
-			record, err := c.Metadata.Tables.TypeRef.Record(v.Index)
-			if err != nil {
-				return err
-			}
-			c.UsedTypeRefs[v.Index] = struct{}{}
-			writeEscapedUpper(b, record.Name.String())
-
-		default:
-			return fmt.Errorf("unexpected coded index value: %#v", v)
+	// Declare the func before defining it to let it capture the variable and recurse.
+	var visitType func(p *winmd.SigType) error
+	visitType = func(p *winmd.SigType) error {
+		if _, ok := visited[p]; ok {
+			return fmt.Errorf("cycle detected in type definition: already visited %v", p)
 		}
 
-	// Types can nest. A pointer to another type is a very common case.
-	case winmd.SigType:
-		return c.writeTypeCore(b, &v, visited)
-	case winmd.SigArray:
-		b.WriteString("[]")
-		return c.writeTypeCore(b, &v.Type, visited)
+		// Special case: *void is unsafe.Pointer
+		if p.Kind == flags.ElementType_PTR {
+			if t, ok := p.Value.(winmd.SigType); ok {
+				if t.Kind == flags.ElementType_VOID {
+					b.WriteString("unsafe.Pointer")
+					return nil
+				}
+			}
+		}
 
-	default:
-		return fmt.Errorf("unexpected type value: %#v", value)
+		switch p.Kind {
+		// Translate ECMA-335 primitive types to Go types.
+		case flags.ElementType_BOOLEAN:
+			b.WriteString("bool")
+		case flags.ElementType_CHAR:
+			// TODO: Is there a better representation of CHAR?
+			b.WriteString("uint16")
+		case flags.ElementType_I1:
+			b.WriteString("int8")
+		case flags.ElementType_U1:
+			b.WriteString("uint8")
+		case flags.ElementType_I2:
+			b.WriteString("int16")
+		case flags.ElementType_U2:
+			b.WriteString("uint16")
+		case flags.ElementType_I4:
+			b.WriteString("int32")
+		case flags.ElementType_U4:
+			b.WriteString("uint32")
+		case flags.ElementType_I8:
+			b.WriteString("int64")
+		case flags.ElementType_U8:
+			b.WriteString("uint64")
+		case flags.ElementType_R4:
+			b.WriteString("float32")
+		case flags.ElementType_R8:
+			b.WriteString("float64")
+
+		// ECMA-335 distinguishes uintptr and intptr, Go only has uintptr used in both cases.
+		case flags.ElementType_I, flags.ElementType_U:
+			b.WriteString("uintptr")
+
+		case flags.ElementType_VOID:
+			// We catch "*void" with a special case above. We should never see simply VOID.
+			return errors.New("unexpected primitive type: VOID")
+
+		case flags.ElementType_OBJECT:
+			b.WriteString("any")
+
+		// If this is not a simple value type, there will be p.Value. Handle all those cases here.
+		default:
+			if p.Kind == flags.ElementType_PTR {
+				b.WriteString("*")
+			}
+			switch v := p.Value.(type) {
+			case winmd.CodedIndex:
+				switch v.Tag {
+				case coded.TypeDefOrRefOrSpec_TypeDef:
+					record, err := c.Metadata.Tables.TypeDef.Record(v.Index)
+					if err != nil {
+						return err
+					}
+					writeEscapedUpper(b, record.Name.String())
+
+				case coded.TypeDefOrRefOrSpec_TypeRef:
+					record, err := c.Metadata.Tables.TypeRef.Record(v.Index)
+					if err != nil {
+						return err
+					}
+					c.UsedTypeRefs[v.Index] = struct{}{}
+					writeEscapedUpper(b, record.Name.String())
+
+				default:
+					return fmt.Errorf("unexpected coded index value: %#v", v)
+				}
+
+				// Types can nest. A pointer to another type is a very common case.
+			case winmd.SigType:
+				markVisited(p)
+				return visitType(&v)
+			case winmd.SigArray:
+				b.WriteString("[]")
+				markVisited(p)
+				return visitType(&v.Type)
+
+			default:
+				return fmt.Errorf("unexpected type value: %#v", p.Value)
+			}
+			return nil
+		}
+		return nil
 	}
-	return nil
+	return visitType(p)
 }
 
 func (c *Context) WriteTypeDef(b io.StringWriter, i winmd.Index) error {
