@@ -365,7 +365,7 @@ func (c *Context) writeTypeDefEnum(b io.StringWriter, def *winmd.TypeDef) error 
 	var underlyingType *winmd.SigType
 
 	type member struct {
-		Name     string
+		Name     winmd.String
 		HexValue string
 	}
 	// The number of enum members is the total number of fields minus the special "value__".
@@ -376,11 +376,11 @@ func (c *Context) writeTypeDefEnum(b io.StringWriter, def *winmd.TypeDef) error 
 		if err != nil {
 			return err
 		}
-		signature, err := c.Metadata.FieldSignature(fd.Signature)
-		if err != nil {
-			return err
-		}
 		if fd.Name.String() == "value__" {
+			signature, err := c.Metadata.FieldSignature(fd.Signature)
+			if err != nil {
+				return err
+			}
 			underlyingType = &signature.Type
 			continue
 		}
@@ -421,7 +421,7 @@ func (c *Context) writeTypeDefEnum(b io.StringWriter, def *winmd.TypeDef) error 
 
 		// Don't write the members yet. We haven't written the enum type definition yet, and the
 		// order is important for readability in docs.
-		p := member{fd.Name.String(), hex}
+		p := member{fd.Name, hex}
 		members = append(members, p)
 	}
 	if underlyingType == nil {
@@ -434,16 +434,17 @@ func (c *Context) writeTypeDefEnum(b io.StringWriter, def *winmd.TypeDef) error 
 	}
 	b.WriteString("\n\nconst (\n")
 	for _, pair := range members {
+		name := pair.Name.String()
 		b.WriteString("\t")
 		// Add enum name prefix to generated name if the original member name doesn't already have
 		// the prefix. This may be necessary to avoid collisions, and also makes the API easier to
 		// find in Go via autocomplete.
 		// TODO: Be a bit smarter? E.g. accept BCRYPT_CIPHER_OPERATION for BCRYPT_OPERATION enum without changing it.
-		if !strings.HasPrefix(pair.Name, def.Name.String()) {
+		if !strings.HasPrefix(name, def.Name.String()) {
 			writeEscapedUpper(b, def.Name.String())
 			b.WriteString("_")
 		}
-		writeEscapedUpper(b, pair.Name)
+		writeEscapedUpper(b, name)
 		b.WriteString(" ")
 		writeEscapedUpper(b, def.Name.String())
 		b.WriteString(" = ")
