@@ -88,7 +88,7 @@ func newMetadata(pefile *pe.File) (*Metadata, error) {
 		}
 	}
 	if tableHeap != nil {
-		f.Tables, err = readTablesHeap(tableHeap, heaps{f.Strings, f.Blob, f.GUID})
+		f.Tables, f.layout, err = readTablesHeap(tableHeap, heaps{f.Strings, f.Blob, f.GUID})
 		if err != nil {
 			return nil, err
 		}
@@ -327,7 +327,7 @@ func readStringHeap(r *heap) (StringHeap, error) {
 	return StringHeap(buf), nil
 }
 
-func readTablesHeap(tableHeap *heap, hps heaps) (*Tables, error) {
+func readTablesHeap(tableHeap *heap, hps heaps) (*Tables, *layout, error) {
 	// The #~ stream can be huge, we better don't call ds.Data()
 	r := tableHeap.Open()
 
@@ -346,17 +346,17 @@ func readTablesHeap(tableHeap *heap, hps heaps) (*Tables, error) {
 		sorted    uint64
 	)
 	if !read(&padding6) || !read(&heapSizes) || !read(&padding1) || !read(&valid) || !read(&sorted) {
-		return nil, fmt.Errorf("fail to read the tables stream header: %v", err)
+		return nil, nil, fmt.Errorf("fail to read the tables stream header: %v", err)
 	}
 	tablesCount := bits.OnesCount64(valid)
 	if tablesCount >= int(tableMax) {
-		return nil, fmt.Errorf("invalid bit vector of present tables: 0b%b", tablesCount)
+		return nil, nil, fmt.Errorf("invalid bit vector of present tables: 0b%b", tablesCount)
 	}
 	// read an array of tablesCount 4-byte unsigned integers indicating the number of
 	// rows for each present table.
 	rows := make([]uint32, tablesCount)
 	if !read(rows) {
-		return nil, fmt.Errorf("fail to read tables stream rows: %v", err)
+		return nil, nil, fmt.Errorf("fail to read tables stream rows: %v", err)
 	}
 	var tableRowCounts [tableMax]uint32
 	for j, i := 0, 0; i < len(tableRowCounts); i++ {
@@ -368,9 +368,9 @@ func readTablesHeap(tableHeap *heap, hps heaps) (*Tables, error) {
 	}
 	buf, err := readData(tableHeap.Open(), uint64(tableHeap.Size))
 	if err != nil {
-		return nil, fmt.Errorf("fail to read tables stream: %v", err)
+		return nil, nil, fmt.Errorf("fail to read tables stream: %v", err)
 	}
 	layout := generateLayout(heapSizes, tableRowCounts)
 	tables := newTables(buf[24+4*tablesCount:], hps, layout)
-	return tables, nil
+	return tables, layout, nil
 }

@@ -114,29 +114,29 @@ const (
 type MethodAttributes uint16
 
 const (
-	MethodImplAttributes_MemberAccessMask   MethodImplAttributes = 0x0007
-	MethodImplAttributes_CompilerControlled MethodImplAttributes = 0x0000
-	MethodImplAttributes_Private            MethodImplAttributes = 0x0001
-	MethodImplAttributes_FamANDAssem        MethodImplAttributes = 0x0002
-	MethodImplAttributes_Assem              MethodImplAttributes = 0x0003
-	MethodImplAttributes_Family             MethodImplAttributes = 0x0004
-	MethodImplAttributes_FamORAssem         MethodImplAttributes = 0x0005
-	MethodImplAttributes_Public             MethodImplAttributes = 0x0006
-	MethodImplAttributes_Static             MethodImplAttributes = 0x0010
-	MethodImplAttributes_Final              MethodImplAttributes = 0x0020
-	MethodImplAttributes_Virtual            MethodImplAttributes = 0x0040
-	MethodImplAttributes_HideBySig          MethodImplAttributes = 0x0080
-	MethodImplAttributes_VtableLayoutMask   MethodImplAttributes = 0x0100
-	MethodImplAttributes_ReuseSlot          MethodImplAttributes = 0x0000
-	MethodImplAttributes_NewSlot            MethodImplAttributes = 0x0100
-	MethodImplAttributes_Strict             MethodImplAttributes = 0x0200
-	MethodImplAttributes_Abstract           MethodImplAttributes = 0x0400
-	MethodImplAttributes_SpecialName        MethodImplAttributes = 0x0800
-	MethodImplAttributes_PInvokeImpl        MethodImplAttributes = 0x2000
-	MethodImplAttributes_UnmanagedExport    MethodImplAttributes = 0x0008
-	MethodImplAttributes_RTSpecialName      MethodImplAttributes = 0x1000
-	MethodImplAttributes_HasSecurity        MethodImplAttributes = 0x4000
-	MethodImplAttributes_RequireSecObject   MethodImplAttributes = 0x8000
+	MethodAttributes_MemberAccessMask   MethodAttributes = 0x0007
+	MethodAttributes_CompilerControlled MethodAttributes = 0x0000
+	MethodAttributes_Private            MethodAttributes = 0x0001
+	MethodAttributes_FamANDAssem        MethodAttributes = 0x0002
+	MethodAttributes_Assem              MethodAttributes = 0x0003
+	MethodAttributes_Family             MethodAttributes = 0x0004
+	MethodAttributes_FamORAssem         MethodAttributes = 0x0005
+	MethodAttributes_Public             MethodAttributes = 0x0006
+	MethodAttributes_Static             MethodAttributes = 0x0010
+	MethodAttributes_Final              MethodAttributes = 0x0020
+	MethodAttributes_Virtual            MethodAttributes = 0x0040
+	MethodAttributes_HideBySig          MethodAttributes = 0x0080
+	MethodAttributes_VtableLayoutMask   MethodAttributes = 0x0100
+	MethodAttributes_ReuseSlot          MethodAttributes = 0x0000
+	MethodAttributes_NewSlot            MethodAttributes = 0x0100
+	MethodAttributes_Strict             MethodAttributes = 0x0200
+	MethodAttributes_Abstract           MethodAttributes = 0x0400
+	MethodAttributes_SpecialName        MethodAttributes = 0x0800
+	MethodAttributes_PInvokeImpl        MethodAttributes = 0x2000
+	MethodAttributes_UnmanagedExport    MethodAttributes = 0x0008
+	MethodAttributes_RTSpecialName      MethodAttributes = 0x1000
+	MethodAttributes_HasSecurity        MethodAttributes = 0x4000
+	MethodAttributes_RequireSecObject   MethodAttributes = 0x8000
 )
 
 // MethodImplAttributes is defined in §II.23.1.11.

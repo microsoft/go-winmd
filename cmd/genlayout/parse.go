@@ -142,7 +142,9 @@ func parseTable(pkg *packages.Package, spec *ast.TypeSpec) (info tableInfo) {
 			case "String":
 				col.columnType = columnTypeString
 			default:
-				if obj.Pkg().Name() == "flags" {
+				if strings.HasPrefix(objName, "Sig") && strings.HasSuffix(objName, "Blob") {
+					col.columnType = columnTypeBlob
+				} else if obj.Pkg().Name() == "flags" {
 					col.columnType = columnTypeUint
 					col.typeName = "flags." + col.typeName
 					switch tp.Underlying().(*types.Basic).Kind() {

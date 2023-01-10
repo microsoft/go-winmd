@@ -17,11 +17,38 @@ type Metadata struct {
 	US      USHeap
 	Blob    BlobHeap
 	GUID    GUIDHeap
+
+	layout *layout
 }
 
 // New creates a new File from an underlying PE file.
 func New(pefile *pe.File) (*Metadata, error) {
 	return newMetadata(pefile)
+}
+
+func (m *Metadata) FieldSignature(bytes SigFieldBlob) (SigField, error) {
+	r := m.sigReader(bytes)
+	return r.fieldSig(), r.err
+}
+
+func (m *Metadata) PropertySignature(data SigPropertyBlob) (SigProperty, error) {
+	r := m.sigReader(data)
+	_ = r
+	panic("not implemented")
+}
+
+func (m *Metadata) MethodDefSignature(data SigMethodDefBlob) (SigMethodDef, error) {
+	r := m.sigReader(data)
+	return r.methodDefSig(), r.err
+}
+
+func (m *Metadata) sigReader(data []byte) sigReader {
+	return sigReader{
+		ecma335Reader{
+			data:   data,
+			layout: m.layout,
+		},
+	}
 }
 
 // Record is an item in a metadata table.
@@ -87,9 +114,11 @@ func (t Table[T, TP]) Record(row Index) (TP, error) {
 		return nil, io.ErrUnexpectedEOF
 	}
 	r := recordReader{
-		data:   t.data[offset:],
-		heaps:  t.heaps,
-		layout: t.layout,
+		ecma335Reader: ecma335Reader{
+			data:   t.data[offset:],
+			layout: t.layout,
+		},
+		heaps: t.heaps,
 	}
 	rec := TP(new(T))
 	err := rec.decode(r)
