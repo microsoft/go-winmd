@@ -131,21 +131,6 @@ func writePrototypes(b *strings.Builder, f *winmd.Metadata, filterRegexp *regexp
 				continue
 			}
 
-			// Find the DllImport pseudo-custom attribute (§II.21.2.1) for the module name.
-			var moduleName string
-			if implMap, ok := context.MethodDefImplMap[j]; ok {
-				// TODO: Map of parsed module refs?
-				mr, err := f.Tables.ModuleRef.Record(implMap.ImportScope)
-				if err != nil {
-					return err
-				}
-				moduleName = strings.ToLower(mr.Name.String())
-				if moduleName == "kernel32" {
-					moduleName = ""
-				}
-			}
-			methodName := md.Name.String()
-
 			// Write a comment describing this chunk of methods.
 			if firstMethod {
 				firstMethod = false
@@ -154,7 +139,7 @@ func writePrototypes(b *strings.Builder, f *winmd.Metadata, filterRegexp *regexp
 			}
 			b.WriteString("\n")
 
-			if err := context.WriteMethod(b, md, moduleName, methodName); err != nil {
+			if err := context.WriteMethod(b, j, md); err != nil {
 				// Include context in the error for diag purposes.
 				// writeSys may have partially written into b. This is actually convenient for diag.
 				lines := strings.Split(b.String(), "\n")
@@ -164,7 +149,7 @@ func writePrototypes(b *strings.Builder, f *winmd.Metadata, filterRegexp *regexp
 
 				return fmt.Errorf(
 					"error context: \n---\n%v\n---\nfailed to write sys line for %v.Apis method %v: %v",
-					strings.Join(lines, "\n"), r.Namespace, methodName, err)
+					strings.Join(lines, "\n"), r.Namespace, md.Name, err)
 			}
 		}
 	}

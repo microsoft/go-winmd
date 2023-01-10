@@ -143,7 +143,9 @@ func NewContext(f *winmd.Metadata) (*Context, error) {
 // moduleName should be the name of the module that contains the syscall, or empty string if none is
 // required. (mkwinsyscall has defaults that may be acceptable.) It is recommended to read the
 // DllImport pseudo-attribute (§II.21.2.1) to determine this value.
-func (c *Context) WriteMethod(w io.StringWriter, method *winmd.MethodDef, moduleName, goName string) error {
+func (c *Context) WriteMethod(w io.StringWriter, methodIndex winmd.Index, method *winmd.MethodDef) error {
+	goName := method.Name.String()
+
 	w.WriteString("//sys\t")
 	writeEscapedUpper(w, goName)
 	w.WriteString("(")
@@ -190,11 +192,40 @@ func (c *Context) WriteMethod(w io.StringWriter, method *winmd.MethodDef, module
 	}
 	w.WriteString(")")
 
-	// Write return value, if one exists.
-	if sig.RetType.Kind != winmd.SigRetTypeKind_Void {
-		w.WriteString(" (")
-		if err := c.writeType(w, &sig.RetType.Type); err != nil {
+	// Find the DllImport pseudo-custom attribute (§II.21.2.1) for module name and return semantics.
+	var moduleName string
+	var lastErr bool
+	if implMap, ok := c.MethodDefImplMap[methodIndex]; ok {
+		// TODO: Map of parsed module refs?
+		if implMap.MappingFlags&flags.PInvokeAttributes_SupportsLastError != 0 {
+			lastErr = true
+		}
+		mr, err := c.Metadata.Tables.ModuleRef.Record(implMap.ImportScope)
+		if err != nil {
 			return err
+		}
+		moduleName = strings.ToLower(mr.Name.String())
+		if moduleName == "kernel32" {
+			moduleName = ""
+		}
+	}
+
+	// Find and write return value(s), if they exist.
+	if value := sig.RetType.Kind != winmd.SigRetTypeKind_Void; value || lastErr {
+		w.WriteString(" (")
+		if value {
+			// General return value name, because mkwinsyscall needs one.
+			// TODO: Make more useful names, like x/sys has. Might need to be guided by human input, because better names don't exist in the winmd file.
+			w.WriteString("r ")
+			if err := c.writeType(w, &sig.RetType.Type); err != nil {
+				return err
+			}
+			if lastErr {
+				w.WriteString(", ")
+			}
+		}
+		if lastErr {
+			w.WriteString("err error")
 		}
 		w.WriteString(")")
 	}
