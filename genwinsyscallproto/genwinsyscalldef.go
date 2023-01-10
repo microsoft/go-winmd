@@ -28,9 +28,16 @@ import (
 type Context struct {
 	Metadata *winmd.Metadata
 
-	// UsedTypeRefs	is the set of all TypeRefs used by syscall function parameters. Go
-	// definitions of these refs also need to be generated to make the syscalls usable.
-	UsedTypeRefs map[winmd.Index]struct{}
+	// neededTypeRefs is the set of all TypeRefs used by syscall function parameters. Go definitions
+	// of these refs also need to be generated to make the syscalls usable. During initial
+	// generation of "//sys" lines, this is filled with parameter and return value types. When
+	// WriteUsedTypeDefs runs, it reads the keys of this map, clears the map, then runs the type
+	// generation, so new transitive dependencies are found and put into this map for the next pass.
+	// It runs many passes are needed to discover and define all needed types.
+	neededTypeRefs map[winmd.Index]struct{}
+	// DefinedTypeRefs is the set of all TypeRefs that have been defined so far by
+	// WriteUsedTypeDefs. It ensures WriteUsedTypeDefs doesn't write the same definition twice.
+	definedTypeRefs map[winmd.Index]struct{}
 
 	// AllTypeDefs is the set of all TypeDefs in the winmd file indexed by namespace + "::" + name.
 	AllTypeDefs map[string]winmd.Index
@@ -47,7 +54,8 @@ func NewContext(f *winmd.Metadata) (*Context, error) {
 	l := &Context{
 		Metadata: f,
 
-		UsedTypeRefs: make(map[winmd.Index]struct{}),
+		neededTypeRefs:  make(map[winmd.Index]struct{}),
+		definedTypeRefs: make(map[winmd.Index]struct{}),
 
 		AllTypeDefs:                   make(map[string]winmd.Index, f.Tables.TypeDef.Len),
 		MethodDefImplMap:              make(map[winmd.Index]*winmd.ImplMap),
@@ -334,7 +342,9 @@ func (c *Context) writeType(b io.StringWriter, p *winmd.SigType) error {
 					if err != nil {
 						return err
 					}
-					c.UsedTypeRefs[v.Index] = struct{}{}
+					if _, ok := c.definedTypeRefs[v.Index]; !ok {
+						c.neededTypeRefs[v.Index] = struct{}{}
+					}
 					writeEscapedUpper(b, record.Name.String())
 
 				default:
@@ -534,37 +544,44 @@ func (c *Context) writeTypeDefStruct(b io.StringWriter, def *winmd.TypeDef) erro
 }
 
 func (c *Context) WriteUsedTypeDefs(b io.StringWriter) error {
-	var usedTypeDefIndices []winmd.Index
-	for i := range c.UsedTypeRefs {
-		ref, err := c.Metadata.Tables.TypeRef.Record(i)
-		if err != nil {
-			return err
-		}
-		switch ref.ResolutionScope.Tag {
-		case coded.ResolutionScope_Module:
-			// This TypeRef refers to the current module. We don't need to look at the Index.
-		default:
-			log.Printf("Skipping %v::%v: not defined in current module\n", ref.Namespace, ref.Name)
-			continue
-		}
-		if def, ok := c.AllTypeDefs[ref.Namespace.String()+"::"+ref.Name.String()]; ok {
-			usedTypeDefIndices = append(usedTypeDefIndices, def)
-		} else {
-			return fmt.Errorf("TypeRef %v::%v has Module resolution scope, but is not found in the module", ref.Namespace, ref.Name)
-		}
-	}
-	sort.Slice(usedTypeDefIndices, func(i, j int) bool {
-		return usedTypeDefIndices[i] < usedTypeDefIndices[j]
-	})
-	if len(usedTypeDefIndices) == 0 {
-		return nil
-	}
 	b.WriteString("\n\n// Types used in generated APIs\n\n")
-	for _, index := range usedTypeDefIndices {
-		if err := c.WriteTypeDef(b, index); err != nil {
-			return err
+	var usedTypeDefIndices []winmd.Index
+	// Keep going until we stop finding new type refs that need definitions.
+	for len(c.neededTypeRefs) > 0 {
+		for i := range c.neededTypeRefs {
+			ref, err := c.Metadata.Tables.TypeRef.Record(i)
+			if err != nil {
+				return err
+			}
+			switch ref.ResolutionScope.Tag {
+			case coded.ResolutionScope_Module:
+				// This TypeRef refers to the current module. We don't need to look at the Index.
+			default:
+				log.Printf("Skipping %v::%v: not defined in current module\n", ref.Namespace, ref.Name)
+				continue
+			}
+			if def, ok := c.AllTypeDefs[ref.Namespace.String()+"::"+ref.Name.String()]; ok {
+				usedTypeDefIndices = append(usedTypeDefIndices, def)
+			} else {
+				return fmt.Errorf("TypeRef %v::%v has Module resolution scope, but is not found in the module", ref.Namespace, ref.Name)
+			}
+			c.definedTypeRefs[i] = struct{}{}
 		}
-		b.WriteString("\n")
+		c.neededTypeRefs = make(map[winmd.Index]struct{})
+		sort.Slice(usedTypeDefIndices, func(i, j int) bool {
+			return usedTypeDefIndices[i] < usedTypeDefIndices[j]
+		})
+		if len(usedTypeDefIndices) == 0 {
+			return nil
+		}
+		for _, index := range usedTypeDefIndices {
+			// Writing the type def adds new entries to neededTypeRefs if we haven't seen them yet.
+			if err := c.WriteTypeDef(b, index); err != nil {
+				return err
+			}
+			b.WriteString("\n")
+		}
+		usedTypeDefIndices = usedTypeDefIndices[:0]
 	}
 	return nil
 }
