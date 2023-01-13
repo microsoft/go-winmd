@@ -3,6 +3,14 @@
 // Package windowsgenerated contains Windows system calls. The calls are based on parsing Windows.Win32.winmd.
 package windowsgenerated
 
-{{.SysCalls}}
+import (
+    "unsafe"
 
-// This is the end of the file.
+	"golang.org/x/sys/windows"
+)
+
+var _ unsafe.Pointer
+
+type Guid windows.GUID
+
+{{.SysCalls}}
