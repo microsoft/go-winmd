@@ -17,14 +17,14 @@ type StringHeap []byte
 // String extracts string from the string heap st at offset start.
 func (sh StringHeap) String(start uint32) (String, error) {
 	if int(start) >= len(sh) {
-		return nil, fmt.Errorf("offset %d is beyond the end of string heap", start)
+		return String{}, fmt.Errorf("offset %d is beyond the end of string heap", start)
 	}
 	length := bytes.IndexByte(sh[start:], '\x00')
 	if length == -1 {
-		return nil, fmt.Errorf("offset %d is not null-terminated", start)
+		return String{}, fmt.Errorf("offset %d is not null-terminated", start)
 	}
 	end := int(start) + length
-	return String(sh[start:end:end]), nil
+	return String{start, sh[start:end:end]}, nil
 }
 
 // GUIDHeap provides access to the #GUID heap as defined in §II.24.2.5.

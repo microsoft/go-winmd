@@ -71,10 +71,17 @@ type CodedIndex struct {
 //
 // It is used as an optimization to avoid allocating
 // when reading from the #Strings heap.
-type String []byte
+type String struct {
+	// Start is the offset in the #Strings heap where the string starts. This is the parameter that
+	// was passed to StringHeap.String to create this String. The strings heap doesn't contain
+	// duplicate strings, so this value can be used to uniquely identify strings that come from the
+	// same heap. In some cases this can be used instead of hashing the string data itself.
+	Start uint32
+	data  []byte
+}
 
 func (s String) String() string {
-	return string(s)
+	return string(s.data)
 }
 
 // Slice indexes the range of records [Start,End) on the table T.
