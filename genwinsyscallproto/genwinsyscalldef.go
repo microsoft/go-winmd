@@ -359,6 +359,9 @@ func (c *Context) writeType(b io.StringWriter, p *winmd.SigType) error {
 					if err != nil {
 						return err
 					}
+					if def.NativePointer {
+						b.WriteString("*")
+					}
 					b.WriteString(def.GoName)
 				case coded.TypeDefOrRefOrSpec_TypeRef:
 					def, err := c.resolveTypeRef(v.Index)
@@ -373,6 +376,9 @@ func (c *Context) writeType(b io.StringWriter, p *winmd.SigType) error {
 						b.WriteString(ref.Name.String())
 						c.unresolvableTypeRefs[typeRefKey(ref)] = ref
 					} else {
+						if def.NativePointer {
+							b.WriteString("*")
+						}
 						b.WriteString(def.GoName)
 					}
 				default:
@@ -417,6 +423,14 @@ type resolvedDef struct {
 	Name      winmd.String
 
 	GoName string
+
+	Native bool
+	// NativePointer enables a workaround for the mkwinsyscall expectations not quite matching a
+	// straightforward interpretation of the winmd. If we generate "//sys" with "thing PWSTR" and
+	// "typedef PWSTR *uint16", mkwinsyscall misses including the "unsafe.Pointer" in
+	// "uintptr(unsafe.Pointer(thing))". This code means we generate "thing *PWSTR" and "typedef
+	// PWSTR uint16" instead, which works.
+	NativePointer bool
 
 	Parent   *resolvedDef
 	Children []*resolvedDef
@@ -509,6 +523,29 @@ func (c *Context) resolveTypeDef(defIndex winmd.Index) (*resolvedDef, error) {
 			GoName:    escapedUpper(def.Name.String()),
 			def:       def,
 		}
+		if _, ok := c.typeDefNativeTypedefAttribute[defIndex]; ok {
+			r.Native = true
+			if def.FieldList.Start+1 != def.FieldList.End {
+				return nil, fmt.Errorf("expected exactly one field for native typedef %v", r.def.Name)
+			}
+			fd, err := c.Metadata.Tables.Field.Record(r.def.FieldList.Start)
+			if err != nil {
+				return nil, err
+			}
+			signature, err := c.Metadata.FieldSignature(fd.Signature)
+			if err != nil {
+				return nil, err
+			}
+			if signature.Type.Kind == flags.ElementType_PTR {
+				to := signature.Type.Value.(winmd.SigType)
+				if to.Kind != flags.ElementType_VOID {
+					r.NativePointer = true
+					// Clarify the Go name, to avoid confusion for anyone with a strong expectation
+					// about types like PWSTR.
+					r.GoName += "Element"
+				}
+			}
+		}
 		// Nested types can't be resolved at module scope. Don't add it to the module lookup.
 		if def.Flags&flags.TypeAttributes_NestedPublic == 0 {
 			c.resolvedDefs[typeDefKey(def)] = &r
@@ -552,7 +589,7 @@ func (c *Context) writeTypeDef(b io.StringWriter, r *resolvedDef) error {
 				return nil
 			}
 		}
-		if _, ok := c.typeDefNativeTypedefAttribute[r.Index]; ok {
+		if r.Native {
 			return c.writeTypeDefNative(b, r)
 		}
 		return c.writeTypeDefStruct(b, r)
@@ -673,6 +710,11 @@ func (c *Context) writeTypeDefNative(b io.StringWriter, r *resolvedDef) error {
 	signature, err := c.Metadata.FieldSignature(fd.Signature)
 	if err != nil {
 		return err
+	}
+	if r.NativePointer {
+		// Modify sig to skip the pointer, for "type PWSTR uint16" rather than "type PWSTR *uint16".
+		to := signature.Type.Value.(winmd.SigType)
+		signature.Type = to
 	}
 	if err := c.writeType(b, &signature.Type); err != nil {
 		return err
