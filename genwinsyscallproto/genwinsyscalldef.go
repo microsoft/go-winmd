@@ -359,7 +359,7 @@ func (c *Context) writeType(b io.StringWriter, p *winmd.SigType) error {
 					if err != nil {
 						return err
 					}
-					if def.NativePointer {
+					if def.NeedsPointerWhenUsed() {
 						b.WriteString("*")
 					}
 					b.WriteString(def.GoName)
@@ -376,7 +376,7 @@ func (c *Context) writeType(b io.StringWriter, p *winmd.SigType) error {
 						b.WriteString(ref.Name.String())
 						c.unresolvableTypeRefs[typeRefKey(ref)] = ref
 					} else {
-						if def.NativePointer {
+						if def.NeedsPointerWhenUsed() {
 							b.WriteString("*")
 						}
 						b.WriteString(def.GoName)
@@ -436,6 +436,14 @@ type resolvedDef struct {
 	Children []*resolvedDef
 
 	def *winmd.TypeDef
+}
+
+func (r *resolvedDef) IsInterface() bool {
+	return r.def.Flags&flags.TypeAttributes_ClassSemanticsMask == flags.TypeAttributes_Interface
+}
+
+func (r *resolvedDef) NeedsPointerWhenUsed() bool {
+	return r.NativePointer || r.IsInterface()
 }
 
 var errTypeDefNotDefinedInCurrentModule = errors.New("TypeRef points to TypeDef not defined in this module")
@@ -569,7 +577,6 @@ func (c *Context) writeTypeDef(b io.StringWriter, r *resolvedDef) error {
 	if r.def.Flags&flags.TypeAttributes_ClassSemanticsMask == flags.TypeAttributes_Interface {
 		// TODO: Handle interfaces. Currently writes a struct with no members.
 		b.WriteString("// Interface type is likely missing members. Not yet implemented in go-winmd.\n")
-		return c.writeTypeDefStruct(b, r)
 	}
 	switch r.def.Extends.Tag {
 	case coded.TypeDefOrRef_TypeRef:
@@ -592,6 +599,8 @@ func (c *Context) writeTypeDef(b io.StringWriter, r *resolvedDef) error {
 		if r.Native {
 			return c.writeTypeDefNative(b, r)
 		}
+		return c.writeTypeDefStruct(b, r)
+	case coded.Null:
 		return c.writeTypeDefStruct(b, r)
 	default:
 		return fmt.Errorf("unexpected type extends coded index %#v in def %v :: %v", r.def.Extends, r.def.Namespace, r.def.Name)
