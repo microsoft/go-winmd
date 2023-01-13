@@ -28,6 +28,13 @@ import (
 type Context struct {
 	Metadata *winmd.Metadata
 
+	ResolvedDefs   map[defNameKey]*resolvedDef
+	UnresolvedDefs map[defNameKey]winmd.Index
+
+	ResolvedDefsByIndex map[winmd.Index]*resolvedDef
+
+	UnresolvableTypeRefs map[defNameKey]*winmd.TypeRef
+
 	// neededTypeDefs is the set of all TypeDefs used by syscall function parameters. Go definitions
 	// of these refs also need to be generated to make the syscalls usable. During initial
 	// generation of "//sys" lines, this is filled with parameter and return value types. When
@@ -72,6 +79,13 @@ func NewContext(f *winmd.Metadata) (*Context, error) {
 	l := &Context{
 		Metadata: f,
 
+		ResolvedDefs:   make(map[defNameKey]*resolvedDef),
+		UnresolvedDefs: make(map[defNameKey]winmd.Index),
+
+		ResolvedDefsByIndex: make(map[winmd.Index]*resolvedDef),
+
+		UnresolvableTypeRefs: make(map[defNameKey]*winmd.TypeRef),
+
 		neededTypeDefs:       make(map[winmd.Index]struct{}),
 		definedTypeDefs:      make(map[winmd.Index]struct{}),
 		methodNeedingTypeRef: make(map[winmd.Index][]winmd.Index),
@@ -98,6 +112,7 @@ func NewContext(f *winmd.Metadata) (*Context, error) {
 		}
 		// TODO: Determine if disambiguating types in winmd files with multiple modules is necessary.
 		l.AllTypeDefs[r.Namespace.String()+"::"+r.Name.String()] = winmd.Index(i)
+		l.UnresolvedDefs[typeDefKey(r)] = winmd.Index(i)
 	}
 	for i := uint32(0); i < f.Tables.ImplMap.Len; i++ {
 		im, err := f.Tables.ImplMap.Record(winmd.Index(i))
@@ -201,6 +216,9 @@ func NewContext(f *winmd.Metadata) (*Context, error) {
 // moduleName should be the name of the module that contains the syscall, or empty string if none is
 // required. (mkwinsyscall has defaults that may be acceptable.) It is recommended to read the
 // DllImport pseudo-attribute (§II.21.2.1) to determine this value.
+//
+// methodIndex and method must match. Only methodIndex is necessary, but method is also accepted to
+// avoid unnecessary decoding. The caller has likely already decoded the method to filter by name.
 func (c *Context) WriteMethod(w io.StringWriter, methodIndex winmd.Index, method *winmd.MethodDef) error {
 	goName := method.Name.String()
 	c.currentMethodIndex = methodIndex
@@ -383,41 +401,26 @@ func (c *Context) writeType(b io.StringWriter, p *winmd.SigType) error {
 			case winmd.CodedIndex:
 				switch v.Tag {
 				case coded.TypeDefOrRefOrSpec_TypeDef:
-					record, err := c.Metadata.Tables.TypeDef.Record(v.Index)
+					def, err := c.resolveTypeDef(v.Index)
 					if err != nil {
 						return err
 					}
-					if _, ok := c.definedTypeDefs[v.Index]; !ok {
-						if v.Index == 0 {
-							panic("")
-						}
-						c.neededTypeDefs[v.Index] = struct{}{}
-					}
-					b.WriteString(escapedUpper(record.Name.String()))
-
+					b.WriteString(def.GoName)
 				case coded.TypeDefOrRefOrSpec_TypeRef:
-					record, err := c.Metadata.Tables.TypeRef.Record(v.Index)
-					if err != nil {
+					def, err := c.resolveTypeRef(v.Index)
+					if err != nil && !errors.Is(err, errTypeDefNotDefinedInCurrentModule) {
 						return err
 					}
-					defIndex, err := c.findTypeDefIndex(record)
-					if err != nil {
-						if errors.Is(err, errTypeDefNotDefinedInCurrentModule) {
-							log.Printf("skipping type: %v", err)
-						} else {
+					if def == nil {
+						ref, err := c.Metadata.Tables.TypeRef.Record(v.Index)
+						if err != nil {
 							return err
 						}
+						b.WriteString(ref.Name.String())
+						c.UnresolvableTypeRefs[typeRefKey(ref)] = ref
 					} else {
-						if _, ok := c.definedTypeDefs[defIndex]; !ok {
-							if defIndex == 0 {
-								panic("")
-							}
-							c.neededTypeDefs[defIndex] = struct{}{}
-						}
-						c.methodNeedingTypeRef[v.Index] = append(c.methodNeedingTypeRef[v.Index], c.currentMethodIndex)
+						b.WriteString(def.GoName)
 					}
-					b.WriteString(escapedUpper(record.Name.String()))
-
 				default:
 					return fmt.Errorf("unexpected coded index tag for type Value: %#v", v)
 				}
@@ -441,57 +444,171 @@ func (c *Context) writeType(b io.StringWriter, p *winmd.SigType) error {
 	return visitType(p)
 }
 
-func (c *Context) WriteTypeDef(b io.StringWriter, i winmd.Index) error {
-	def, err := c.Metadata.Tables.TypeDef.Record(i)
-	if err != nil {
-		return err
-	}
+type defNameKey struct {
+	NamespaceStart uint32
+	NameStart      uint32
+}
 
-	name := escapedUpper(def.Name.String())
-	if parentIndex, ok := c.NestedTypeDefParent[i]; ok {
-		// Since this is a nested type, we know the parent has already been named.
-		name = c.typeDefGoName[parentIndex] + "_nest_" + name
-	}
-	if len(name) == 0 {
-		return fmt.Errorf("unable to find name for %q, %v", name, i)
-	}
-	c.typeDefGoName[i] = name
+func typeRefKey(ref *winmd.TypeRef) defNameKey {
+	return defNameKey{ref.Namespace.Start, ref.Name.Start}
+}
 
-	if def.Flags&flags.TypeAttributes_ClassSemanticsMask == flags.TypeAttributes_Interface {
+func typeDefKey(def *winmd.TypeDef) defNameKey {
+	return defNameKey{def.Namespace.Start, def.Name.Start}
+}
+
+type resolvedDef struct {
+	Index     winmd.Index
+	Namespace winmd.String
+	Name      winmd.String
+
+	GoName string
+
+	Parent   *resolvedDef
+	Children []*resolvedDef
+
+	def *winmd.TypeDef
+}
+
+var errTypeDefNotDefinedInCurrentModule = errors.New("TypeRef points to TypeDef not defined in this module")
+
+func (c *Context) resolveTypeRef(refIndex winmd.Index) (*resolvedDef, error) {
+	// Nested TypeDefs don't have a unique namespace+name, so we need to traverse upward to find
+	// the ancestor that's a module-level TypeRef, find its TypeDef, then traverse back down,
+	// converting TypeRef -> TypeDef for each level to finally find the nested struct's TypeDef.
+
+	// Prevent infinite recursion with a visited set.
+	var visited map[winmd.Index]struct{}
+
+	// TODO: Cache visit results in Context, so finding the chain for sibling and other related nested types doesn't iterate over the same data yet again?
+	// Nesting chains in the winmd files tend to be short, so this may not be a significant improvement.
+	var visit func(refIndex winmd.Index) (*resolvedDef, error)
+	visit = func(refIndex winmd.Index) (*resolvedDef, error) {
+		if _, ok := visited[refIndex]; ok {
+			return nil, fmt.Errorf("cycle: visited %v twice", refIndex)
+		}
+		if visited == nil {
+			visited = make(map[winmd.Index]struct{})
+		}
+		visited[refIndex] = struct{}{}
+
+		r, err := c.Metadata.Tables.TypeRef.Record(refIndex)
+		if err != nil {
+			return nil, err
+		}
+		switch r.ResolutionScope.Tag {
+		// We assume module-level TypeRefs refer to the current module.
+		case coded.ResolutionScope_Module:
+			if def, ok := c.ResolvedDefs[typeRefKey(r)]; ok {
+				return def, nil
+			}
+			if defIndex, ok := c.UnresolvedDefs[typeRefKey(r)]; ok {
+				return c.resolveTypeDef(defIndex)
+			}
+		// TypeRef scope indicates that this is a nested type. The Index is the immediate parent.
+		case coded.ResolutionScope_TypeRef:
+			// Recurse to find the parent def.
+			parentDefIndex, err := visit(r.ResolutionScope.Index)
+			if err != nil {
+				return nil, err
+			}
+			// Look in the parent def for the def matching the ref we're looking for.
+			// TODO: Try creating a map for children rather than iterating?
+			for _, child := range parentDefIndex.Children {
+				if child.Name.Start == r.Name.Start {
+					return child, nil
+				}
+			}
+		}
+		return nil, fmt.Errorf("could not find %v :: %v, %w", r.Namespace, r.Name, errTypeDefNotDefinedInCurrentModule)
+	}
+	return visit(refIndex)
+}
+
+func (c *Context) resolveTypeDef(defIndex winmd.Index) (*resolvedDef, error) {
+	// Prevent infinite recursion with a visited set.
+	var visited map[winmd.Index]struct{}
+
+	// Resolving a typedef also resolves all its children, transitively.
+	var visit func(defIndex winmd.Index) (*resolvedDef, error)
+	visit = func(defIndex winmd.Index) (*resolvedDef, error) {
+		if _, ok := visited[defIndex]; ok {
+			return nil, fmt.Errorf("cycle: visited %v twice", defIndex)
+		}
+		if visited == nil {
+			visited = make(map[winmd.Index]struct{})
+		}
+		visited[defIndex] = struct{}{}
+
+		// Check if this index has already been resolved to avoid creating duplicate resolvedDefs.
+		if r, ok := c.ResolvedDefsByIndex[defIndex]; ok {
+			return r, nil
+		}
+		def, err := c.Metadata.Tables.TypeDef.Record(defIndex)
+		if err != nil {
+			return nil, err
+		}
+		r := resolvedDef{
+			Index:     defIndex,
+			Namespace: def.Namespace,
+			Name:      def.Name,
+			GoName:    escapedUpper(def.Name.String()),
+			def:       def,
+		}
+		if _, hasParent := c.NestedTypeDefParent[defIndex]; !hasParent {
+			c.ResolvedDefs[typeDefKey(def)] = &r
+		}
+		c.ResolvedDefsByIndex[defIndex] = &r
+		for _, childIndex := range c.NestedTypeDefChildren[defIndex] {
+			child, err := visit(childIndex)
+			if err != nil {
+				return nil, err
+			}
+			// Establish bidirectional links.
+			child.Parent = &r
+			r.Children = append(r.Children, child)
+		}
+		return &r, nil
+	}
+	return visit(defIndex)
+}
+
+func (c *Context) WriteTypeDef(b io.StringWriter, r *resolvedDef) error {
+	if r.def.Flags&flags.TypeAttributes_ClassSemanticsMask == flags.TypeAttributes_Interface {
 		// TODO: Handle interfaces. Currently writes a struct with no members.
 		b.WriteString("// Interface type is likely missing members. Not yet implemented in go-winmd.\n")
-		return c.writeTypeDefStruct(b, i, def)
+		return c.writeTypeDefStruct(b, r)
 	}
-	switch def.Extends.Tag {
+	switch r.def.Extends.Tag {
 	case coded.TypeDefOrRef_TypeRef:
 		// TODO: Keep track of this index rather than looking it up for each enum type.
-		record, err := c.Metadata.Tables.TypeRef.Record(def.Extends.Index)
+		record, err := c.Metadata.Tables.TypeRef.Record(r.def.Extends.Index)
 		if err != nil {
 			return err
 		}
 		if record.Namespace.String() == "System" {
 			if record.Name.String() == "Enum" {
-				return c.writeTypeDefEnum(b, def)
+				return c.writeTypeDefEnum(b, r)
 			}
 			if record.Name.String() == "MulticastDelegate" {
 				b.WriteString("type ")
-				b.WriteString(escapedUpper(def.Name.String()))
+				b.WriteString(r.GoName)
 				b.WriteString(" uintptr\n")
 				return nil
 			}
 		}
-		if _, ok := c.TypeDefNativeTypedefAttribute[i]; ok {
-			return c.writeTypeDefNative(b, def)
+		if _, ok := c.TypeDefNativeTypedefAttribute[r.Index]; ok {
+			return c.writeTypeDefNative(b, r)
 		}
-		return c.writeTypeDefStruct(b, i, def)
+		return c.writeTypeDefStruct(b, r)
 	default:
-		return fmt.Errorf("unexpected type extends coded index %#v in def %v :: %v", def.Extends, def.Namespace, def.Name)
+		return fmt.Errorf("unexpected type extends coded index %#v in def %v :: %v", r.def.Extends, r.def.Namespace, r.def.Name)
 	}
 }
 
-func (c *Context) writeTypeDefEnum(b io.StringWriter, def *winmd.TypeDef) error {
+func (c *Context) writeTypeDefEnum(b io.StringWriter, r *resolvedDef) error {
 	b.WriteString("type ")
-	writeEscapedUpper(b, def.Name.String())
+	b.WriteString(r.GoName)
 
 	// Per §I.8.5.2 CLS Rule 7, the underlying type is the type of the field "__value". Find it.
 	var underlyingType *winmd.SigType
@@ -501,9 +618,9 @@ func (c *Context) writeTypeDefEnum(b io.StringWriter, def *winmd.TypeDef) error 
 		HexValue string
 	}
 	// The number of enum members is the total number of fields minus the special "value__".
-	members := make([]member, 0, def.FieldList.End-def.FieldList.Start-1)
+	members := make([]member, 0, r.def.FieldList.End-r.def.FieldList.Start-1)
 
-	for i := def.FieldList.Start; i < def.FieldList.End; i++ {
+	for i := r.def.FieldList.Start; i < r.def.FieldList.End; i++ {
 		fd, err := c.Metadata.Tables.Field.Record(i)
 		if err != nil {
 			return err
@@ -572,13 +689,13 @@ func (c *Context) writeTypeDefEnum(b io.StringWriter, def *winmd.TypeDef) error 
 		// the prefix. This may be necessary to avoid collisions, and also makes the API easier to
 		// find in Go via autocomplete.
 		// TODO: Be a bit smarter? E.g. accept BCRYPT_CIPHER_OPERATION for BCRYPT_OPERATION enum without changing it.
-		if !strings.HasPrefix(name, def.Name.String()) {
-			writeEscapedUpper(b, def.Name.String())
+		if !strings.HasPrefix(name, r.def.Name.String()) {
+			b.WriteString(r.GoName)
 			b.WriteString("_")
 		}
 		writeEscapedUpper(b, name)
 		b.WriteString(" ")
-		writeEscapedUpper(b, def.Name.String())
+		b.WriteString(r.GoName)
 		b.WriteString(" = ")
 		b.WriteString(pair.HexValue)
 		b.WriteString("\n")
@@ -587,14 +704,14 @@ func (c *Context) writeTypeDefEnum(b io.StringWriter, def *winmd.TypeDef) error 
 	return nil
 }
 
-func (c *Context) writeTypeDefNative(b io.StringWriter, def *winmd.TypeDef) error {
+func (c *Context) writeTypeDefNative(b io.StringWriter, r *resolvedDef) error {
 	b.WriteString("type ")
-	writeEscapedUpper(b, def.Name.String())
+	b.WriteString(r.GoName)
 	b.WriteString(" ")
-	if def.FieldList.Start+1 != def.FieldList.End {
-		return fmt.Errorf("expected exactly one field for native typedef %v", def.Name)
+	if r.def.FieldList.Start+1 != r.def.FieldList.End {
+		return fmt.Errorf("expected exactly one field for native typedef %v", r.def.Name)
 	}
-	fd, err := c.Metadata.Tables.Field.Record(def.FieldList.Start)
+	fd, err := c.Metadata.Tables.Field.Record(r.def.FieldList.Start)
 	if err != nil {
 		return err
 	}
@@ -609,9 +726,9 @@ func (c *Context) writeTypeDefNative(b io.StringWriter, def *winmd.TypeDef) erro
 	return nil
 }
 
-func (c *Context) writeTypeDefStruct(b io.StringWriter, i winmd.Index, def *winmd.TypeDef) error {
+func (c *Context) writeTypeDefStruct(b io.StringWriter, r *resolvedDef) error {
 	b.WriteString("type ")
-	writeEscapedUpper(b, c.typeDefGoName[i])
+	b.WriteString(r.GoName)
 	b.WriteString(" struct {\n")
 	// TODO: Look at field index values to find union types. From each union, only define a struct with the first field.
 	//
@@ -645,19 +762,19 @@ func (c *Context) writeTypeDefStruct(b io.StringWriter, i winmd.Index, def *winm
 	//	public _Anonymous1_e__Union Anonymous1;
 	//	public unsafe IP_ADAPTER_ADDRESSES_LH* Next;
 	//	...
-	if err := c.writeStructFields(b, def); err != nil {
+	if err := c.writeStructFields(b, r); err != nil {
 		return err
 	}
 	b.WriteString("}\n")
 	return nil
 }
 
-func (c *Context) writeStructFields(b io.StringWriter, def *winmd.TypeDef) error {
+func (c *Context) writeStructFields(b io.StringWriter, r *resolvedDef) error {
 	// Write a definition for each field. Take FieldOffset into account, but minimally: once a
 	// FieldOffset is "used", don't write another field that uses the same explicit field offset.
 	// This isn't accurate, but it may be good enough. In many cases, only "0" is used.
 	usedFieldOffset := make(map[uint32]struct{})
-	for i := def.FieldList.Start; i < def.FieldList.End; i++ {
+	for i := r.def.FieldList.Start; i < r.def.FieldList.End; i++ {
 		if o, ok := c.FieldOffset[i]; ok {
 			if _, used := usedFieldOffset[o]; used {
 				continue
@@ -690,18 +807,11 @@ func (c *Context) writeStructField(b io.StringWriter, fieldIndex winmd.Index) er
 				// This is a reference to a nested type. Embed each of its fields. Don't create a
 				// new named type, because in the winmd files we work with, the nested structs don't
 				// have meaningful names. It makes the API clunky if we generate unique names.
-				index, err := c.findTypeDefIndex(ref)
+				def, err := c.resolveTypeRef(v.Index)
 				if err != nil {
 					return err
 				}
-				def, err := c.Metadata.Tables.TypeDef.Record(index)
-				if err != nil {
-					return err
-				}
-				if err := c.writeStructFields(b, def); err != nil {
-					return err
-				}
-				return nil
+				return c.writeStructFields(b, def)
 			}
 		}
 	}
@@ -721,84 +831,39 @@ func (c *Context) findModuleTypeDefByName(namespace, name string) (i winmd.Index
 	return
 }
 
-var errTypeDefNotDefinedInCurrentModule = errors.New("TypeRef points to TypeDef not defined in this module")
-
-func (c *Context) findTypeDefIndex(ref *winmd.TypeRef) (winmd.Index, error) {
-	// Nested TypeDefs don't have a unique namespace+name, so we need to traverse upward to find
-	// the ancestor that's a module-level TypeRef, find its TypeDef, then traverse back down,
-	// converting TypeRef -> TypeDef for each level to finally find the nested struct's TypeDef.
-
-	// Limit how much nesting we handle. This is much more permissive than any nesting we've
-	// actually seen in winmd files, and will prevent infinite recursion and make degenerate cases
-	// (large table consisting of 100% nested types) fail more quickly.
-	visitsRemaining := 64
-
-	// TODO: Cache visit results in Context, so finding the chain for sibling and other related nested types doesn't iterate over the same data yet again?
-	// Nesting chains in the winmd files tend to be short, so this may not be a significant improvement.
-	var visit func(r *winmd.TypeRef) (winmd.Index, error)
-	visit = func(r *winmd.TypeRef) (winmd.Index, error) {
-		visitsRemaining--
-		if visitsRemaining == 0 {
-			return 0, errors.New("exceeded recursion limit while finding TypeDef for nested type")
-		}
-		switch r.ResolutionScope.Tag {
-		// We assume module-level TypeRefs refer to the current module.
-		case coded.ResolutionScope_Module:
-			if def, ok := c.findModuleTypeDefByName(r.Namespace.String(), r.Name.String()); ok {
-				return def, nil
-			}
-		// TypeRef scope indicates that this is a nested type. The Index is the immediate parent.
-		case coded.ResolutionScope_TypeRef:
-			parentRef, err := c.Metadata.Tables.TypeRef.Record(r.ResolutionScope.Index)
-			if err != nil {
-				return 0, err
-			}
-			// Recurse to find the parent def.
-			parentDefIndex, err := visit(parentRef)
-			if err != nil {
-				return 0, err
-			}
-			// Look in the parent def for the def matching the ref we're looking for.
-			// TODO: String lookup with a pre-created map?
-			for _, child := range c.NestedTypeDefChildren[parentDefIndex] {
-				possibleDef, err := c.Metadata.Tables.TypeDef.Record(child)
-				if err != nil {
-					return 0, err
-				}
-				if possibleDef.Name.String() == r.Name.String() {
-					return child, nil
-				}
-			}
-		}
-		return 0, fmt.Errorf("could not find %v :: %v, %w", r.Namespace, r.Name, errTypeDefNotDefinedInCurrentModule)
-	}
-	return visit(ref)
-}
-
 func (c *Context) WriteUsedTypeDefs(b io.StringWriter) error {
+	// Log TypeRefs to the console to let the def know these are expected.
+	// TODO: Indicate this via the generated code, e.g. check that these types exist at the top of the file.
+	for _, r := range c.UnresolvableTypeRefs {
+		log.Printf("unable to resolve type: %v :: %v", r.Namespace, r.Name)
+	}
 	b.WriteString("\n\n// Types used in generated APIs\n\n")
-	var usedTypeDefIndices []winmd.Index
-	// Keep going until we stop finding new type refs that need definitions.
-	for len(c.neededTypeDefs) > 0 {
-		for i := range c.neededTypeDefs {
-			usedTypeDefIndices = append(usedTypeDefIndices, i)
-			c.definedTypeDefs[i] = struct{}{}
+	// Keep going until we stop finding new types that need definitions.
+	written := make(map[*resolvedDef]struct{})
+	for {
+		var usedTypeDefs []*resolvedDef
+		for _, r := range c.ResolvedDefs {
+			if _, ok := written[r]; ok {
+				continue
+			}
+			usedTypeDefs = append(usedTypeDefs, r)
+			written[r] = struct{}{}
 		}
-		c.neededTypeDefs = make(map[winmd.Index]struct{})
-		sort.Slice(usedTypeDefIndices, func(i, j int) bool {
-			return usedTypeDefIndices[i] < usedTypeDefIndices[j]
+		if len(usedTypeDefs) == 0 {
+			break
+		}
+		// Order is scrambled due to the map. Put it back in some order.
+		sort.Slice(usedTypeDefs, func(i, j int) bool {
+			return usedTypeDefs[i].Index < usedTypeDefs[j].Index
 		})
-		if len(usedTypeDefIndices) == 0 {
-			return nil
-		}
-		for _, index := range usedTypeDefIndices {
-			// Writing the type def adds new entries to neededTypeRefs if we haven't seen them yet.
-			if err := c.WriteTypeDef(b, index); err != nil {
+		for _, r := range usedTypeDefs {
+			// Writing the type def (field types in particular) adds new entries to ResolvedDefs if
+			// we haven't seen them yet.
+			if err := c.WriteTypeDef(b, r); err != nil {
 				return err
 			}
 			b.WriteString("\n")
 		}
-		usedTypeDefIndices = usedTypeDefIndices[:0]
 	}
 	return nil
 }
