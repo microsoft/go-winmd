@@ -274,7 +274,7 @@ func (c *Context) WriteMethod(w io.StringWriter, methodIndex winmd.Index, method
 			w.WriteString(moduleName)
 			w.WriteString(".")
 		}
-		w.WriteString(escapedUpper(method.Name.String()))
+		w.WriteString(method.Name.String())
 	}
 	return nil
 }
