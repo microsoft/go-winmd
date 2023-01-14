@@ -382,10 +382,9 @@ func (r *sigReader) decodeType() (v SigType) {
 	case flags.ElementType_VOID:
 		v.Kind = flags.ElementType_VOID
 
-	// TODO: Handle GENERICINST. Doesn't show up in Windows.Win32.winmd.
-	//case flags.ElementType_GENERICINST:
-	//	v.Kind |= flags.ElementType_GENERICINST
-	//	v.Value = r.genericInst()
+	case flags.ElementType_GENERICINST:
+		// See https://github.com/microsoft/go-winmd/issues/19
+		r.err = errors.New("generic types are not yet supported")
 
 	case flags.ElementType_CLASS,
 		flags.ElementType_VALUETYPE:

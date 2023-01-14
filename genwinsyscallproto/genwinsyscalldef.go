@@ -70,6 +70,11 @@ func NewContext(f *winmd.Metadata) (*Context, error) {
 		fieldOffset:                   make(map[winmd.Index]uint32),
 		nestedTypeDefChildren:         make(map[winmd.Index][]winmd.Index),
 	}
+	// We index tables and resolved defs with the assumption that there is exactly one module. For
+	// winmd files, we expect this to always be the case.
+	if f.Tables.Module.Len != 1 {
+		return nil, fmt.Errorf("expected exactly one module in the file, but found %v", f.Tables.Module.Len)
+	}
 	for i := uint32(0); i < f.Tables.TypeDef.Len; i++ {
 		r, err := f.Tables.TypeDef.Record(winmd.Index(i))
 		if err != nil {
@@ -79,7 +84,6 @@ func NewContext(f *winmd.Metadata) (*Context, error) {
 		if r.Flags&flags.TypeAttributes_NestedPublic != 0 {
 			continue
 		}
-		// TODO: Determine if disambiguating types in winmd files with multiple modules is necessary.
 		l.unresolvedDefs[typeDefKey(r)] = winmd.Index(i)
 	}
 	for i := uint32(0); i < f.Tables.ImplMap.Len; i++ {
@@ -202,7 +206,7 @@ func (c *Context) WriteMethod(w io.StringWriter, methodIndex winmd.Index, method
 			if param.Flags == 0 && param.Name.String() == "" {
 				continue
 			}
-			// TODO: Add support for assemblies that do have data in Sequence 0.
+			// A signature with data in ".param" hasn't been encountered. See https://github.com/microsoft/go-winmd/issues/9
 			return fmt.Errorf("unsupported method: expected param row with sequence 0 to be empty, but: %#v", param)
 		}
 
@@ -210,13 +214,13 @@ func (c *Context) WriteMethod(w io.StringWriter, methodIndex winmd.Index, method
 		// signature param slice by converting the 1-based sequence value. Note that we assume
 		// ascending Sequence values for proper formatting: this is stated to be true in the
 		// informational section of §II.22.33, point 4.
-		// TODO: Handle gaps in Sequence values? §II.22.33 information point 5.
-		// Gaps have not been seen in Windows.Win32.winmd. The meaning of a gap is not yet known.
+		//
+		// Note: this assumes there are no gaps in Sequence values, but technically gaps are
+		// possible per §II.22.33 information point 5. See https://github.com/microsoft/go-winmd/issues/10
 		i := param.Sequence - 1
 		if i > 0 {
 			w.WriteString(", ")
 		}
-		// TODO: Use p.Flags to determine how to translate each param to a Go type?
 		writeEscapedParam(w, param.Name.String())
 		w.WriteString(" ")
 
@@ -233,7 +237,6 @@ func (c *Context) WriteMethod(w io.StringWriter, methodIndex winmd.Index, method
 	var moduleName string
 	var lastErr bool
 	if implMap, ok := c.methodDefImplMap[methodIndex]; ok {
-		// TODO: Map of parsed module refs?
 		if implMap.MappingFlags&flags.PInvokeAttributes_SupportsLastError != 0 {
 			lastErr = true
 		}
@@ -252,7 +255,7 @@ func (c *Context) WriteMethod(w io.StringWriter, methodIndex winmd.Index, method
 		w.WriteString(" (")
 		if value {
 			// General return value name, because mkwinsyscall needs one.
-			// TODO: Make more useful names, like x/sys has. Might need to be guided by human input, because better names don't exist in the winmd file.
+			// Generated returns in general could be better. See https://github.com/microsoft/go-winmd/issues/12
 			w.WriteString("r ")
 			if err := c.writeType(w, &sig.RetType.Type); err != nil {
 				return err
@@ -311,16 +314,13 @@ func (c *Context) writeType(b io.StringWriter, p *winmd.SigType) error {
 		// Translate ECMA-335 primitive types to Go types.
 		case flags.ElementType_BOOLEAN:
 			b.WriteString("bool")
-		case flags.ElementType_CHAR:
-			// TODO: Is there a better representation of CHAR?
-			b.WriteString("uint16")
 		case flags.ElementType_I1:
 			b.WriteString("int8")
 		case flags.ElementType_U1:
 			b.WriteString("uint8")
 		case flags.ElementType_I2:
 			b.WriteString("int16")
-		case flags.ElementType_U2:
+		case flags.ElementType_U2, flags.ElementType_CHAR:
 			b.WriteString("uint16")
 		case flags.ElementType_I4:
 			b.WriteString("int32")
@@ -456,8 +456,6 @@ func (c *Context) resolveTypeRef(refIndex winmd.Index) (*resolvedDef, error) {
 	// Prevent infinite recursion with a visited set.
 	var visited map[winmd.Index]struct{}
 
-	// TODO: Cache visit results in Context, so finding the chain for sibling and other related nested types doesn't iterate over the same data yet again?
-	// Nesting chains in the winmd files tend to be short, so this may not be a significant improvement.
 	var visit func(refIndex winmd.Index) (*resolvedDef, error)
 	visit = func(refIndex winmd.Index) (*resolvedDef, error) {
 		if _, ok := visited[refIndex]; ok {
@@ -489,7 +487,6 @@ func (c *Context) resolveTypeRef(refIndex winmd.Index) (*resolvedDef, error) {
 				return nil, err
 			}
 			// Look in the parent def for the def matching the ref we're looking for.
-			// TODO: Try creating a map for children rather than iterating?
 			for _, child := range parentDefIndex.Children {
 				if child.Name.Start == r.Name.Start {
 					return child, nil
@@ -575,21 +572,20 @@ func (c *Context) resolveTypeDef(defIndex winmd.Index) (*resolvedDef, error) {
 
 func (c *Context) writeTypeDef(b io.StringWriter, r *resolvedDef) error {
 	if r.def.Flags&flags.TypeAttributes_ClassSemanticsMask == flags.TypeAttributes_Interface {
-		// TODO: Handle interfaces. Currently writes a struct with no members.
+		// Issue tracking implementing interface types: https://github.com/microsoft/go-winmd/issues/14
 		b.WriteString("// Interface type is likely missing members. Not yet implemented in go-winmd.\n")
 	}
 	switch r.def.Extends.Tag {
 	case coded.TypeDefOrRef_TypeRef:
-		// TODO: Keep track of this index rather than looking it up for each enum type.
-		record, err := c.Metadata.Tables.TypeRef.Record(r.def.Extends.Index)
+		extendsRef, err := c.Metadata.Tables.TypeRef.Record(r.def.Extends.Index)
 		if err != nil {
 			return err
 		}
-		if record.Namespace.String() == "System" {
-			if record.Name.String() == "Enum" {
+		if extendsRef.Namespace.String() == "System" {
+			if extendsRef.Name.String() == "Enum" {
 				return c.writeTypeDefEnum(b, r)
 			}
-			if record.Name.String() == "MulticastDelegate" {
+			if extendsRef.Name.String() == "MulticastDelegate" {
 				b.WriteString("type ")
 				b.WriteString(r.GoName)
 				b.WriteString(" uintptr\n")
@@ -689,7 +685,6 @@ func (c *Context) writeTypeDefEnum(b io.StringWriter, r *resolvedDef) error {
 		// Add enum name prefix to generated name if the original member name doesn't already have
 		// the prefix. This may be necessary to avoid collisions, and also makes the API easier to
 		// find in Go via autocomplete.
-		// TODO: Be a bit smarter? E.g. accept BCRYPT_CIPHER_OPERATION for BCRYPT_OPERATION enum without changing it.
 		if !strings.HasPrefix(name, r.def.Name.String()) {
 			b.WriteString(r.GoName)
 			b.WriteString("_")
@@ -744,9 +739,9 @@ func (c *Context) writeTypeDefStruct(b io.StringWriter, r *resolvedDef) error {
 }
 
 func (c *Context) writeStructFields(b io.StringWriter, r *resolvedDef) error {
-	// TODO: Provide a generated API to assign union values in the alternate ways suggested by the
-	// API. For now, follow the x/sys approach and pick one union option to implement. See the
-	// x/sys/windows "IpAdapterAddresses" struct in syscall_windows.go for an example.
+	// Union type support is simple for now. Roughly follow the x/sys approach and pick one union
+	// option to implement. See the x/sys/windows "IpAdapterAddresses" struct in syscall_windows.go
+	// for an example. Better support is tracked at https://github.com/microsoft/go-winmd/issues/17
 
 	// Write a definition for each field. Take FieldOffset into account, but minimally, for
 	// simplicity: once a FieldOffset is "used", don't write another field that uses the same
@@ -806,7 +801,7 @@ func (c *Context) writeStructField(b io.StringWriter, fieldIndex winmd.Index) er
 
 func (c *Context) WriteUsedTypeDefs(b io.StringWriter) error {
 	// Log TypeRefs to the console to let the def know these are expected.
-	// TODO: Indicate this via the generated code, e.g. check that these types exist at the top of the file.
+	// This issue tracks better approaches than simply logging: https://github.com/microsoft/go-winmd/issues/18
 	for _, r := range c.unresolvableTypeRefs {
 		log.Printf("unable to resolve type: %v :: %v", r.Namespace, r.Name)
 	}

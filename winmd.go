@@ -31,12 +31,6 @@ func (m *Metadata) FieldSignature(bytes SigFieldBlob) (SigField, error) {
 	return r.fieldSig(), r.err
 }
 
-func (m *Metadata) PropertySignature(data SigPropertyBlob) (SigProperty, error) {
-	r := m.sigReader(data)
-	_ = r
-	panic("not implemented")
-}
-
 func (m *Metadata) MethodDefSignature(data SigMethodDefBlob) (SigMethodDef, error) {
 	r := m.sigReader(data)
 	return r.methodDefSig(), r.err
