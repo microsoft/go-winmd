@@ -220,7 +220,7 @@ func (c *Context) WriteMethod(w io.StringWriter, methodIndex winmd.Index, method
 		if i > 0 {
 			w.WriteString(", ")
 		}
-		writeEscapedParam(w, param.Name.String())
+		w.WriteString(escapeParam(param.Name.String()))
 		w.WriteString(" ")
 
 		if int(i) >= len(sig.Param) {
@@ -838,13 +838,13 @@ func (c *Context) WriteUsedTypeDefs(w io.StringWriter) error {
 	return nil
 }
 
-// writeEscapedParam writes the given string, adding a suffix if it is a reserved Go keyword. Leave
-// the case as-is (unlike writeEscapedUpper) because lowercase is desirable for params.
-func writeEscapedParam(w io.StringWriter, s string) {
+// escapeParam returns the given string, adding a suffix if it is a reserved Go keyword. Leave the
+// case as-is (unlike writeEscapedUpper) because lowercase is desirable for params.
+func escapeParam(s string) string {
 	if token.IsKeyword(s) {
 		s += "Param"
 	}
-	w.WriteString(s)
+	return s
 }
 
 // escapedUpper returns the given string with the first character in uppercase. All Go keywords are
