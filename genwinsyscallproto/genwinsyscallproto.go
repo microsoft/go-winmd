@@ -281,7 +281,7 @@ func (c *Context) WriteMethod(w io.StringWriter, methodIndex winmd.Index, method
 	return nil
 }
 
-func (c *Context) writeType(b io.StringWriter, p *winmd.SigType) error {
+func (c *Context) writeType(w io.StringWriter, p *winmd.SigType) error {
 	// Keep track of visited types to detect a cycle.
 	var visited map[*winmd.SigType]struct{}
 	markVisited := func(p *winmd.SigType) {
@@ -303,7 +303,7 @@ func (c *Context) writeType(b io.StringWriter, p *winmd.SigType) error {
 		if p.Kind == flags.ElementType_PTR {
 			if t, ok := p.Value.(winmd.SigType); ok {
 				if t.Kind == flags.ElementType_VOID {
-					b.WriteString("unsafe.Pointer")
+					w.WriteString("unsafe.Pointer")
 					return nil
 				}
 			}
@@ -312,43 +312,43 @@ func (c *Context) writeType(b io.StringWriter, p *winmd.SigType) error {
 		switch p.Kind {
 		// Translate ECMA-335 primitive types to Go types.
 		case flags.ElementType_BOOLEAN:
-			b.WriteString("bool")
+			w.WriteString("bool")
 		case flags.ElementType_I1:
-			b.WriteString("int8")
+			w.WriteString("int8")
 		case flags.ElementType_U1:
-			b.WriteString("uint8")
+			w.WriteString("uint8")
 		case flags.ElementType_I2:
-			b.WriteString("int16")
+			w.WriteString("int16")
 		case flags.ElementType_U2, flags.ElementType_CHAR:
-			b.WriteString("uint16")
+			w.WriteString("uint16")
 		case flags.ElementType_I4:
-			b.WriteString("int32")
+			w.WriteString("int32")
 		case flags.ElementType_U4:
-			b.WriteString("uint32")
+			w.WriteString("uint32")
 		case flags.ElementType_I8:
-			b.WriteString("int64")
+			w.WriteString("int64")
 		case flags.ElementType_U8:
-			b.WriteString("uint64")
+			w.WriteString("uint64")
 		case flags.ElementType_R4:
-			b.WriteString("float32")
+			w.WriteString("float32")
 		case flags.ElementType_R8:
-			b.WriteString("float64")
+			w.WriteString("float64")
 
 		// ECMA-335 distinguishes uintptr and intptr, Go only has uintptr used in both cases.
 		case flags.ElementType_I, flags.ElementType_U:
-			b.WriteString("uintptr")
+			w.WriteString("uintptr")
 
 		case flags.ElementType_VOID:
 			// We catch "*void" with a special case above. We should never see simply VOID.
 			return errors.New("unexpected primitive type: VOID")
 
 		case flags.ElementType_OBJECT:
-			b.WriteString("any")
+			w.WriteString("any")
 
 		// If this is not a simple value type, there will be p.Value. Handle all those cases here.
 		default:
 			if p.Kind == flags.ElementType_PTR {
-				b.WriteString("*")
+				w.WriteString("*")
 			}
 			switch v := p.Value.(type) {
 			case winmd.CodedIndex:
@@ -359,9 +359,9 @@ func (c *Context) writeType(b io.StringWriter, p *winmd.SigType) error {
 						return err
 					}
 					if def.NeedsPointerWhenUsed() {
-						b.WriteString("*")
+						w.WriteString("*")
 					}
-					b.WriteString(def.GoName)
+					w.WriteString(def.GoName)
 				case coded.TypeDefOrRefOrSpec_TypeRef:
 					def, err := c.resolveTypeRef(v.Index)
 					if err != nil && !errors.Is(err, errTypeDefNotDefinedInCurrentModule) {
@@ -372,13 +372,13 @@ func (c *Context) writeType(b io.StringWriter, p *winmd.SigType) error {
 						if err != nil {
 							return err
 						}
-						b.WriteString(ref.Name.String())
+						w.WriteString(ref.Name.String())
 						c.unresolvableTypeRefs[typeRefKey(ref)] = ref
 					} else {
 						if def.NeedsPointerWhenUsed() {
-							b.WriteString("*")
+							w.WriteString("*")
 						}
-						b.WriteString(def.GoName)
+						w.WriteString(def.GoName)
 					}
 				default:
 					return fmt.Errorf("unexpected coded index tag for type Value: %#v", v)
@@ -389,7 +389,7 @@ func (c *Context) writeType(b io.StringWriter, p *winmd.SigType) error {
 				markVisited(p)
 				return visitType(&v)
 			case winmd.SigArray:
-				b.WriteString("[]")
+				w.WriteString("[]")
 				markVisited(p)
 				return visitType(&v.Type)
 
@@ -569,10 +569,10 @@ func (c *Context) resolveTypeDef(defIndex winmd.Index) (*resolvedDef, error) {
 	return visit(defIndex)
 }
 
-func (c *Context) writeTypeDef(b io.StringWriter, r *resolvedDef) error {
+func (c *Context) writeTypeDef(w io.StringWriter, r *resolvedDef) error {
 	if r.def.Flags&flags.TypeAttributes_ClassSemanticsMask == flags.TypeAttributes_Interface {
 		// Issue tracking implementing interface types: https://github.com/microsoft/go-winmd/issues/14
-		b.WriteString("// Interface type is likely missing members. Not yet implemented in go-winmd.\n")
+		w.WriteString("// Interface type is likely missing members. Not yet implemented in go-winmd.\n")
 	}
 	switch r.def.Extends.Tag {
 	case coded.TypeDefOrRef_TypeRef:
@@ -582,29 +582,29 @@ func (c *Context) writeTypeDef(b io.StringWriter, r *resolvedDef) error {
 		}
 		if extendsRef.Namespace.String() == "System" {
 			if extendsRef.Name.String() == "Enum" {
-				return c.writeTypeDefEnum(b, r)
+				return c.writeTypeDefEnum(w, r)
 			}
 			if extendsRef.Name.String() == "MulticastDelegate" {
-				b.WriteString("type ")
-				b.WriteString(r.GoName)
-				b.WriteString(" uintptr\n")
+				w.WriteString("type ")
+				w.WriteString(r.GoName)
+				w.WriteString(" uintptr\n")
 				return nil
 			}
 		}
 		if r.Native {
-			return c.writeTypeDefNative(b, r)
+			return c.writeTypeDefNative(w, r)
 		}
-		return c.writeTypeDefStruct(b, r)
+		return c.writeTypeDefStruct(w, r)
 	case coded.Null:
-		return c.writeTypeDefStruct(b, r)
+		return c.writeTypeDefStruct(w, r)
 	default:
 		return fmt.Errorf("unexpected type extends coded index %#v in def %v :: %v", r.def.Extends, r.def.Namespace, r.def.Name)
 	}
 }
 
-func (c *Context) writeTypeDefEnum(b io.StringWriter, r *resolvedDef) error {
-	b.WriteString("type ")
-	b.WriteString(r.GoName)
+func (c *Context) writeTypeDefEnum(w io.StringWriter, r *resolvedDef) error {
+	w.WriteString("type ")
+	w.WriteString(r.GoName)
 
 	// Per §I.8.5.2 CLS Rule 7, the underlying type is the type of the field "__value". Find it.
 	var underlyingType *winmd.SigType
@@ -673,36 +673,36 @@ func (c *Context) writeTypeDefEnum(b io.StringWriter, r *resolvedDef) error {
 		return errors.New("failed to find underlying type for enum")
 	}
 
-	b.WriteString(" ")
-	if err := c.writeType(b, underlyingType); err != nil {
+	w.WriteString(" ")
+	if err := c.writeType(w, underlyingType); err != nil {
 		return err
 	}
-	b.WriteString("\n\nconst (\n")
+	w.WriteString("\n\nconst (\n")
 	for _, pair := range members {
 		name := pair.Name.String()
-		b.WriteString("\t")
+		w.WriteString("\t")
 		// Add enum name prefix to generated name if the original member name doesn't already have
 		// the prefix. This may be necessary to avoid collisions, and also makes the API easier to
 		// find in Go via autocomplete.
 		if !strings.HasPrefix(name, r.def.Name.String()) {
-			b.WriteString(r.GoName)
-			b.WriteString("_")
+			w.WriteString(r.GoName)
+			w.WriteString("_")
 		}
-		b.WriteString(escapedUpper(name))
-		b.WriteString(" ")
-		b.WriteString(r.GoName)
-		b.WriteString(" = ")
-		b.WriteString(pair.HexValue)
-		b.WriteString("\n")
+		w.WriteString(escapedUpper(name))
+		w.WriteString(" ")
+		w.WriteString(r.GoName)
+		w.WriteString(" = ")
+		w.WriteString(pair.HexValue)
+		w.WriteString("\n")
 	}
-	b.WriteString(")\n")
+	w.WriteString(")\n")
 	return nil
 }
 
-func (c *Context) writeTypeDefNative(b io.StringWriter, r *resolvedDef) error {
-	b.WriteString("type ")
-	b.WriteString(r.GoName)
-	b.WriteString(" ")
+func (c *Context) writeTypeDefNative(w io.StringWriter, r *resolvedDef) error {
+	w.WriteString("type ")
+	w.WriteString(r.GoName)
+	w.WriteString(" ")
 	if r.def.FieldList.Start+1 != r.def.FieldList.End {
 		return fmt.Errorf("expected exactly one field for native typedef %v", r.def.Name)
 	}
@@ -719,25 +719,25 @@ func (c *Context) writeTypeDefNative(b io.StringWriter, r *resolvedDef) error {
 		to := signature.Type.Value.(winmd.SigType)
 		signature.Type = to
 	}
-	if err := c.writeType(b, &signature.Type); err != nil {
+	if err := c.writeType(w, &signature.Type); err != nil {
 		return err
 	}
-	b.WriteString("\n")
+	w.WriteString("\n")
 	return nil
 }
 
-func (c *Context) writeTypeDefStruct(b io.StringWriter, r *resolvedDef) error {
-	b.WriteString("type ")
-	b.WriteString(r.GoName)
-	b.WriteString(" struct {\n")
-	if err := c.writeStructFields(b, r); err != nil {
+func (c *Context) writeTypeDefStruct(w io.StringWriter, r *resolvedDef) error {
+	w.WriteString("type ")
+	w.WriteString(r.GoName)
+	w.WriteString(" struct {\n")
+	if err := c.writeStructFields(w, r); err != nil {
 		return err
 	}
-	b.WriteString("}\n")
+	w.WriteString("}\n")
 	return nil
 }
 
-func (c *Context) writeStructFields(b io.StringWriter, r *resolvedDef) error {
+func (c *Context) writeStructFields(w io.StringWriter, r *resolvedDef) error {
 	// Union type support is simple for now. Roughly follow the x/sys approach and pick one union
 	// option to implement. See the x/sys/windows "IpAdapterAddresses" struct in syscall_windows.go
 	// for an example. Better support is tracked at https://github.com/microsoft/go-winmd/issues/17
@@ -754,14 +754,14 @@ func (c *Context) writeStructFields(b io.StringWriter, r *resolvedDef) error {
 			}
 			usedFieldOffset[o] = struct{}{}
 		}
-		if err := c.writeStructField(b, i); err != nil {
+		if err := c.writeStructField(w, i); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (c *Context) writeStructField(b io.StringWriter, fieldIndex winmd.Index) error {
+func (c *Context) writeStructField(w io.StringWriter, fieldIndex winmd.Index) error {
 	fd, err := c.Metadata.Tables.Field.Record(fieldIndex)
 	if err != nil {
 		return err
@@ -784,30 +784,30 @@ func (c *Context) writeStructField(b io.StringWriter, fieldIndex winmd.Index) er
 				if err != nil {
 					return err
 				}
-				return c.writeStructFields(b, def)
+				return c.writeStructFields(w, def)
 			}
 		}
 	}
-	b.WriteString("\t")
-	b.WriteString(escapedUpper(fd.Name.String()))
-	b.WriteString(" ")
-	if err := c.writeType(b, &signature.Type); err != nil {
+	w.WriteString("\t")
+	w.WriteString(escapedUpper(fd.Name.String()))
+	w.WriteString(" ")
+	if err := c.writeType(w, &signature.Type); err != nil {
 		return err
 	}
-	b.WriteString("\n")
+	w.WriteString("\n")
 	return nil
 }
 
 // WriteUsedTypeDefs writes Go definitions for TypeDefs that were discovered during WriteMethod
 // calls to b. For a given Context c, only call this method one time, and only after all WriteMethod
 // calls are complete.
-func (c *Context) WriteUsedTypeDefs(b io.StringWriter) error {
+func (c *Context) WriteUsedTypeDefs(w io.StringWriter) error {
 	// Log TypeRefs to the console to let the def know these are expected.
 	// This issue tracks better approaches than simply logging: https://github.com/microsoft/go-winmd/issues/18
 	for _, r := range c.unresolvableTypeRefs {
 		log.Printf("unable to resolve type: %v :: %v", r.Namespace, r.Name)
 	}
-	b.WriteString("\n\n// Types used in generated APIs\n\n")
+	w.WriteString("\n\n// Types used in generated APIs\n\n")
 	// Keep going until we stop finding new types that need definitions.
 	written := make(map[*resolvedDef]struct{})
 	for {
@@ -829,10 +829,10 @@ func (c *Context) WriteUsedTypeDefs(b io.StringWriter) error {
 		for _, r := range usedTypeDefs {
 			// Writing the type def (field types in particular) adds new entries to ResolvedDefs if
 			// we haven't seen them yet.
-			if err := c.writeTypeDef(b, r); err != nil {
+			if err := c.writeTypeDef(w, r); err != nil {
 				return err
 			}
-			b.WriteString("\n")
+			w.WriteString("\n")
 		}
 	}
 	return nil
@@ -840,11 +840,11 @@ func (c *Context) WriteUsedTypeDefs(b io.StringWriter) error {
 
 // writeEscapedParam writes the given string, adding a suffix if it is a reserved Go keyword. Leave
 // the case as-is (unlike writeEscapedUpper) because lowercase is desirable for params.
-func writeEscapedParam(b io.StringWriter, s string) {
+func writeEscapedParam(w io.StringWriter, s string) {
 	if token.IsKeyword(s) {
 		s += "Param"
 	}
-	b.WriteString(s)
+	w.WriteString(s)
 }
 
 // escapedUpper returns the given string with the first character in uppercase. All Go keywords are
