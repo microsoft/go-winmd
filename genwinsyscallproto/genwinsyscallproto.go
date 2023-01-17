@@ -23,8 +23,6 @@ import (
 
 // Context stores data about syscall generation so far, and to improve generation performance. It
 // keeps track of the list of used typedefs that may need to also be defined in generated Go code.
-// For performance, indexing the data helps with (e.g.) traversing one-way pointers backwards rather
-// than scanning the entire table each time.
 type Context struct {
 	Metadata *winmd.Metadata
 
@@ -39,7 +37,8 @@ type Context struct {
 	unresolvableTypeRefs map[typeNameKey]*winmd.TypeRef
 
 	// The maps below index commonly used winmd table relationships to allow fast access when
-	// interpreting the metadata and writing the Go source code.
+	// interpreting the metadata and writing the Go source code. This helps with (e.g.) traversing
+	// one-way pointers backwards rather than scanning the entire table each time.
 
 	// methodDefImplMap maps MethodDef index -> ImplMap with matching MemberForwarded index.
 	methodDefImplMap map[winmd.Index]*winmd.ImplMap
@@ -799,6 +798,9 @@ func (c *Context) writeStructField(b io.StringWriter, fieldIndex winmd.Index) er
 	return nil
 }
 
+// WriteUsedTypeDefs writes Go definitions for TypeDefs that were discovered during WriteMethod
+// calls to b. For a given Context c, only call this method one time, and only after all WriteMethod
+// calls are complete.
 func (c *Context) WriteUsedTypeDefs(b io.StringWriter) error {
 	// Log TypeRefs to the console to let the def know these are expected.
 	// This issue tracks better approaches than simply logging: https://github.com/microsoft/go-winmd/issues/18

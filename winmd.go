@@ -69,7 +69,7 @@ type String struct {
 	// Start is the offset in the #Strings heap where the string starts. This is the parameter that
 	// was passed to StringHeap.String to create this String. The strings heap doesn't contain
 	// duplicate strings, so this value can be used to uniquely identify strings that come from the
-	// same heap. In some cases this can be used instead of hashing the string data itself.
+	// same heap.
 	Start uint32
 	data  []byte
 }
