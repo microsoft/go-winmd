@@ -153,8 +153,5 @@ func writePrototypes(b *strings.Builder, f *winmd.Metadata, filterRegexp *regexp
 			}
 		}
 	}
-	if err := context.WriteUsedTypeDefs(b); err != nil {
-		return err
-	}
-	return nil
+	return context.WriteUsedTypeDefs(b)
 }
