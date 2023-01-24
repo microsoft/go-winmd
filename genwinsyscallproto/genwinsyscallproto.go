@@ -631,37 +631,37 @@ func (c *Context) writeTypeDefEnum(w io.StringWriter, r *resolvedDef) error {
 		}
 
 		var hex string
-		if constant, ok := c.fieldConstant[i]; ok {
-			// Read the value as a hex string. §II.22.9 informative text 1 and 2 restrict the
-			// possible types further than what we can handle here, but we handle all simple integer
-			// types for simplicity and in case this code needs to be moved and reused elsewhere.
-			switch constant.Type {
-			case flags.ElementType_I1:
-				hex = strconv.FormatInt(int64(int8(constant.Value[0])), 16)
-			case flags.ElementType_I2:
-				hex = strconv.FormatInt(int64(int16(binary.LittleEndian.Uint16(constant.Value))), 16)
-			case flags.ElementType_I4:
-				hex = strconv.FormatInt(int64(int32(binary.LittleEndian.Uint32(constant.Value))), 16)
-			case flags.ElementType_I8:
-				hex = strconv.FormatInt(int64(binary.LittleEndian.Uint64(constant.Value)), 16)
-			case flags.ElementType_U1:
-				hex = strconv.FormatUint(uint64(constant.Value[0]), 16)
-			case flags.ElementType_U2:
-				hex = strconv.FormatUint(uint64(binary.LittleEndian.Uint16(constant.Value)), 16)
-			case flags.ElementType_U4:
-				hex = strconv.FormatUint(uint64(binary.LittleEndian.Uint32(constant.Value)), 16)
-			case flags.ElementType_U8:
-				hex = strconv.FormatUint(binary.LittleEndian.Uint64(constant.Value), 16)
-			default:
-				return fmt.Errorf("enum member has unexpected type: %v, field %v", constant.Type, fd.Name)
-			}
-			if hex[0] == '-' {
-				hex = "-0x" + hex[1:]
-			} else {
-				hex = "0x" + hex
-			}
-		} else {
+		constant, ok := c.fieldConstant[i]
+		if !ok {
 			return fmt.Errorf("unable to find default value for field %v", fd.Name)
+		}
+		// Read the value as a hex string. §II.22.9 informative text 1 and 2 restrict the
+		// possible types further than what we can handle here, but we handle all simple integer
+		// types for simplicity and in case this code needs to be moved and reused elsewhere.
+		switch constant.Type {
+		case flags.ElementType_I1:
+			hex = strconv.FormatInt(int64(int8(constant.Value[0])), 16)
+		case flags.ElementType_I2:
+			hex = strconv.FormatInt(int64(int16(binary.LittleEndian.Uint16(constant.Value))), 16)
+		case flags.ElementType_I4:
+			hex = strconv.FormatInt(int64(int32(binary.LittleEndian.Uint32(constant.Value))), 16)
+		case flags.ElementType_I8:
+			hex = strconv.FormatInt(int64(binary.LittleEndian.Uint64(constant.Value)), 16)
+		case flags.ElementType_U1:
+			hex = strconv.FormatUint(uint64(constant.Value[0]), 16)
+		case flags.ElementType_U2:
+			hex = strconv.FormatUint(uint64(binary.LittleEndian.Uint16(constant.Value)), 16)
+		case flags.ElementType_U4:
+			hex = strconv.FormatUint(uint64(binary.LittleEndian.Uint32(constant.Value)), 16)
+		case flags.ElementType_U8:
+			hex = strconv.FormatUint(binary.LittleEndian.Uint64(constant.Value), 16)
+		default:
+			return fmt.Errorf("enum member has unexpected type: %v, field %v", constant.Type, fd.Name)
+		}
+		if hex[0] == '-' {
+			hex = "-0x" + hex[1:]
+		} else {
+			hex = "0x" + hex
 		}
 
 		// Don't write the members yet. We haven't written the enum type definition yet, and the
