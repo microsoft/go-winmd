@@ -17,11 +17,32 @@ type Metadata struct {
 	US      USHeap
 	Blob    BlobHeap
 	GUID    GUIDHeap
+
+	layout *layout
 }
 
 // New creates a new File from an underlying PE file.
 func New(pefile *pe.File) (*Metadata, error) {
 	return newMetadata(pefile)
+}
+
+func (m *Metadata) FieldSignature(bytes SigFieldBlob) (SigField, error) {
+	r := m.sigReader(bytes)
+	return r.fieldSig(), r.err
+}
+
+func (m *Metadata) MethodDefSignature(data SigMethodDefBlob) (SigMethodDef, error) {
+	r := m.sigReader(data)
+	return r.methodDefSig(), r.err
+}
+
+func (m *Metadata) sigReader(data []byte) sigReader {
+	return sigReader{
+		ecma335Reader{
+			data:   data,
+			layout: m.layout,
+		},
+	}
 }
 
 // Record is an item in a metadata table.
@@ -44,10 +65,17 @@ type CodedIndex struct {
 //
 // It is used as an optimization to avoid allocating
 // when reading from the #Strings heap.
-type String []byte
+type String struct {
+	// Start is the offset in the #Strings heap where the string starts. This is the parameter that
+	// was passed to StringHeap.String to create this String. The strings heap doesn't contain
+	// duplicate strings, so this value can be used to uniquely identify strings that come from the
+	// same heap.
+	Start uint32
+	data  []byte
+}
 
 func (s String) String() string {
-	return string(s)
+	return string(s.data)
 }
 
 // Slice indexes the range of records [Start,End) on the table T.
@@ -87,9 +115,11 @@ func (t Table[T, TP]) Record(row Index) (TP, error) {
 		return nil, io.ErrUnexpectedEOF
 	}
 	r := recordReader{
-		data:   t.data[offset:],
-		heaps:  t.heaps,
-		layout: t.layout,
+		ecma335Reader: ecma335Reader{
+			data:   t.data[offset:],
+			layout: t.layout,
+		},
+		heaps: t.heaps,
 	}
 	rec := TP(new(T))
 	err := rec.decode(r)

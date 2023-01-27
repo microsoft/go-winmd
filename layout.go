@@ -8,6 +8,9 @@ import (
 	"errors"
 	"fmt"
 	"math/bits"
+
+	"github.com/microsoft/go-winmd/flags"
+	"github.com/microsoft/go-winmd/internal/ecma335"
 )
 
 type layout struct {
@@ -119,34 +122,334 @@ func heapIndexSize(heapSizes uint8) (strings uint8, guids uint8, blobs uint8) {
 	return sizefn(heapSizesStringBit), sizefn(heapSizesGUIDBit), sizefn(heapSizesBlobBit)
 }
 
-type recordReader struct {
+// ecma335Reader reads data in ecma335 formats that appear in multiple places in the spec.
+// This reader is the basis for more advanced readers that parse tables and signatures.
+type ecma335Reader struct {
 	data   []byte
-	heaps  heaps
 	layout *layout
 
 	err error
 }
 
-func (r *recordReader) coded(coded coded) CodedIndex {
+func (r *ecma335Reader) coded(coded coded) CodedIndex {
 	if r.err != nil {
 		return CodedIndex{}
 	}
-	tagbits := codedTagBits(coded)
-	bitmask := (1 << tagbits) - 1
 	code := r.uint(r.layout.codedSizes[coded])
-	if code < 1 {
-		return CodedIndex{Tag: -1}
-	}
-	row, tag := code>>tagbits-1, code&uint32(bitmask)
-	_, ok := codedTable(coded, uint8(tag))
-	if !ok {
-		r.err = fmt.Errorf("unknown coded %d tag %d", coded, tag)
+	index, err := parseCoded(coded, code)
+	if err != nil {
+		r.err = err
 		return CodedIndex{}
 	}
-	return CodedIndex{
-		Index: Index(row),
-		Tag:   int8(tag),
+	return index
+}
+
+func (r *ecma335Reader) uint8() uint8 {
+	if r.err != nil {
+		return 0
 	}
+	v := r.data[0]
+	r.data = r.data[1:]
+	return v
+}
+
+func (r *ecma335Reader) uint16() uint16 {
+	if r.err != nil {
+		return 0
+	}
+	v := binary.LittleEndian.Uint16(r.data)
+	r.data = r.data[2:]
+	return v
+}
+
+func (r *ecma335Reader) uint32() uint32 {
+	if r.err != nil {
+		return 0
+	}
+	v := binary.LittleEndian.Uint32(r.data)
+	r.data = r.data[4:]
+	return v
+}
+
+func (r *ecma335Reader) index(tbl table) Index {
+	if r.err != nil {
+		return 0
+	}
+	v := r.uint(r.layout.simpleSizes[tbl])
+	if v == 0 {
+		r.err = errors.New("record index must be greater than 0")
+		return 0
+	}
+	// ECMA-335 table indices are 1-based, but we follow Go notation instead.
+	v -= 1
+	if max := r.layout.tables[tbl].rowCount; v > max {
+		r.err = fmt.Errorf("record index %d must be smaller than %d", v, max)
+		return 0
+	}
+	return Index(v)
+}
+
+func (r *ecma335Reader) uint(size uint8) uint32 {
+	switch size {
+	case 1:
+		return uint32(r.uint8())
+	case 2:
+		return uint32(r.uint16())
+	case 4:
+		return r.uint32()
+	default:
+		panic(fmt.Errorf("columns size %d is not supported", size))
+	}
+}
+
+func (r *ecma335Reader) compressedUint32() (v uint32) {
+	if r.err != nil {
+		return
+	}
+	var n int
+	v, n, r.err = ecma335.DecodeCompressedUint32(r.data)
+	if r.err != nil {
+		return
+	}
+	r.data = r.data[n:]
+	return
+}
+
+func (r *ecma335Reader) compressedInt32() (v int32) {
+	if r.err != nil {
+		return
+	}
+	var n int
+	v, n, r.err = ecma335.DecodeCompressedInt32(r.data)
+	if r.err != nil {
+		return
+	}
+	r.data = r.data[n:]
+	return
+}
+
+// sigReader reads signature data defined in §II.23.2.
+type sigReader struct {
+	ecma335Reader
+}
+
+func (r *sigReader) fieldSig() (v SigField) {
+	if r.err != nil {
+		return
+	}
+
+	firstByte := r.uint8()
+	if r.err != nil {
+		return
+	}
+	kind := firstByte & 0xF
+	if kind != uint8(flags.SigKind_FIELD) {
+		r.err = fmt.Errorf("signature kind is not a field signature: %v", kind)
+		return
+	}
+	if kind&0xF0 != 0 {
+		r.err = fmt.Errorf("unexpected data stored in first byte of field signature: %v", kind)
+		return
+	}
+	v.Type = r.decodeType()
+	return
+}
+
+func (r *sigReader) methodDefSig() (v SigMethodDef) {
+	if r.err != nil {
+		return
+	}
+
+	firstByte := r.uint8()
+	if r.err != nil {
+		return
+	}
+	kind := firstByte & 0xF
+	if kind > uint8(flags.SigKind_VARARG) {
+		r.err = fmt.Errorf("signature kind is not a method def signature: %v", kind)
+		return
+	}
+	thisiness := firstByte & 0xF0
+	v.HasThis = thisiness&uint8(flags.SigAttributes_HASTHIS) != 0
+	v.ExplicitThis = thisiness&uint8(flags.SigAttributes_EXPLICITTHIS) != 0
+	if thisiness&uint8(flags.SigAttributes_GENERIC) != 0 {
+		v.Generic = r.compressedUint32()
+		if r.err != nil {
+			return
+		}
+	}
+	paramCount := r.compressedUint32()
+	if r.err != nil {
+		return
+	}
+
+	v.RetType = r.retType()
+	if r.err != nil {
+		return
+	}
+	for i := uint32(0); i < paramCount; i++ {
+		v.Param = append(v.Param, r.param())
+		if r.err != nil {
+			return
+		}
+	}
+	return
+}
+
+func (r *sigReader) param() (v SigParam) {
+	if r.err != nil {
+		return
+	}
+	v.Type = r.decodeType()
+	switch v.Type.Kind {
+	case flags.ElementType_BYREF:
+		v.Kind = SigParamKind_ByRef
+	case flags.ElementType_TYPEDBYREF:
+		v.Kind = SigParamKind_TypedByRef
+	default:
+		v.Kind = SigParamKind_ByValue
+	}
+	return
+}
+
+func (r *sigReader) retType() (v SigRetType) {
+	if r.err != nil {
+		return
+	}
+	v.Type = r.decodeType()
+	switch v.Type.Kind {
+	case flags.ElementType_BYREF:
+		v.Kind = SigRetTypeKind_ByRef
+	case flags.ElementType_TYPEDBYREF:
+		v.Kind = SigRetTypeKind_ByRef
+	case flags.ElementType_VOID:
+		v.Kind = SigRetTypeKind_Void
+	default:
+		v.Kind = SigRetTypeKind_ByValue
+	}
+	return
+}
+
+func (r *sigReader) customModOpt() (v SigCustomMod) {
+	v.Kind = SigCustomModKind_Opt
+	v.Index = r.typeHandle()
+	return
+}
+
+func (r *sigReader) customModReqd() (v SigCustomMod) {
+	v.Kind = SigCustomModKind_Reqd
+	v.Index = r.typeHandle()
+	return
+}
+
+// typeHandle reads a type handle (a TypeDefOrRefOrSpecEncoded).
+func (r *sigReader) typeHandle() (v CodedIndex) {
+	if r.err != nil {
+		return
+	}
+	value := r.compressedUint32()
+	if r.err != nil {
+		return
+	}
+	// Once we decompress the uint32, we could reverse the encoding steps listed in §II.23.2.8, but
+	// the coded index algorithm has the same result if we define codedTypeDefOrRefOrSpec.
+	v, r.err = parseCoded(codedTypeDefOrRefOrSpec, value)
+	return
+}
+
+func (r *sigReader) decodeType() (v SigType) {
+	if r.err != nil {
+		return
+	}
+	switch b := flags.ElementType(r.compressedUint32()); b {
+	// Use recursion to collect the full list of mods, like the System.Reflection.Metadata impl.
+	case flags.ElementType_CMOD_OPT:
+		mod := r.customModOpt()
+		v = r.decodeType()
+		v.Mod = append(v.Mod, mod)
+	case flags.ElementType_CMOD_REQD:
+		mod := r.customModReqd()
+		v = r.decodeType()
+		v.Mod = append(v.Mod, mod)
+
+	case flags.ElementType_BYREF:
+		v.Kind = b
+		v.Value = r.decodeType()
+
+	// TypedByRef and Void have no SigType afterwards.
+	case flags.ElementType_TYPEDBYREF:
+		v.Kind = flags.ElementType_TYPEDBYREF
+	case flags.ElementType_VOID:
+		v.Kind = flags.ElementType_VOID
+
+	case flags.ElementType_GENERICINST:
+		// See https://github.com/microsoft/go-winmd/issues/19
+		r.err = errors.New("generic types are not yet supported")
+
+	case flags.ElementType_CLASS,
+		flags.ElementType_VALUETYPE:
+		v.Kind = b
+		v.Value = r.typeHandle()
+
+	case flags.ElementType_PTR:
+		v.Kind = b
+		v.Value = r.decodeType()
+
+	case flags.ElementType_ARRAY:
+		v.Kind = b
+		v.Value = r.array()
+
+	case flags.ElementType_BOOLEAN,
+		flags.ElementType_CHAR,
+		flags.ElementType_I1,
+		flags.ElementType_U1,
+		flags.ElementType_I2,
+		flags.ElementType_U2,
+		flags.ElementType_I4,
+		flags.ElementType_U4,
+		flags.ElementType_I8,
+		flags.ElementType_U8,
+		flags.ElementType_R4,
+		flags.ElementType_R8,
+		flags.ElementType_I,
+		flags.ElementType_U,
+		flags.ElementType_OBJECT,
+		flags.ElementType_STRING:
+		v.Kind = b
+
+	default:
+		r.err = fmt.Errorf("unsupported element type: %v", b)
+	}
+	return
+}
+
+func (r *sigReader) array() (a SigArray) {
+	if r.err != nil {
+		return
+	}
+	a.Type = r.decodeType()
+	a.Rank = r.compressedUint32()
+	if r.err != nil {
+		return
+	}
+	a.Sizes = make([]uint32, r.compressedUint32())
+	for i := 0; i < len(a.Sizes); i++ {
+		a.Sizes[i] = r.compressedUint32()
+	}
+	if r.err != nil {
+		return
+	}
+	a.LowerBounds = make([]int32, r.compressedUint32())
+	for i := 0; i < len(a.LowerBounds); i++ {
+		a.LowerBounds[i] = r.compressedInt32()
+	}
+	return
+}
+
+// recordReader reads table record data.
+type recordReader struct {
+	ecma335Reader
+	heaps heaps
 }
 
 // slice reads a Slice from r.
@@ -185,33 +488,6 @@ func (r *recordReader) slice(ownTable, targetTable table) Slice {
 	return sl
 }
 
-func (r *recordReader) uint8() uint8 {
-	if r.err != nil {
-		return 0
-	}
-	v := r.data[0]
-	r.data = r.data[1:]
-	return v
-}
-
-func (r *recordReader) uint16() uint16 {
-	if r.err != nil {
-		return 0
-	}
-	v := binary.LittleEndian.Uint16(r.data)
-	r.data = r.data[2:]
-	return v
-}
-
-func (r *recordReader) uint32() uint32 {
-	if r.err != nil {
-		return 0
-	}
-	v := binary.LittleEndian.Uint32(r.data)
-	r.data = r.data[4:]
-	return v
-}
-
 func (r *recordReader) string() (v String) {
 	if r.err != nil {
 		return
@@ -241,35 +517,4 @@ func (r *recordReader) guid() (v [16]byte) {
 	// ECMA-335 GUID indices are 1-based, but we follow Go notation instead.
 	v, r.err = r.heaps.guids.GUID(idx - 1)
 	return
-}
-
-func (r *recordReader) index(tbl table) Index {
-	if r.err != nil {
-		return 0
-	}
-	v := r.uint(r.layout.simpleSizes[tbl])
-	if v == 0 {
-		r.err = errors.New("record index must be greater than 0")
-		return 0
-	}
-	// ECMA-335 table indices are 1-based, but we follow Go notation instead.
-	v -= 1
-	if max := r.layout.tables[tbl].rowCount; v > max {
-		r.err = fmt.Errorf("record index %d must be smaller than %d", v, max)
-		return 0
-	}
-	return Index(v)
-}
-
-func (r *recordReader) uint(size uint8) uint32 {
-	switch size {
-	case 1:
-		return uint32(r.uint8())
-	case 2:
-		return uint32(r.uint16())
-	case 4:
-		return r.uint32()
-	default:
-		panic(fmt.Errorf("columns size %d is not supported", size))
-	}
 }

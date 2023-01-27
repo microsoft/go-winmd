@@ -105,3 +105,9 @@ const (
 	HasCustomAttribute_GenericParamConstraint
 	HasCustomAttribute_MethodSpec
 )
+
+const (
+	TypeDefOrRefOrSpec_TypeDef = iota
+	TypeDefOrRefOrSpec_TypeRef
+	TypeDefOrRefOrSpec_TypeSpec
+)

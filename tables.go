@@ -135,7 +135,7 @@ type ExportedType struct {
 type Field struct {
 	Flags     flags.FieldAttributes
 	Name      String
-	Signature []byte
+	Signature SigFieldBlob
 }
 
 // FieldLayout is defined in §II.22.16.
@@ -223,7 +223,7 @@ type MethodDef struct {
 	ImplFlags flags.MethodImplAttributes
 	Flags     flags.MethodAttributes
 	Name      String
-	Signature []byte
+	Signature SigMethodDefBlob
 	ParamList Slice // @ref=Param
 }
 
@@ -286,7 +286,7 @@ type Param struct {
 type Property struct {
 	Flags flags.PropertyAttributes
 	Name  String
-	Type  []byte
+	Type  SigPropertyBlob
 }
 
 // PropertyMap is defined in §II.22.35.

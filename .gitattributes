@@ -1,0 +1,4 @@
+# Always check out test data files with LF line endings to simplify comparisons.
+**/testdata/** text eol=lf
+# Set winmd back to binary to avoid checkout trouble on Windows.
+*.winmd binary
