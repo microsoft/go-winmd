@@ -4,6 +4,16 @@
 
 A Windows Metadata (a.k.a. winmd) parser written in Go and based on the ECMA-335 6th edition standard.
 
+## Development References
+
+These resources are useful as reference while working on the go-winmd module:
+
+* [ECMA-335 specification](https://www.ecma-international.org/wp-content/uploads/ECMA-335_6th_edition_june_2012.pdf)
+* [microsoft/win32metadata](https://github.com/microsoft/win32metadata) GitHub repository
+* [Windows Runtime (WinRT) document](https://learn.microsoft.com/en-us/uwp/winrt-cref/winmd-files) on Windows Metadata
+* [.NET System.Reflection.Metadata implementation](https://github.com/dotnet/runtime/tree/main/src/libraries/System.Reflection.Metadata)
+* [go.dev/issue/43838 "x/sys/windows: use win32metadata?"](http://go.dev/issue/43838)
+
 ## Contributing
 
 This project welcomes contributions and suggestions.  Most contributions require you to agree to a
