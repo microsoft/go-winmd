@@ -75,12 +75,10 @@ func (a Arch) String() string {
 type Context struct {
 	Metadata *winmd.Metadata
 
-	// resolvedDefs maps type name keys -> resolved TypeDef information.
-	resolvedDefs map[typeNameKey]*resolvedDef
+	typeDefCache typeDefCache
+
 	// resolvedDefsByIndex maps TypeDef Index -> resolved TypeDef information.
 	resolvedDefsByIndex map[winmd.Index]*resolvedDef
-	// unresolvedDefs maps type name keys -> winmd.TypeDef index.
-	unresolvedDefs map[typeNameKey]winmd.Index
 	// unresolvableTypeRefs is a set of TypeRefs that were discovered but unable to be resolved
 	// inside the current module.
 	unresolvableTypeRefs map[typeNameKey]*winmd.TypeRef
@@ -89,11 +87,6 @@ type Context struct {
 	// allocating a slice for every TypeDef, only for those that are duplicated.
 	// WinMD TypeDefs use duplicated TypeDef names to represent functions with the same name but
 	// different signatures due to architecture-specific overloads.
-
-	// resolvedDuplicatedTypeDefs maps type name keys -> list of TypeDef indices with the same name.
-	resolvedDuplicatedTypeDefs map[typeNameKey][]*resolvedDef
-	// unresolvedDuplicatedTypeDefs maps type name keys -> list of winmd.TypeDef indices.
-	unresolvedDuplicatedTypeDefs map[typeNameKey][]winmd.Index
 
 	// The maps below index commonly used winmd table relationships to allow fast access when
 	// interpreting the metadata and writing the Go source code. This helps with (e.g.) traversing
@@ -119,14 +112,10 @@ type Context struct {
 // that improve generation performance at the cost of startup time.
 func NewContext(f *winmd.Metadata) (*Context, error) {
 	l := &Context{
-		Metadata: f,
-
-		resolvedDefs:                 make(map[typeNameKey]*resolvedDef),
-		resolvedDefsByIndex:          make(map[winmd.Index]*resolvedDef),
-		unresolvedDefs:               make(map[typeNameKey]winmd.Index),
-		unresolvableTypeRefs:         make(map[typeNameKey]*winmd.TypeRef),
-		unresolvedDuplicatedTypeDefs: make(map[typeNameKey][]winmd.Index),
-		resolvedDuplicatedTypeDefs:   make(map[typeNameKey][]*resolvedDef),
+		Metadata:             f,
+		typeDefCache:         *newTypeDefCache(),
+		resolvedDefsByIndex:  make(map[winmd.Index]*resolvedDef),
+		unresolvableTypeRefs: make(map[typeNameKey]*winmd.TypeRef),
 
 		methodDefImplMap:              make(map[winmd.Index]*winmd.ImplMap),
 		fieldConstant:                 make(map[winmd.Index]*winmd.Constant),
@@ -150,15 +139,7 @@ func NewContext(f *winmd.Metadata) (*Context, error) {
 		if r.Flags&flags.TypeAttributes_NestedPublic != 0 {
 			continue
 		}
-		key := typeDefKey(r)
-		if _, ok := l.unresolvedDuplicatedTypeDefs[key]; ok {
-			l.unresolvedDuplicatedTypeDefs[key] = append(l.unresolvedDuplicatedTypeDefs[key], winmd.Index(i))
-		} else if _, ok := l.unresolvedDefs[key]; ok {
-			l.unresolvedDuplicatedTypeDefs[key] = append(l.unresolvedDuplicatedTypeDefs[key], l.unresolvedDefs[key], winmd.Index(i))
-			delete(l.unresolvedDefs, key)
-		} else {
-			l.unresolvedDefs[key] = winmd.Index(i)
-		}
+		l.typeDefCache.add(winmd.Index(i), r)
 	}
 	for i := uint32(0); i < f.Tables.ImplMap.Len; i++ {
 		im, err := f.Tables.ImplMap.Record(winmd.Index(i))
@@ -525,19 +506,6 @@ func (c *Context) writeType(w io.StringWriter, p *winmd.SigType, arch Arch) erro
 	return visitType(p)
 }
 
-type typeNameKey struct {
-	NamespaceStart uint32
-	NameStart      uint32
-}
-
-func typeRefKey(ref *winmd.TypeRef) typeNameKey {
-	return typeNameKey{ref.Namespace.Start, ref.Name.Start}
-}
-
-func typeDefKey(def *winmd.TypeDef) typeNameKey {
-	return typeNameKey{def.Namespace.Start, def.Name.Start}
-}
-
 type resolvedDef struct {
 	Index     winmd.Index
 	Namespace winmd.String
@@ -601,21 +569,14 @@ func (c *Context) resolveTypeRef(refIndex winmd.Index, arch Arch) (*resolvedDef,
 		switch r.ResolutionScope.Tag {
 		// We assume module-level TypeRefs refer to the current module.
 		case coded.ResolutionScope_Module:
-			key := typeRefKey(r)
-			if defs, ok := c.resolvedDuplicatedTypeDefs[key]; ok {
-				for _, def := range defs {
-					if def.Arch&arch == arch {
-						return def, nil
-					}
-				}
-			}
-			if def, ok := c.resolvedDefs[key]; ok {
+			if def := c.typeDefCache.get(r.Namespace, r.Name, arch); def != nil {
 				return def, nil
 			}
-			if defIndex, ok := c.unresolvedDefs[key]; ok {
+			key := typeRefKey(r)
+			if defIndex, ok := c.typeDefCache.unresolved[key]; ok {
 				return c.resolveTypeDef(defIndex)
 			}
-			if defIndices, ok := c.unresolvedDuplicatedTypeDefs[key]; ok {
+			if defIndices, ok := c.typeDefCache.unresolvedDuplicated[key]; ok {
 				var archDef *resolvedDef
 				for _, defIndex := range defIndices {
 					if arch == ArchAll || c.TypeDefSupportedArch(defIndex)&arch == arch {
@@ -708,12 +669,7 @@ func (c *Context) resolveTypeDef(defIndex winmd.Index) (*resolvedDef, error) {
 		}
 		// Nested types can't be resolved at module scope. Don't add it to the module lookup.
 		if def.Flags&flags.TypeAttributes_NestedPublic == 0 {
-			key := typeDefKey(def)
-			if c.unresolvedDuplicatedTypeDefs[key] == nil {
-				c.resolvedDefs[key] = &r
-			} else {
-				c.resolvedDuplicatedTypeDefs[key] = append(c.resolvedDuplicatedTypeDefs[key], &r)
-			}
+			c.typeDefCache.resolve(&r)
 		}
 		c.resolvedDefsByIndex[defIndex] = &r
 		for _, childIndex := range c.nestedTypeDefChildren[defIndex] {
@@ -973,23 +929,13 @@ func (c *Context) WriteUsedTypeDefs(b map[Arch]*strings.Builder) error {
 	// Keep going until we stop finding new types that need definitions.
 	written := make(map[*resolvedDef]struct{})
 	for {
-		var usedTypeDefs []*resolvedDef
-		for _, r := range c.resolvedDefs {
-			if _, ok := written[r]; ok {
-				continue
-			}
-			usedTypeDefs = append(usedTypeDefs, r)
-			written[r] = struct{}{}
-		}
-		for _, def := range c.resolvedDuplicatedTypeDefs {
-			for _, r := range def {
-				if _, ok := written[r]; ok {
-					continue
-				}
-				usedTypeDefs = append(usedTypeDefs, r)
+		usedTypeDefs := c.typeDefCache.collect(func(r *resolvedDef) bool {
+			if _, ok := written[r]; !ok {
 				written[r] = struct{}{}
+				return true
 			}
-		}
+			return false
+		})
 		if len(usedTypeDefs) == 0 {
 			break
 		}
