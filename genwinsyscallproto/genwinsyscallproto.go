@@ -21,6 +21,55 @@ import (
 	"github.com/microsoft/go-winmd/flags"
 )
 
+// Arch is a bitmask of architectures.
+type Arch uint32
+
+const (
+	ArchNone  Arch = 0
+	Arch386   Arch = 1
+	ArchAMD64 Arch = 2
+	ArchARM64 Arch = 4
+	ArchAll        = Arch386 | ArchAMD64 | ArchARM64
+)
+
+// Unique returns a list of unique architectures in the bitmask.
+func (a Arch) Unique() []Arch {
+	if a&ArchAll == ArchAll {
+		return []Arch{ArchAll}
+	}
+	var ret []Arch
+	if a&Arch386 == Arch386 {
+		ret = append(ret, Arch386)
+	}
+	if a&ArchAMD64 == ArchAMD64 {
+		ret = append(ret, ArchAMD64)
+	}
+	if a&ArchARM64 == ArchARM64 {
+		ret = append(ret, ArchARM64)
+	}
+	if len(ret) == 0 {
+		return []Arch{ArchNone}
+	}
+	return ret
+}
+
+func (a Arch) String() string {
+	switch a {
+	case Arch386:
+		return "386"
+	case ArchAMD64:
+		return "amd64"
+	case ArchARM64:
+		return "arm64"
+	case ArchNone:
+		return "none"
+	case ArchAll:
+		return "all"
+	default:
+		return "unknown"
+	}
+}
+
 // Context stores data about syscall generation so far, and to improve generation performance. It
 // keeps track of the list of used typedefs that may need to also be defined in generated Go code.
 type Context struct {
@@ -36,6 +85,16 @@ type Context struct {
 	// inside the current module.
 	unresolvableTypeRefs map[typeNameKey]*winmd.TypeRef
 
+	// Duplicated TypeDefs are an uncommon special case, treat them separately to avoid
+	// allocating a slice for every TypeDef, only for those that are duplicated.
+	// WinMD TypeDefs use duplicated TypeDef names to represent functions with the same name but
+	// different signatures due to architecture-specific overloads.
+
+	// resolvedDuplicatedTypeDefs maps type name keys -> list of TypeDef indices with the same name.
+	resolvedDuplicatedTypeDefs map[typeNameKey][]*resolvedDef
+	// unresolvedDuplicatedTypeDefs maps type name keys -> list of winmd.TypeDef indices.
+	unresolvedDuplicatedTypeDefs map[typeNameKey][]winmd.Index
+
 	// The maps below index commonly used winmd table relationships to allow fast access when
 	// interpreting the metadata and writing the Go source code. This helps with (e.g.) traversing
 	// one-way pointers backwards rather than scanning the entire table each time.
@@ -46,6 +105,10 @@ type Context struct {
 	fieldConstant map[winmd.Index]*winmd.Constant
 	// typeDefNativeTypedefAttribute maps TypeDef -> CustomAttribute (if NativeTypedefAttribute).
 	typeDefNativeTypedefAttribute map[winmd.Index]*winmd.CustomAttribute
+	// typeDefSupportedArch maps TypeDef -> the Value of the SupportedArchitectureAttribute on that type.
+	typeDefSupportedArch map[winmd.Index]Arch
+	// methodDefSupportedArch maps MethodDef -> the Value of the SupportedArchitectureAttribute on that method.
+	methodDefSupportedArch map[winmd.Index]Arch
 	// fieldOffset maps Field -> the Value of the FieldIndexAttribute on that field.
 	fieldOffset map[winmd.Index]uint32
 	// nestedTypeDefChildren maps TypeDef -> all of its child (nested) TypeDefs.
@@ -58,14 +121,18 @@ func NewContext(f *winmd.Metadata) (*Context, error) {
 	l := &Context{
 		Metadata: f,
 
-		resolvedDefs:         make(map[typeNameKey]*resolvedDef),
-		resolvedDefsByIndex:  make(map[winmd.Index]*resolvedDef),
-		unresolvedDefs:       make(map[typeNameKey]winmd.Index),
-		unresolvableTypeRefs: make(map[typeNameKey]*winmd.TypeRef),
+		resolvedDefs:                 make(map[typeNameKey]*resolvedDef),
+		resolvedDefsByIndex:          make(map[winmd.Index]*resolvedDef),
+		unresolvedDefs:               make(map[typeNameKey]winmd.Index),
+		unresolvableTypeRefs:         make(map[typeNameKey]*winmd.TypeRef),
+		unresolvedDuplicatedTypeDefs: make(map[typeNameKey][]winmd.Index),
+		resolvedDuplicatedTypeDefs:   make(map[typeNameKey][]*resolvedDef),
 
 		methodDefImplMap:              make(map[winmd.Index]*winmd.ImplMap),
 		fieldConstant:                 make(map[winmd.Index]*winmd.Constant),
 		typeDefNativeTypedefAttribute: make(map[winmd.Index]*winmd.CustomAttribute),
+		typeDefSupportedArch:          make(map[winmd.Index]Arch),
+		methodDefSupportedArch:        make(map[winmd.Index]Arch),
 		fieldOffset:                   make(map[winmd.Index]uint32),
 		nestedTypeDefChildren:         make(map[winmd.Index][]winmd.Index),
 	}
@@ -83,7 +150,15 @@ func NewContext(f *winmd.Metadata) (*Context, error) {
 		if r.Flags&flags.TypeAttributes_NestedPublic != 0 {
 			continue
 		}
-		l.unresolvedDefs[typeDefKey(r)] = winmd.Index(i)
+		key := typeDefKey(r)
+		if _, ok := l.unresolvedDuplicatedTypeDefs[key]; ok {
+			l.unresolvedDuplicatedTypeDefs[key] = append(l.unresolvedDuplicatedTypeDefs[key], winmd.Index(i))
+		} else if _, ok := l.unresolvedDefs[key]; ok {
+			l.unresolvedDuplicatedTypeDefs[key] = append(l.unresolvedDuplicatedTypeDefs[key], l.unresolvedDefs[key], winmd.Index(i))
+			delete(l.unresolvedDefs, key)
+		} else {
+			l.unresolvedDefs[key] = winmd.Index(i)
+		}
 	}
 	for i := uint32(0); i < f.Tables.ImplMap.Len; i++ {
 		im, err := f.Tables.ImplMap.Record(winmd.Index(i))
@@ -138,20 +213,53 @@ func NewContext(f *winmd.Metadata) (*Context, error) {
 		if err != nil {
 			return nil, err
 		}
-		if c.Namespace.String() != "Windows.Win32.Interop" || c.Name.String() != "NativeTypedefAttribute" {
+		if c.Namespace.String() != "Windows.Win32.Interop" {
 			continue
 		}
-		if a.Parent.Tag != coded.HasCustomAttribute_TypeDef {
-			continue
+		switch c.Name.String() {
+		case "NativeTypedefAttribute":
+			if a.Parent.Tag != coded.HasCustomAttribute_TypeDef {
+				break
+			}
+			if existing, ok := l.typeDefNativeTypedefAttribute[a.Parent.Index]; ok {
+				return nil, fmt.Errorf(
+					"multiple NativeTypedefAttribute rows found pointing at TypeDef %v: found %v; already found %v",
+					a.Parent.Index,
+					i,
+					existing)
+			}
+			l.typeDefNativeTypedefAttribute[a.Parent.Index] = a
+		case "SupportedArchitectureAttribute":
+			if len(a.Value) < 2 {
+				break
+			}
+			// Ideally we should decode the blob as a
+			// a Custom Attributes signature (§II.23.3),
+			// but that would require a lot of work to
+			// implement.
+			arch := Arch(binary.LittleEndian.Uint32(a.Value[2:]))
+			switch a.Parent.Tag {
+			case coded.HasCustomAttribute_MethodDef:
+				if existing, ok := l.methodDefSupportedArch[a.Parent.Index]; ok {
+					return nil, fmt.Errorf(
+						"multiple SupportedArchitectureAttribute rows found pointing at MethodDef %v: found %v; already found %v",
+						a.Parent.Index,
+						i,
+						existing)
+				}
+				l.methodDefSupportedArch[a.Parent.Index] = arch
+			case coded.HasCustomAttribute_TypeDef:
+				if existing, ok := l.typeDefSupportedArch[a.Parent.Index]; ok {
+					return nil, fmt.Errorf(
+						"multiple SupportedArchitectureAttribute rows found pointing at TypeDef %v: found %v; already found %v",
+						a.Parent.Index,
+						i,
+						existing)
+				}
+				l.typeDefSupportedArch[a.Parent.Index] = arch
+			}
+
 		}
-		if existing, ok := l.typeDefNativeTypedefAttribute[a.Parent.Index]; ok {
-			return nil, fmt.Errorf(
-				"multiple NativeTypedefAttribute rows found pointing at TypeDef %v: found %v; already found %v",
-				a.Parent.Index,
-				i,
-				existing)
-		}
-		l.typeDefNativeTypedefAttribute[a.Parent.Index] = a
 	}
 	for i := uint32(0); i < f.Tables.FieldLayout.Len; i++ {
 		layout, err := f.Tables.FieldLayout.Record(winmd.Index(i))
@@ -170,19 +278,33 @@ func NewContext(f *winmd.Metadata) (*Context, error) {
 	return l, nil
 }
 
+// MethodDefSupportedArch returns the set of architectures that the given method is supported on.
+func (c *Context) MethodDefSupportedArch(idx winmd.Index) Arch {
+	v, ok := c.methodDefSupportedArch[idx]
+	if !ok {
+		v = ArchAll
+	}
+	return v
+}
+
+// TypeDefSupportedArch returns the set of architectures that the given type is supported on.
+func (c *Context) TypeDefSupportedArch(idx winmd.Index) Arch {
+	v, ok := c.typeDefSupportedArch[idx]
+	if !ok {
+		v = ArchAll
+	}
+	return v
+}
+
 // WriteMethod writes to w the signature for "method" in x/sys/windows/mkwinsyscall format.
 // Uses the parsed metadata to determine the meaning of data inside the given method.
 //
-// goName defines what the name of the method will be in Go after mkwinsyscall is applied. It may
-// be different from the method's actual name.
-//
-// moduleName should be the name of the module that contains the syscall, or empty string if none is
-// required. (mkwinsyscall has defaults that may be acceptable.) It is recommended to read the
-// DllImport pseudo-attribute (§II.21.2.1) to determine this value.
-//
 // methodIndex and method must match. Only methodIndex is necessary, but method is also accepted to
 // avoid unnecessary decoding. The caller has likely already decoded the method to filter by name.
-func (c *Context) WriteMethod(w io.StringWriter, methodIndex winmd.Index, method *winmd.MethodDef) error {
+//
+// arch is the architecture that the method is being generated for, or ArchAll if the method is
+// supported on all architectures.
+func (c *Context) WriteMethod(w io.StringWriter, methodIndex winmd.Index, method *winmd.MethodDef, arch Arch) error {
 	goName := method.Name.String()
 
 	w.WriteString("//sys\t")
@@ -226,7 +348,7 @@ func (c *Context) WriteMethod(w io.StringWriter, methodIndex winmd.Index, method
 		if int(i) >= len(sig.Param) {
 			return fmt.Errorf("param record Sequence value %v is out of range of parsed signature params, length %v", i, len(sig.Param))
 		}
-		if err := c.writeType(w, &sig.Param[i].Type); err != nil {
+		if err := c.writeType(w, &sig.Param[i].Type, arch); err != nil {
 			return fmt.Errorf("failed to interpret type of param %v of method %v: %w", i, method.Name, err)
 		}
 	}
@@ -256,7 +378,7 @@ func (c *Context) WriteMethod(w io.StringWriter, methodIndex winmd.Index, method
 			// General return value name, because mkwinsyscall needs one.
 			// Generated returns in general could be better. See https://github.com/microsoft/go-winmd/issues/12
 			w.WriteString("r ")
-			if err := c.writeType(w, &sig.RetType.Type); err != nil {
+			if err := c.writeType(w, &sig.RetType.Type, arch); err != nil {
 				return err
 			}
 			if lastErr {
@@ -281,7 +403,7 @@ func (c *Context) WriteMethod(w io.StringWriter, methodIndex winmd.Index, method
 	return nil
 }
 
-func (c *Context) writeType(w io.StringWriter, p *winmd.SigType) error {
+func (c *Context) writeType(w io.StringWriter, p *winmd.SigType, arch Arch) error {
 	// Keep track of visited types to detect a cycle.
 	var visited map[*winmd.SigType]struct{}
 	markVisited := func(p *winmd.SigType) {
@@ -363,7 +485,7 @@ func (c *Context) writeType(w io.StringWriter, p *winmd.SigType) error {
 					}
 					w.WriteString(def.GoName)
 				case coded.TypeDefOrRefOrSpec_TypeRef:
-					def, err := c.resolveTypeRef(v.Index)
+					def, err := c.resolveTypeRef(v.Index, arch)
 					if err != nil && !errors.Is(err, errTypeDefNotDefinedInCurrentModule) {
 						return err
 					}
@@ -434,6 +556,8 @@ type resolvedDef struct {
 	Parent   *resolvedDef
 	Children []*resolvedDef
 
+	Arch Arch
+
 	def *winmd.TypeDef
 }
 
@@ -447,7 +571,12 @@ func (r *resolvedDef) NeedsPointerWhenUsed() bool {
 
 var errTypeDefNotDefinedInCurrentModule = errors.New("TypeRef points to TypeDef not defined in this module")
 
-func (c *Context) resolveTypeRef(refIndex winmd.Index) (*resolvedDef, error) {
+// resolveTypeRef resolves a TypeRef to a TypeDef, if possible. If the TypeRef is not defined in
+// this module, it returns nil, errTypeDefNotDefinedInCurrentModule.
+// If refIndex can be resolved to multiple TypeDefs, then the behavior depends on arch:
+//   - If arch is ArchAll, then all TypeDefs are resolved and the first one is returned.
+//   - If arch is not ArchAll, then only the one matching arch is resolved and returned.
+func (c *Context) resolveTypeRef(refIndex winmd.Index, arch Arch) (*resolvedDef, error) {
 	// Nested TypeDefs don't have a unique namespace+name, so we need to traverse upward to find
 	// the ancestor that's a module-level TypeRef, find its TypeDef, then traverse back down,
 	// converting TypeRef -> TypeDef for each level to finally find the nested struct's TypeDef.
@@ -472,11 +601,37 @@ func (c *Context) resolveTypeRef(refIndex winmd.Index) (*resolvedDef, error) {
 		switch r.ResolutionScope.Tag {
 		// We assume module-level TypeRefs refer to the current module.
 		case coded.ResolutionScope_Module:
-			if def, ok := c.resolvedDefs[typeRefKey(r)]; ok {
+			key := typeRefKey(r)
+			if defs, ok := c.resolvedDuplicatedTypeDefs[key]; ok {
+				for _, def := range defs {
+					if def.Arch&arch == arch {
+						return def, nil
+					}
+				}
+			}
+			if def, ok := c.resolvedDefs[key]; ok {
 				return def, nil
 			}
-			if defIndex, ok := c.unresolvedDefs[typeRefKey(r)]; ok {
+			if defIndex, ok := c.unresolvedDefs[key]; ok {
 				return c.resolveTypeDef(defIndex)
+			}
+			if defIndices, ok := c.unresolvedDuplicatedTypeDefs[key]; ok {
+				var archDef *resolvedDef
+				for _, defIndex := range defIndices {
+					if arch == ArchAll || c.TypeDefSupportedArch(defIndex)&arch == arch {
+						rdef, err := c.resolveTypeDef(defIndex)
+						if err != nil {
+							return nil, err
+						}
+						if archDef == nil {
+							archDef = rdef
+						}
+					}
+
+				}
+				if archDef != nil {
+					return archDef, nil
+				}
 			}
 		// TypeRef scope indicates that this is a nested type. The Index is the immediate parent.
 		case coded.ResolutionScope_TypeRef:
@@ -525,6 +680,7 @@ func (c *Context) resolveTypeDef(defIndex winmd.Index) (*resolvedDef, error) {
 			Namespace: def.Namespace,
 			Name:      def.Name,
 			GoName:    escapedUpper(def.Name.String()),
+			Arch:      c.TypeDefSupportedArch(defIndex),
 			def:       def,
 		}
 		if _, ok := c.typeDefNativeTypedefAttribute[defIndex]; ok {
@@ -552,7 +708,12 @@ func (c *Context) resolveTypeDef(defIndex winmd.Index) (*resolvedDef, error) {
 		}
 		// Nested types can't be resolved at module scope. Don't add it to the module lookup.
 		if def.Flags&flags.TypeAttributes_NestedPublic == 0 {
-			c.resolvedDefs[typeDefKey(def)] = &r
+			key := typeDefKey(def)
+			if c.unresolvedDuplicatedTypeDefs[key] == nil {
+				c.resolvedDefs[key] = &r
+			} else {
+				c.resolvedDuplicatedTypeDefs[key] = append(c.resolvedDuplicatedTypeDefs[key], &r)
+			}
 		}
 		c.resolvedDefsByIndex[defIndex] = &r
 		for _, childIndex := range c.nestedTypeDefChildren[defIndex] {
@@ -569,7 +730,7 @@ func (c *Context) resolveTypeDef(defIndex winmd.Index) (*resolvedDef, error) {
 	return visit(defIndex)
 }
 
-func (c *Context) writeTypeDef(w io.StringWriter, r *resolvedDef) error {
+func (c *Context) writeTypeDef(w io.StringWriter, r *resolvedDef, arch Arch) error {
 	if r.def.Flags&flags.TypeAttributes_ClassSemanticsMask == flags.TypeAttributes_Interface {
 		// Issue tracking implementing interface types: https://github.com/microsoft/go-winmd/issues/14
 		w.WriteString("// Interface type is likely missing members. Not yet implemented in go-winmd.\n")
@@ -582,7 +743,7 @@ func (c *Context) writeTypeDef(w io.StringWriter, r *resolvedDef) error {
 		}
 		if extendsRef.Namespace.String() == "System" {
 			if extendsRef.Name.String() == "Enum" {
-				return c.writeTypeDefEnum(w, r)
+				return c.writeTypeDefEnum(w, r, arch)
 			}
 			if extendsRef.Name.String() == "MulticastDelegate" {
 				w.WriteString("type ")
@@ -592,17 +753,17 @@ func (c *Context) writeTypeDef(w io.StringWriter, r *resolvedDef) error {
 			}
 		}
 		if r.Native {
-			return c.writeTypeDefNative(w, r)
+			return c.writeTypeDefNative(w, r, arch)
 		}
-		return c.writeTypeDefStruct(w, r)
+		return c.writeTypeDefStruct(w, r, arch)
 	case coded.Null:
-		return c.writeTypeDefStruct(w, r)
+		return c.writeTypeDefStruct(w, r, arch)
 	default:
 		return fmt.Errorf("unexpected type extends coded index %#v in def %v :: %v", r.def.Extends, r.def.Namespace, r.def.Name)
 	}
 }
 
-func (c *Context) writeTypeDefEnum(w io.StringWriter, r *resolvedDef) error {
+func (c *Context) writeTypeDefEnum(w io.StringWriter, r *resolvedDef, arch Arch) error {
 	w.WriteString("type ")
 	w.WriteString(r.GoName)
 
@@ -674,7 +835,7 @@ func (c *Context) writeTypeDefEnum(w io.StringWriter, r *resolvedDef) error {
 	}
 
 	w.WriteString(" ")
-	if err := c.writeType(w, underlyingType); err != nil {
+	if err := c.writeType(w, underlyingType, arch); err != nil {
 		return err
 	}
 	w.WriteString("\n\nconst (\n")
@@ -699,7 +860,7 @@ func (c *Context) writeTypeDefEnum(w io.StringWriter, r *resolvedDef) error {
 	return nil
 }
 
-func (c *Context) writeTypeDefNative(w io.StringWriter, r *resolvedDef) error {
+func (c *Context) writeTypeDefNative(w io.StringWriter, r *resolvedDef, arch Arch) error {
 	w.WriteString("type ")
 	w.WriteString(r.GoName)
 	w.WriteString(" ")
@@ -719,25 +880,25 @@ func (c *Context) writeTypeDefNative(w io.StringWriter, r *resolvedDef) error {
 		to := signature.Type.Value.(winmd.SigType)
 		signature.Type = to
 	}
-	if err := c.writeType(w, &signature.Type); err != nil {
+	if err := c.writeType(w, &signature.Type, arch); err != nil {
 		return err
 	}
 	w.WriteString("\n")
 	return nil
 }
 
-func (c *Context) writeTypeDefStruct(w io.StringWriter, r *resolvedDef) error {
+func (c *Context) writeTypeDefStruct(w io.StringWriter, r *resolvedDef, arch Arch) error {
 	w.WriteString("type ")
 	w.WriteString(r.GoName)
 	w.WriteString(" struct {\n")
-	if err := c.writeStructFields(w, r); err != nil {
+	if err := c.writeStructFields(w, r, arch); err != nil {
 		return err
 	}
 	w.WriteString("}\n")
 	return nil
 }
 
-func (c *Context) writeStructFields(w io.StringWriter, r *resolvedDef) error {
+func (c *Context) writeStructFields(w io.StringWriter, r *resolvedDef, arch Arch) error {
 	// Union type support is simple for now. Roughly follow the x/sys approach and pick one union
 	// option to implement. See the x/sys/windows "IpAdapterAddresses" struct in syscall_windows.go
 	// for an example. Better support is tracked at https://github.com/microsoft/go-winmd/issues/17
@@ -754,14 +915,14 @@ func (c *Context) writeStructFields(w io.StringWriter, r *resolvedDef) error {
 			}
 			usedFieldOffset[o] = struct{}{}
 		}
-		if err := c.writeStructField(w, i); err != nil {
+		if err := c.writeStructField(w, i, arch); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (c *Context) writeStructField(w io.StringWriter, fieldIndex winmd.Index) error {
+func (c *Context) writeStructField(w io.StringWriter, fieldIndex winmd.Index, arch Arch) error {
 	fd, err := c.Metadata.Tables.Field.Record(fieldIndex)
 	if err != nil {
 		return err
@@ -780,18 +941,18 @@ func (c *Context) writeStructField(w io.StringWriter, fieldIndex winmd.Index) er
 				// This is a reference to a nested type. Embed each of its fields. Don't create a
 				// new named type, because in the winmd files we work with, the nested structs don't
 				// have meaningful names. It makes the API clunky if we generate unique names.
-				def, err := c.resolveTypeRef(v.Index)
+				def, err := c.resolveTypeRef(v.Index, arch)
 				if err != nil {
 					return err
 				}
-				return c.writeStructFields(w, def)
+				return c.writeStructFields(w, def, arch)
 			}
 		}
 	}
 	w.WriteString("\t")
 	w.WriteString(escapedUpper(fd.Name.String()))
 	w.WriteString(" ")
-	if err := c.writeType(w, &signature.Type); err != nil {
+	if err := c.writeType(w, &signature.Type, arch); err != nil {
 		return err
 	}
 	w.WriteString("\n")
@@ -801,13 +962,14 @@ func (c *Context) writeStructField(w io.StringWriter, fieldIndex winmd.Index) er
 // WriteUsedTypeDefs writes Go definitions for TypeDefs that were discovered during WriteMethod
 // calls to b. For a given Context c, only call this method one time, and only after all WriteMethod
 // calls are complete.
-func (c *Context) WriteUsedTypeDefs(w io.StringWriter) error {
+func (c *Context) WriteUsedTypeDefs(b map[Arch]*strings.Builder) error {
 	// Log TypeRefs to the console to let the def know these are expected.
 	// This issue tracks better approaches than simply logging: https://github.com/microsoft/go-winmd/issues/18
 	for _, r := range c.unresolvableTypeRefs {
 		log.Printf("unable to resolve type: %v :: %v", r.Namespace, r.Name)
 	}
-	w.WriteString("\n\n// Types used in generated APIs\n\n")
+
+	archSeen := make(map[Arch]bool)
 	// Keep going until we stop finding new types that need definitions.
 	written := make(map[*resolvedDef]struct{})
 	for {
@@ -819,6 +981,15 @@ func (c *Context) WriteUsedTypeDefs(w io.StringWriter) error {
 			usedTypeDefs = append(usedTypeDefs, r)
 			written[r] = struct{}{}
 		}
+		for _, def := range c.resolvedDuplicatedTypeDefs {
+			for _, r := range def {
+				if _, ok := written[r]; ok {
+					continue
+				}
+				usedTypeDefs = append(usedTypeDefs, r)
+				written[r] = struct{}{}
+			}
+		}
 		if len(usedTypeDefs) == 0 {
 			break
 		}
@@ -829,10 +1000,18 @@ func (c *Context) WriteUsedTypeDefs(w io.StringWriter) error {
 		for _, r := range usedTypeDefs {
 			// Writing the type def (field types in particular) adds new entries to ResolvedDefs if
 			// we haven't seen them yet.
-			if err := c.writeTypeDef(w, r); err != nil {
-				return err
+			supportedArches := c.TypeDefSupportedArch(r.Index)
+			for _, arch := range supportedArches.Unique() {
+				w := b[arch]
+				if !archSeen[arch] {
+					w.WriteString("\n\n// Types used in generated APIs for\n\n")
+					archSeen[arch] = true
+				}
+				if err := c.writeTypeDef(w, r, arch); err != nil {
+					return err
+				}
+				w.WriteString("\n")
 			}
-			w.WriteString("\n")
 		}
 	}
 	return nil
