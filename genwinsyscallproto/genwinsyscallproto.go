@@ -83,11 +83,6 @@ type Context struct {
 	// inside the current module.
 	unresolvableTypeRefs map[typeNameKey]*winmd.TypeRef
 
-	// Duplicated TypeDefs are an uncommon special case, treat them separately to avoid
-	// allocating a slice for every TypeDef, only for those that are duplicated.
-	// WinMD TypeDefs use duplicated TypeDef names to represent functions with the same name but
-	// different signatures due to architecture-specific overloads.
-
 	// The maps below index commonly used winmd table relationships to allow fast access when
 	// interpreting the metadata and writing the Go source code. This helps with (e.g.) traversing
 	// one-way pointers backwards rather than scanning the entire table each time.
