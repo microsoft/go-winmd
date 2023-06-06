@@ -59,8 +59,10 @@ func (tc *typeDefCache) resolve(r *resolvedDef) {
 	key := typeNameKey{r.Namespace.Start, r.Name.Start}
 	if tc.unresolvedDuplicated[key] == nil {
 		tc.resolved[key] = r
+		delete(tc.unresolved, key)
 	} else {
 		tc.resolvedDuplicated[key] = append(tc.resolvedDuplicated[key], r)
+		delete(tc.unresolved, key)
 	}
 }
 
