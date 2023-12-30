@@ -7,7 +7,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"math/bits"
 
 	"github.com/microsoft/go-winmd/flags"
 	"github.com/microsoft/go-winmd/internal/ecma335"
@@ -87,14 +86,7 @@ func codedIndexSize(e coded, tableRowCounts [tableMax]uint32) uint8 {
 		}
 	}
 
-	var logn byte
-	if len(tables) > 0 {
-		// bits.Len is effectively calculating log2(n)+1.
-		// We need log2(n), so subtract 1.
-		n := uint(len(tables))
-		logn = byte(bits.Len(n)) - 1
-	}
-	if maxRowCount < 1<<(16-logn) {
+	if maxRowCount <= 1<<(16-codedTagBits(e)) {
 		return 2
 	}
 	return 4
