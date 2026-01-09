@@ -5,15 +5,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        go-version: [1.18.x, 1.19.x]
-        venv: [windows-2019, windows-2022]
+        go-version: [1.24.x, 1.25.x]
+        venv: [windows-2019, windows-2022, windows-2025, windows-11-arm]
     runs-on: ${{ matrix.venv }}
     steps:
     - name: Install Go
-      uses: actions/setup-go@v2
+      uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6.1.0
       with:
         go-version: ${{ matrix.go-version }}
     - name: Checkout code
-      uses: actions/checkout@v2
+      uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
     - name: Run Test - Build
-      run: go test -v -race ./...
+      env:
+        RACE_FLAG: ${{ runner.arch != 'ARM64' && '-race' || '' }}
+      run: go test -v $RACE_FLAG ./...
