@@ -89,10 +89,10 @@ func codedIndexSize(e coded, tableRowCounts [tableMax]uint32) uint8 {
 
 	var logn byte
 	if len(tables) > 0 {
-		// bits.Len is effectively calculating log2(n)+1.
-		// We need log2(n), so subtract 1.
+		// We need ceil(log2(n)) to encode n different values (0 to n-1).
+		// bits.Len(n-1) gives us the number of bits needed.
 		n := uint(len(tables))
-		logn = byte(bits.Len(n)) - 1
+		logn = byte(bits.Len(n - 1))
 	}
 	if maxRowCount < 1<<(16-logn) {
 		return 2

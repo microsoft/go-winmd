@@ -96,7 +96,8 @@ func parseCoded(coded coded, code uint32) (CodedIndex, error) {
 	if code < 1 {
 		return CodedIndex{Tag: -1}, nil
 	}
-	row, tag := code>>tagbits-1, code&uint32(bitmask)
+	tag := code & uint32(bitmask)
+	row := (code >> tagbits) - 1
 	_, ok := codedTable(coded, uint8(tag))
 	if !ok {
 		return CodedIndex{}, fmt.Errorf("unknown coded %d tag %d", coded, tag)
