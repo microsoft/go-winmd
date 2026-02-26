@@ -5,8 +5,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        go-version: [1.24.x, 1.25.x]
-        venv: [windows-2019, windows-2022, windows-2025, windows-11-arm]
+        go-version: [1.25.x, 1.26.x]
+        venv: [windows-2022, windows-2025, windows-11-arm]
     runs-on: ${{ matrix.venv }}
     steps:
     - name: Install Go
@@ -19,3 +19,4 @@ jobs:
       env:
         RACE_FLAG: ${{ runner.arch != 'ARM64' && '-race' || '' }}
       run: go test -v $RACE_FLAG ./...
+
