@@ -1,7 +1,7 @@
 package genwinsyscallproto
 
 import (
-	"github.com/microsoft/go-winmd"
+	"github.com/microsoft/go-winmd/winmd"
 )
 
 type typeNameKey struct {

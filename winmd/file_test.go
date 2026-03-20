@@ -7,11 +7,11 @@ import (
 	"debug/pe"
 	"testing"
 
-	"github.com/microsoft/go-winmd"
+	"github.com/microsoft/go-winmd/winmd"
 )
 
 func TestNew(t *testing.T) {
-	pefile, err := pe.Open("./testdata/Windows.Win32.winmd")
+	pefile, err := pe.Open("../testdata/Windows.Win32.winmd")
 	if err != nil {
 		t.Fatal(err)
 	}

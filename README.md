@@ -1,4 +1,4 @@
-[![Go Reference](https://pkg.go.dev/badge/github.com/microsoft/go-winmd.svg)](https://pkg.go.dev/github.com/microsoft/go-winmd)
+[![Go Reference](https://pkg.go.dev/badge/github.com/microsoft/go-winmd.svg)](https://pkg.go.dev/github.com/microsoft/go-winmd/winmd)
 
 # Go winmd parser
 

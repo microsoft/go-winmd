@@ -11,8 +11,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/microsoft/go-winmd"
 	"github.com/microsoft/go-winmd/genwinsyscallproto"
+	"github.com/microsoft/go-winmd/winmd"
 )
 
 func TestWriteMethod(t *testing.T) {

@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"math/bits"
 
-	"github.com/microsoft/go-winmd/flags"
 	"github.com/microsoft/go-winmd/internal/ecma335"
 )
 
@@ -243,7 +242,7 @@ func (r *sigReader) fieldSig() (v SigField) {
 		return
 	}
 	kind := firstByte & 0xF
-	if kind != uint8(flags.SigKind_FIELD) {
+	if kind != uint8(sigKind_FIELD) {
 		r.err = fmt.Errorf("signature kind is not a field signature: %v", kind)
 		return
 	}
@@ -265,14 +264,15 @@ func (r *sigReader) methodDefSig() (v SigMethodDef) {
 		return
 	}
 	kind := firstByte & 0xF
-	if kind > uint8(flags.SigKind_VARARG) {
+	if kind > uint8(sigKind_VARARG) {
 		r.err = fmt.Errorf("signature kind is not a method def signature: %v", kind)
 		return
 	}
+
 	thisiness := firstByte & 0xF0
-	v.HasThis = thisiness&uint8(flags.SigAttributes_HASTHIS) != 0
-	v.ExplicitThis = thisiness&uint8(flags.SigAttributes_EXPLICITTHIS) != 0
-	if thisiness&uint8(flags.SigAttributes_GENERIC) != 0 {
+	v.HasThis = thisiness&uint8(sigAbbrev_HASTHIS) != 0
+	v.ExplicitThis = thisiness&uint8(sigAbbrev_EXPLICITTHIS) != 0
+	if thisiness&uint8(sigAbbrev_GENERIC) != 0 {
 		v.Generic = r.compressedUint32()
 		if r.err != nil {
 			return
@@ -302,9 +302,9 @@ func (r *sigReader) param() (v SigParam) {
 	}
 	v.Type = r.decodeType()
 	switch v.Type.Kind {
-	case flags.ElementType_BYREF:
+	case ElementType_BYREF:
 		v.Kind = SigParamKind_ByRef
-	case flags.ElementType_TYPEDBYREF:
+	case ElementType_TYPEDBYREF:
 		v.Kind = SigParamKind_TypedByRef
 	default:
 		v.Kind = SigParamKind_ByValue
@@ -318,11 +318,11 @@ func (r *sigReader) retType() (v SigRetType) {
 	}
 	v.Type = r.decodeType()
 	switch v.Type.Kind {
-	case flags.ElementType_BYREF:
+	case ElementType_BYREF:
 		v.Kind = SigRetTypeKind_ByRef
-	case flags.ElementType_TYPEDBYREF:
+	case ElementType_TYPEDBYREF:
 		v.Kind = SigRetTypeKind_ByRef
-	case flags.ElementType_VOID:
+	case ElementType_VOID:
 		v.Kind = SigRetTypeKind_Void
 	default:
 		v.Kind = SigRetTypeKind_ByValue
@@ -361,60 +361,60 @@ func (r *sigReader) decodeType() (v SigType) {
 	if r.err != nil {
 		return
 	}
-	switch b := flags.ElementType(r.compressedUint32()); b {
+	switch b := ElementType(r.compressedUint32()); b {
 	// Use recursion to collect the full list of mods, like the System.Reflection.Metadata impl.
-	case flags.ElementType_CMOD_OPT:
+	case ElementType_CMOD_OPT:
 		mod := r.customModOpt()
 		v = r.decodeType()
 		v.Mod = append(v.Mod, mod)
-	case flags.ElementType_CMOD_REQD:
+	case ElementType_CMOD_REQD:
 		mod := r.customModReqd()
 		v = r.decodeType()
 		v.Mod = append(v.Mod, mod)
 
-	case flags.ElementType_BYREF:
+	case ElementType_BYREF:
 		v.Kind = b
 		v.Value = r.decodeType()
 
 	// TypedByRef and Void have no SigType afterwards.
-	case flags.ElementType_TYPEDBYREF:
-		v.Kind = flags.ElementType_TYPEDBYREF
-	case flags.ElementType_VOID:
-		v.Kind = flags.ElementType_VOID
+	case ElementType_TYPEDBYREF:
+		v.Kind = ElementType_TYPEDBYREF
+	case ElementType_VOID:
+		v.Kind = ElementType_VOID
 
-	case flags.ElementType_GENERICINST:
+	case ElementType_GENERICINST:
 		// See https://github.com/microsoft/go-winmd/issues/19
 		r.err = errors.New("generic types are not yet supported")
 
-	case flags.ElementType_CLASS,
-		flags.ElementType_VALUETYPE:
+	case ElementType_CLASS,
+		ElementType_VALUETYPE:
 		v.Kind = b
 		v.Value = r.typeHandle()
 
-	case flags.ElementType_PTR:
+	case ElementType_PTR:
 		v.Kind = b
 		v.Value = r.decodeType()
 
-	case flags.ElementType_ARRAY:
+	case ElementType_ARRAY:
 		v.Kind = b
 		v.Value = r.array()
 
-	case flags.ElementType_BOOLEAN,
-		flags.ElementType_CHAR,
-		flags.ElementType_I1,
-		flags.ElementType_U1,
-		flags.ElementType_I2,
-		flags.ElementType_U2,
-		flags.ElementType_I4,
-		flags.ElementType_U4,
-		flags.ElementType_I8,
-		flags.ElementType_U8,
-		flags.ElementType_R4,
-		flags.ElementType_R8,
-		flags.ElementType_I,
-		flags.ElementType_U,
-		flags.ElementType_OBJECT,
-		flags.ElementType_STRING:
+	case ElementType_BOOLEAN,
+		ElementType_CHAR,
+		ElementType_I1,
+		ElementType_U1,
+		ElementType_I2,
+		ElementType_U2,
+		ElementType_I4,
+		ElementType_U4,
+		ElementType_I8,
+		ElementType_U8,
+		ElementType_R4,
+		ElementType_R8,
+		ElementType_I,
+		ElementType_U,
+		ElementType_OBJECT,
+		ElementType_STRING:
 		v.Kind = b
 
 	default:
