@@ -102,14 +102,14 @@ func (s Slice) All() iter.Seq[Index] {
 type Table[T any] struct {
 	len uint32
 
-	decode func(*T, recordReader) error
+	decode func(recordReader) (T, error)
 	width  uint8
 	data   []byte
 	heaps  heaps
 	layout *layout
 }
 
-func newTable[T any](data []byte, hps heaps, layout *layout, table table, decode func(*T, recordReader) error) Table[T] {
+func newTable[T any](data []byte, hps heaps, layout *layout, table table, decode func(recordReader) (T, error)) Table[T] {
 	info := layout.tables[table]
 	return Table[T]{
 		len:    info.rowCount,
@@ -153,8 +153,7 @@ func (t Table[T]) At(row Index) (T, error) {
 		},
 		heaps: t.heaps,
 	}
-	var rec T
-	err := t.decode(&rec, r)
+	rec, err := t.decode(r)
 	if err != nil {
 		return zero, err
 	}
