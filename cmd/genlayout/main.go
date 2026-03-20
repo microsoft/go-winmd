@@ -156,7 +156,7 @@ func writeTablesStruct(w io.Writer, tables []tableInfo) {
 		if !t.exported {
 			continue
 		}
-		fmt.Fprintf(w, "\t%s Table[%s, *%s]\n", t.name, t.name, t.name)
+		fmt.Fprintf(w, "\t%s Table[%s]\n", t.name, t.name)
 	}
 	fmt.Fprintf(w, "}\n")
 	fmt.Fprintf(w, "\n")
@@ -166,7 +166,7 @@ func writeTablesStruct(w io.Writer, tables []tableInfo) {
 		if !t.exported {
 			continue
 		}
-		fmt.Fprintf(w, "\tt.%s = newTable[%s](data, hps, layout, %s)\n", t.name, t.name, t.tableName)
+		fmt.Fprintf(w, "\tt.%s = newTable(data, hps, layout, %s, decode%s)\n", t.name, t.tableName, t.name)
 	}
 	fmt.Fprintf(w, "\treturn &t\n")
 	fmt.Fprintf(w, "}\n")
@@ -177,7 +177,7 @@ func writeTableEncoding(w io.Writer, tables []tableInfo) {
 	fmt.Fprintf(w, "// Define table decoding functions\n")
 	fmt.Fprintf(w, "\n")
 	for _, t := range tables {
-		fmt.Fprintf(w, "func (rec *%s) decode(r recordReader) error {\n", t.name)
+		fmt.Fprintf(w, "func decode%s(rec *%s, r recordReader) error {\n", t.name, t.name)
 		for _, f := range t.fields {
 			switch f.columnType {
 			case columnTypeIndex:
