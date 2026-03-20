@@ -290,7 +290,7 @@ func (c *Context) WriteMethod(w io.StringWriter, methodIndex winmd.Index, method
 		return err
 	}
 
-	for paramRowIndex := method.ParamList.Start; paramRowIndex < method.ParamList.End; paramRowIndex++ {
+	for paramRowIndex := range method.ParamList.All() {
 		param, err := c.Metadata.Tables.Param.At(paramRowIndex)
 		if err != nil {
 			return fmt.Errorf("failed to read param row %v defined by method %v: %w", paramRowIndex, method.Name, err)
@@ -730,9 +730,9 @@ func (c *Context) writeTypeDefEnum(w io.StringWriter, r *resolvedDef, arch Arch)
 		HexValue string
 	}
 	// The number of enum members is the total number of fields minus the special "value__".
-	members := make([]member, 0, r.def.FieldList.End-r.def.FieldList.Start-1)
+	members := make([]member, 0, r.def.FieldList.Len()-1)
 
-	for i := r.def.FieldList.Start; i < r.def.FieldList.End; i++ {
+	for i := range r.def.FieldList.All() {
 		fd, err := c.Metadata.Tables.Field.At(i)
 		if err != nil {
 			return err
@@ -863,7 +863,7 @@ func (c *Context) writeStructFields(w io.StringWriter, r *resolvedDef, arch Arch
 	// explicit field offset. This isn't accurate, but it may be good enough. In many cases, only
 	// "0" is used.
 	usedFieldOffset := make(map[uint32]struct{})
-	for i := r.def.FieldList.Start; i < r.def.FieldList.End; i++ {
+	for i := range r.def.FieldList.All() {
 		if o, ok := c.fieldOffset[i]; ok {
 			if _, used := usedFieldOffset[o]; used {
 				continue

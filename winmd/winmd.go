@@ -79,6 +79,22 @@ type Slice struct {
 	End   Index
 }
 
+// Len returns the number of records in the slice.
+func (s Slice) Len() uint32 {
+	return uint32(s.End - s.Start)
+}
+
+// All returns a sequence of all indices in the slice.
+func (s Slice) All() iter.Seq[Index] {
+	return func(yield func(Index) bool) {
+		for i := s.Start; i < s.End; i++ {
+			if !yield(i) {
+				return
+			}
+		}
+	}
+}
+
 // Table is a record container as defined in §II.22.
 type Table[T any] struct {
 	len uint32

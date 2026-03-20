@@ -140,7 +140,7 @@ func writePrototypes(b map[genwinsyscallproto.Arch]*strings.Builder, f *winmd.Me
 		}
 
 		archSeen := make(map[genwinsyscallproto.Arch]bool)
-		for j := r.MethodList.Start; j < r.MethodList.End; j++ {
+		for j := range r.MethodList.All() {
 			md, err := f.Tables.MethodDef.At(j)
 			if err != nil {
 				return err
