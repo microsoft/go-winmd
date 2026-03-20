@@ -7,6 +7,7 @@ import (
 	"debug/pe"
 	"fmt"
 	"io"
+	"iter"
 )
 
 // A Metadata represents an open Windows Metadata file.
@@ -80,7 +81,7 @@ type Slice struct {
 
 // Table is a record container as defined in §II.22.
 type Table[T any] struct {
-	Len uint32
+	len uint32
 
 	decode func(*T, recordReader) error
 	width  uint8
@@ -92,7 +93,7 @@ type Table[T any] struct {
 func newTable[T any](data []byte, hps heaps, layout *layout, table table, decode func(*T, recordReader) error) Table[T] {
 	info := layout.tables[table]
 	return Table[T]{
-		Len:    info.rowCount,
+		len:    info.rowCount,
 		decode: decode,
 		width:  uint8(info.width),
 		data:   data[info.offset : info.offset+int(info.width)*int(info.rowCount)],
@@ -101,10 +102,25 @@ func newTable[T any](data []byte, hps heaps, layout *layout, table table, decode
 	}
 }
 
-// Record returns the record at row.
-func (t Table[T]) Record(row Index) (T, error) {
+func (t Table[T]) Indices() iter.Seq[Index] {
+	return func(yield func(Index) bool) {
+		for i := uint32(0); i < t.len; i++ {
+			if !yield(Index(i)) {
+				return
+			}
+		}
+	}
+}
+
+// Len returns the number of records in the table.
+func (t Table[T]) Len() uint32 {
+	return t.len
+}
+
+// At returns the record at row.
+func (t Table[T]) At(row Index) (T, error) {
 	var zero T
-	if uint32(row) >= t.Len {
+	if uint32(row) >= t.len {
 		return zero, fmt.Errorf("row %d is beyond the end of the table", row)
 	}
 	offset := int(t.width) * int(row)

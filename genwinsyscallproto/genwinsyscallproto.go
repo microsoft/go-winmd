@@ -120,11 +120,11 @@ func NewContext(f *winmd.Metadata) (*Context, error) {
 	}
 	// We index tables and resolved defs with the assumption that there is exactly one module. For
 	// winmd files, we expect this to always be the case.
-	if f.Tables.Module.Len != 1 {
-		return nil, fmt.Errorf("expected exactly one module in the file, but found %v", f.Tables.Module.Len)
+	if f.Tables.Module.Len() != 1 {
+		return nil, fmt.Errorf("expected exactly one module in the file, but found %v", f.Tables.Module.Len())
 	}
-	for i := uint32(0); i < f.Tables.TypeDef.Len; i++ {
-		r, err := f.Tables.TypeDef.Record(winmd.Index(i))
+	for idx := range f.Tables.TypeDef.Indices() {
+		r, err := f.Tables.TypeDef.At(idx)
 		if err != nil {
 			return nil, err
 		}
@@ -132,10 +132,10 @@ func NewContext(f *winmd.Metadata) (*Context, error) {
 		if r.Flags&winmd.TypeAttributes_NestedPublic != 0 {
 			continue
 		}
-		l.typeDefCache.add(winmd.Index(i), r)
+		l.typeDefCache.add(idx, r)
 	}
-	for i := uint32(0); i < f.Tables.ImplMap.Len; i++ {
-		im, err := f.Tables.ImplMap.Record(winmd.Index(i))
+	for idx := range f.Tables.ImplMap.Indices() {
+		im, err := f.Tables.ImplMap.At(idx)
 		if err != nil {
 			return nil, err
 		}
@@ -146,13 +146,13 @@ func NewContext(f *winmd.Metadata) (*Context, error) {
 			return nil, fmt.Errorf(
 				"multiple ImplMap rows found pointing at MethodDef %v: found %v; already found %v",
 				im.MemberForwarded.Index,
-				i,
+				idx,
 				existing)
 		}
 		l.methodDefImplMap[im.MemberForwarded.Index] = im
 	}
-	for i := uint32(0); i < f.Tables.Constant.Len; i++ {
-		c, err := f.Tables.Constant.Record(winmd.Index(i))
+	for idx := range f.Tables.Constant.Indices() {
+		c, err := f.Tables.Constant.At(idx)
 		if err != nil {
 			return nil, err
 		}
@@ -163,27 +163,27 @@ func NewContext(f *winmd.Metadata) (*Context, error) {
 			return nil, fmt.Errorf(
 				"multiple Constant rows found pointing at Field %v: found %v; already found %v",
 				c.Parent.Index,
-				i,
+				idx,
 				existing)
 		}
 		l.fieldConstant[c.Parent.Index] = c
 	}
-	for i := uint32(0); i < f.Tables.CustomAttribute.Len; i++ {
-		a, err := f.Tables.CustomAttribute.Record(winmd.Index(i))
+	for idx := range f.Tables.CustomAttribute.Indices() {
+		a, err := f.Tables.CustomAttribute.At(idx)
 		if err != nil {
 			return nil, err
 		}
 		if a.Type.Tag != winmd.CustomAttributeType_MemberRef {
 			continue
 		}
-		m, err := f.Tables.MemberRef.Record(a.Type.Index)
+		m, err := f.Tables.MemberRef.At(a.Type.Index)
 		if err != nil {
 			return nil, err
 		}
 		if m.Class.Tag != winmd.MemberRefParent_TypeRef {
 			continue
 		}
-		c, err := f.Tables.TypeRef.Record(m.Class.Index)
+		c, err := f.Tables.TypeRef.At(m.Class.Index)
 		if err != nil {
 			return nil, err
 		}
@@ -199,7 +199,7 @@ func NewContext(f *winmd.Metadata) (*Context, error) {
 				return nil, fmt.Errorf(
 					"multiple NativeTypedefAttribute rows found pointing at TypeDef %v: found %v; already found %v",
 					a.Parent.Index,
-					i,
+					idx,
 					existing)
 			}
 			l.typeDefNativeTypedefAttribute[a.Parent.Index] = a
@@ -218,7 +218,7 @@ func NewContext(f *winmd.Metadata) (*Context, error) {
 					return nil, fmt.Errorf(
 						"multiple SupportedArchitectureAttribute rows found pointing at MethodDef %v: found %v; already found %v",
 						a.Parent.Index,
-						i,
+						idx,
 						existing)
 				}
 				l.methodDefSupportedArch[a.Parent.Index] = arch
@@ -227,7 +227,7 @@ func NewContext(f *winmd.Metadata) (*Context, error) {
 					return nil, fmt.Errorf(
 						"multiple SupportedArchitectureAttribute rows found pointing at TypeDef %v: found %v; already found %v",
 						a.Parent.Index,
-						i,
+						idx,
 						existing)
 				}
 				l.typeDefSupportedArch[a.Parent.Index] = arch
@@ -235,15 +235,15 @@ func NewContext(f *winmd.Metadata) (*Context, error) {
 
 		}
 	}
-	for i := uint32(0); i < f.Tables.FieldLayout.Len; i++ {
-		layout, err := f.Tables.FieldLayout.Record(winmd.Index(i))
+	for idx := range f.Tables.FieldLayout.Indices() {
+		layout, err := f.Tables.FieldLayout.At(idx)
 		if err != nil {
 			return nil, err
 		}
 		l.fieldOffset[layout.Field] = layout.Offset
 	}
-	for i := uint32(0); i < f.Tables.NestedClass.Len; i++ {
-		nest, err := f.Tables.NestedClass.Record(winmd.Index(i))
+	for idx := range f.Tables.NestedClass.Indices() {
+		nest, err := f.Tables.NestedClass.At(idx)
 		if err != nil {
 			return nil, err
 		}
@@ -291,7 +291,7 @@ func (c *Context) WriteMethod(w io.StringWriter, methodIndex winmd.Index, method
 	}
 
 	for paramRowIndex := method.ParamList.Start; paramRowIndex < method.ParamList.End; paramRowIndex++ {
-		param, err := c.Metadata.Tables.Param.Record(paramRowIndex)
+		param, err := c.Metadata.Tables.Param.At(paramRowIndex)
 		if err != nil {
 			return fmt.Errorf("failed to read param row %v defined by method %v: %w", paramRowIndex, method.Name, err)
 		}
@@ -335,7 +335,7 @@ func (c *Context) WriteMethod(w io.StringWriter, methodIndex winmd.Index, method
 		if implMap.MappingFlags&winmd.PInvokeAttributes_SupportsLastError != 0 {
 			lastErr = true
 		}
-		mr, err := c.Metadata.Tables.ModuleRef.Record(implMap.ImportScope)
+		mr, err := c.Metadata.Tables.ModuleRef.At(implMap.ImportScope)
 		if err != nil {
 			return err
 		}
@@ -464,7 +464,7 @@ func (c *Context) writeType(w io.StringWriter, p *winmd.SigType, arch Arch) erro
 						return err
 					}
 					if def == nil {
-						ref, err := c.Metadata.Tables.TypeRef.Record(v.Index)
+						ref, err := c.Metadata.Tables.TypeRef.At(v.Index)
 						if err != nil {
 							return err
 						}
@@ -561,7 +561,7 @@ func (c *Context) resolveTypeRef(refIndex winmd.Index, arch Arch) (*resolvedDef,
 		}
 		visited[refIndex] = struct{}{}
 
-		r, err := c.Metadata.Tables.TypeRef.Record(refIndex)
+		r, err := c.Metadata.Tables.TypeRef.At(refIndex)
 		if err != nil {
 			return nil, err
 		}
@@ -631,7 +631,7 @@ func (c *Context) resolveTypeDef(defIndex winmd.Index) (*resolvedDef, error) {
 		if r, ok := c.resolvedDefsByIndex[defIndex]; ok {
 			return r, nil
 		}
-		def, err := c.Metadata.Tables.TypeDef.Record(defIndex)
+		def, err := c.Metadata.Tables.TypeDef.At(defIndex)
 		if err != nil {
 			return nil, err
 		}
@@ -648,7 +648,7 @@ func (c *Context) resolveTypeDef(defIndex winmd.Index) (*resolvedDef, error) {
 			if def.FieldList.Start+1 != def.FieldList.End {
 				return nil, fmt.Errorf("expected exactly one field for native typedef %v", r.def.Name)
 			}
-			fd, err := c.Metadata.Tables.Field.Record(r.def.FieldList.Start)
+			fd, err := c.Metadata.Tables.Field.At(r.def.FieldList.Start)
 			if err != nil {
 				return nil, err
 			}
@@ -692,7 +692,7 @@ func (c *Context) writeTypeDef(w io.StringWriter, r *resolvedDef, arch Arch) err
 	}
 	switch r.def.Extends.Tag {
 	case winmd.TypeDefOrRef_TypeRef:
-		extendsRef, err := c.Metadata.Tables.TypeRef.Record(r.def.Extends.Index)
+		extendsRef, err := c.Metadata.Tables.TypeRef.At(r.def.Extends.Index)
 		if err != nil {
 			return err
 		}
@@ -733,7 +733,7 @@ func (c *Context) writeTypeDefEnum(w io.StringWriter, r *resolvedDef, arch Arch)
 	members := make([]member, 0, r.def.FieldList.End-r.def.FieldList.Start-1)
 
 	for i := r.def.FieldList.Start; i < r.def.FieldList.End; i++ {
-		fd, err := c.Metadata.Tables.Field.Record(i)
+		fd, err := c.Metadata.Tables.Field.At(i)
 		if err != nil {
 			return err
 		}
@@ -822,7 +822,7 @@ func (c *Context) writeTypeDefNative(w io.StringWriter, r *resolvedDef, arch Arc
 	if r.def.FieldList.Start+1 != r.def.FieldList.End {
 		return fmt.Errorf("expected exactly one field for native typedef %v", r.def.Name)
 	}
-	fd, err := c.Metadata.Tables.Field.Record(r.def.FieldList.Start)
+	fd, err := c.Metadata.Tables.Field.At(r.def.FieldList.Start)
 	if err != nil {
 		return err
 	}
@@ -878,7 +878,7 @@ func (c *Context) writeStructFields(w io.StringWriter, r *resolvedDef, arch Arch
 }
 
 func (c *Context) writeStructField(w io.StringWriter, fieldIndex winmd.Index, arch Arch) error {
-	fd, err := c.Metadata.Tables.Field.Record(fieldIndex)
+	fd, err := c.Metadata.Tables.Field.At(fieldIndex)
 	if err != nil {
 		return err
 	}
@@ -888,7 +888,7 @@ func (c *Context) writeStructField(w io.StringWriter, fieldIndex winmd.Index, ar
 	}
 	if signature.Type.Kind == winmd.ElementType_VALUETYPE {
 		if v, ok := signature.Type.Value.(winmd.CodedIndex[winmd.TypeDefOrRefOrSpec]); ok && v.Tag == winmd.TypeDefOrRefOrSpec_TypeRef {
-			ref, err := c.Metadata.Tables.TypeRef.Record(v.Index)
+			ref, err := c.Metadata.Tables.TypeRef.At(v.Index)
 			if err != nil {
 				return err
 			}

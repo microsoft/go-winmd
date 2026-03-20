@@ -62,26 +62,26 @@ func TestNew(t *testing.T) {
 
 func testLen[T any](t *testing.T, table winmd.Table[T], size uint32) {
 	t.Helper()
-	if table.Len != size {
-		t.Errorf("len = %v, want %v", table.Len, size)
+	if table.Len() != size {
+		t.Errorf("len = %v, want %v", table.Len(), size)
 	}
 }
 
 func BenchmarkReadAllTableEntries(b *testing.B) {
 	b.ReportAllocs()
 
+	pefile, err := pe.Open("../testdata/Windows.Win32.winmd")
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer pefile.Close()
+
+	metadata, err := winmd.New(pefile)
+	if err != nil {
+		b.Fatal(err)
+	}
+
 	for b.Loop() {
-		pefile, err := pe.Open("../testdata/Windows.Win32.winmd")
-		if err != nil {
-			b.Fatal(err)
-		}
-		defer pefile.Close()
-
-		metadata, err := winmd.New(pefile)
-		if err != nil {
-			b.Fatal(err)
-		}
-
 		benchmarkReadTable(b, metadata.Tables.Assembly)
 		benchmarkReadTable(b, metadata.Tables.AssemblyRef)
 		benchmarkReadTable(b, metadata.Tables.ClassLayout)
@@ -121,8 +121,8 @@ func BenchmarkReadAllTableEntries(b *testing.B) {
 
 func benchmarkReadTable[T any](b *testing.B, table winmd.Table[T]) {
 	b.Helper()
-	for i := uint32(0); i < table.Len; i++ {
-		if _, err := table.Record(winmd.Index(i)); err != nil {
+	for idx := range table.Indices() {
+		if _, err := table.At(idx); err != nil {
 			b.Fatal(err)
 		}
 	}
