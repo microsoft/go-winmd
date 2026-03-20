@@ -39,7 +39,7 @@ func generateLayout(heapSizes uint8, tableRowCounts [tableMax]uint32) *layout {
 	}
 
 	// Coded index column sizes depend on the maximum number of rows in the set of allowed tables to reference.
-	for e := coded(0); e < codedMax; e++ {
+	for e := codedKind(0); e < codedMax; e++ {
 		la.codedSizes[e] = codedIndexSize(e, tableRowCounts)
 	}
 
@@ -74,7 +74,7 @@ func simpleIndexSize(e table, tableRowCounts [tableMax]uint32) uint8 {
 
 // codedIndexSize calculates the size of the coded index e.
 // Algorithm defined in §II.24.2.6.
-func codedIndexSize(e coded, tableRowCounts [tableMax]uint32) uint8 {
+func codedIndexSize(e codedKind, tableRowCounts [tableMax]uint32) uint8 {
 	// e is a coded index that points into table t[i] out of n possible tables {t[0], t[n-1]}.
 	tables := codedMap[e]
 	// The index is stored using 2 bytes if the maximum number of rows of tables is less than 2^(16 – (log2(n))),
@@ -128,19 +128,6 @@ type ecma335Reader struct {
 	layout *layout
 
 	err error
-}
-
-func (r *ecma335Reader) coded(coded coded) CodedIndex {
-	if r.err != nil {
-		return CodedIndex{}
-	}
-	code := r.uint(r.layout.codedSizes[coded])
-	index, err := parseCoded(coded, code)
-	if err != nil {
-		r.err = err
-		return CodedIndex{}
-	}
-	return index
 }
 
 func (r *ecma335Reader) uint8() uint8 {
@@ -343,7 +330,7 @@ func (r *sigReader) customModReqd() (v SigCustomMod) {
 }
 
 // typeHandle reads a type handle (a TypeDefOrRefOrSpecEncoded).
-func (r *sigReader) typeHandle() (v CodedIndex) {
+func (r *sigReader) typeHandle() (v CodedIndex[TypeDefOrRefOrSpec]) {
 	if r.err != nil {
 		return
 	}
@@ -353,7 +340,7 @@ func (r *sigReader) typeHandle() (v CodedIndex) {
 	}
 	// Once we decompress the uint32, we could reverse the encoding steps listed in §II.23.2.8, but
 	// the coded index algorithm has the same result if we define codedTypeDefOrRefOrSpec.
-	v, r.err = parseCoded(codedTypeDefOrRefOrSpec, value)
+	v, r.err = parseCoded[TypeDefOrRefOrSpec](value)
 	return
 }
 

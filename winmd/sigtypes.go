@@ -77,7 +77,7 @@ const (
 // SigCustomMod is defined in §II.23.2.7.
 type SigCustomMod struct {
 	Kind  SigCustomModKind
-	Index CodedIndex
+	Index CodedIndex[TypeDefOrRefOrSpec]
 }
 
 type SigParamKind uint8
@@ -135,7 +135,7 @@ type SigMethodSpec []SigType
 
 type SigGenericInst struct {
 	Class bool
-	Index CodedIndex
+	Index CodedIndex[TypeDefOrRefOrSpec]
 	Type  []SigType
 }
 

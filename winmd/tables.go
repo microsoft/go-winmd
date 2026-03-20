@@ -99,16 +99,16 @@ type ClassLayout struct {
 // @table=0x0B
 type Constant struct {
 	Type    ElementType
-	Padding byte       // 1-byte padding zero
-	Parent  CodedIndex // @code=HasConstant
+	Padding byte // 1-byte padding zero
+	Parent  CodedIndex[HasConstant]
 	Value   []byte
 }
 
 // CustomAttribute is defined in §II.22.10.
 // @table=0x0C
 type CustomAttribute struct {
-	Parent CodedIndex // @code=HasCustomAttribute
-	Type   CodedIndex // @code=CustomAttributeType
+	Parent CodedIndex[HasCustomAttribute]
+	Type   CodedIndex[CustomAttributeType]
 	Value  []byte
 }
 
@@ -116,7 +116,7 @@ type CustomAttribute struct {
 // @table=0x0E
 type DeclSecurity struct {
 	Action        uint16
-	Parent        CodedIndex // @code=HasDeclSecurity
+	Parent        CodedIndex[HasDeclSecurity]
 	PermissionSet []byte
 }
 
@@ -140,7 +140,7 @@ const (
 type Event struct {
 	EventFlags EventAttributes
 	Name       String
-	EventType  CodedIndex // @code=TypeDefOrRef
+	EventType  CodedIndex[TypeDefOrRef]
 }
 
 // ExportedType is defined in §II.22.14.
@@ -150,7 +150,7 @@ type ExportedType struct {
 	TypeDefID      uint32 // index into a TypeDef table, used as hint only
 	Name           String
 	Namespace      String
-	Implementation CodedIndex // @code=Implementation
+	Implementation CodedIndex[Implementation]
 }
 
 // FieldAttributes is defined in §II.23.1.5.
@@ -195,7 +195,7 @@ type FieldLayout struct {
 // FieldMarshal is defined in §II.22.17.
 // @table=0x0D
 type FieldMarshal struct {
-	Parent     CodedIndex // @code=HasFieldMarshal
+	Parent     CodedIndex[HasFieldMarshal]
 	NativeType []byte
 }
 
@@ -241,15 +241,15 @@ const (
 type GenericParam struct {
 	Number uint16
 	Flags  GenericParamAttributes
-	Owner  CodedIndex // @code=TypeOrMethodDef
+	Owner  CodedIndex[TypeOrMethodDef]
 	Name   String
 }
 
 // GenericParam is defined in §II.22.21.
 // @table=0x2C
 type GenericParamConstraint struct {
-	Owner      Index      // @ref=GenericParam
-	Constraint CodedIndex // @code=TypeDefOrRef
+	Owner      Index // @ref=GenericParam
+	Constraint CodedIndex[TypeDefOrRef]
 }
 
 // PInvokeAttributes is defined in §II.23.1.8.
@@ -275,7 +275,7 @@ const (
 // @table=0x1C
 type ImplMap struct {
 	MappingFlags    PInvokeAttributes
-	MemberForwarded CodedIndex // @code=MemberForwarded
+	MemberForwarded CodedIndex[MemberForwarded]
 	ImportName      String
 	ImportScope     Index // @ref=ModuleRef
 }
@@ -283,8 +283,8 @@ type ImplMap struct {
 // InterfaceImpl is defined in §II.22.23.
 // @table=0x09
 type InterfaceImpl struct {
-	Class     Index      // @ref=TypeDef
-	Interface CodedIndex // @code=TypeDefOrRef
+	Class     Index // @ref=TypeDef
+	Interface CodedIndex[TypeDefOrRef]
 }
 
 // ManifestResourceAttributes is defined in §II.23.1.9.
@@ -302,13 +302,13 @@ type ManifestResource struct {
 	Offset         uint32
 	Flags          ManifestResourceAttributes
 	Name           String
-	Implementation CodedIndex // @code=Implementation
+	Implementation CodedIndex[Implementation]
 }
 
 // MemberRef is defined in §II.22.25.
 // @table=0x0A
 type MemberRef struct {
-	Class     CodedIndex // @code=MemberRefParent
+	Class     CodedIndex[MemberRefParent]
 	Name      String
 	Signature []byte
 }
@@ -377,9 +377,9 @@ type MethodDef struct {
 // MethodImpl is defined in §II.22.27.
 // @table=0x19
 type MethodImpl struct {
-	Class             Index      // @ref=TypeDef
-	MethodBody        CodedIndex // @code=MethodDefOrRef
-	MethodDeclaration CodedIndex // @code=MethodDefOrRef
+	Class             Index // @ref=TypeDef
+	MethodBody        CodedIndex[MethodDefOrRef]
+	MethodDeclaration CodedIndex[MethodDefOrRef]
 }
 
 // MethodSemanticsAttributes is defined in §II.23.1.12.
@@ -398,14 +398,14 @@ const (
 // @table=0x18
 type MethodSemantics struct {
 	Semantics   MethodSemanticsAttributes
-	Method      Index      // @ref=MethodDef
-	Association CodedIndex // @code=HasSemantics
+	Method      Index // @ref=MethodDef
+	Association CodedIndex[HasSemantics]
 }
 
 // MethodSpec is defined in §II.22.29.
 // @table=0x2B
 type MethodSpec struct {
-	Method        CodedIndex // @code=MethodDefOrRef
+	Method        CodedIndex[MethodDefOrRef]
 	Instantiation []byte
 }
 
@@ -526,15 +526,15 @@ type TypeDef struct {
 	Flags      TypeAttributes
 	Name       String
 	Namespace  String
-	Extends    CodedIndex // @code=TypeDefOrRef
-	FieldList  Slice      // @ref=Field
-	MethodList Slice      // @ref=MethodDef
+	Extends    CodedIndex[TypeDefOrRef]
+	FieldList  Slice // @ref=Field
+	MethodList Slice // @ref=MethodDef
 }
 
 // TypeRef is defined in §II.22.38.
 // @table=0x01
 type TypeRef struct {
-	ResolutionScope CodedIndex // @code=ResolutionScope
+	ResolutionScope CodedIndex[ResolutionScope]
 	Name            String
 	Namespace       String
 }

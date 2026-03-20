@@ -12,7 +12,7 @@
 // - Index properties are treated as a table index
 // - Index properties must have the comment `@ref=$table`, where $table is the name of the referenced table
 // - CodedIndex properties are treated as a table coded index
-// - CodedIndex properties must have the comment `@code=$code`, where $code is the name of the code
+// - CodedIndex properties use their single type argument as the coded tag family
 // - String properties are treated as a String heap index
 // - BlobIndex properties are treated as a Blob heap index
 // - GUIDIndex properties are treated as a GUID heap index
@@ -206,7 +206,7 @@ func writeTableEncoding(w io.Writer, tables []tableInfo) {
 					fmt.Fprintf(w, "\trec.%s = r.%s()\n", f.name, fn)
 				}
 			case columnTypeCodedIndex:
-				fmt.Fprintf(w, "\trec.%s = r.coded(coded%s)\n", f.name, f.coded)
+				fmt.Fprintf(w, "\trec.%s = readCoded[%s](&r.ecma335Reader)\n", f.name, f.coded)
 			case columnTypeSlice:
 				fmt.Fprintf(w, "\trec.%s = r.slice(%s, %s)\n", f.name, t.tableName, f.tableName)
 			}
