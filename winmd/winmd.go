@@ -81,6 +81,9 @@ type Slice struct {
 
 // Len returns the number of records in the slice.
 func (s Slice) Len() uint32 {
+	if s.End < s.Start {
+		return 0
+	}
 	return uint32(s.End - s.Start)
 }
 
