@@ -55,9 +55,9 @@ type Record[T any] interface {
 type Index uint32
 
 // CodedIndex indexes a record on any table.
-type CodedIndex struct {
+type CodedIndex[T CodedTag] struct {
 	Index Index
-	Tag   int8
+	Tag   T
 }
 
 // String is complete UTF8 string from the #String heap

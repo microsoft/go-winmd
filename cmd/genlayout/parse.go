@@ -168,7 +168,7 @@ func parseTable(pkg *packages.Package, spec *ast.TypeSpec) (info tableInfo) {
 				col.tableName = tableName(fieldComment(spec, i, objName, tp.String(), "@ref"))
 			case "CodedIndex":
 				col.columnType = columnTypeCodedIndex
-				col.coded = fieldComment(spec, i, objName, tp.String(), "@code")
+				col.coded = codedTypeName(tp)
 			case "Slice":
 				col.columnType = columnTypeSlice
 				col.tableName = tableName(fieldComment(spec, i, objName, tp.String(), "@ref"))
@@ -197,6 +197,19 @@ func parseTable(pkg *packages.Package, spec *ast.TypeSpec) (info tableInfo) {
 		info.fields = append(info.fields, col)
 	}
 	return
+}
+
+func codedTypeName(tp *types.Named) string {
+	args := tp.TypeArgs()
+	if args == nil || args.Len() != 1 {
+		log.Panicf("CodedIndex %s requires exactly one type argument", tp.String())
+	}
+	arg := args.At(0)
+	named, ok := arg.(*types.Named)
+	if !ok {
+		log.Panicf("CodedIndex %s type argument must be a named type", tp.String())
+	}
+	return named.Obj().Name()
 }
 
 func fieldComment(spec *ast.TypeSpec, i int, t, tp, marker string) (v string) {

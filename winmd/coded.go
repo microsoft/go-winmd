@@ -8,10 +8,10 @@ import (
 	"math/bits"
 )
 
-type coded uint8
+type codedKind uint8
 
 const (
-	codedTypeDefOrRef coded = iota
+	codedTypeDefOrRef codedKind = iota
 	codedHasConstant
 	codedHasFieldMarshal
 	codedHasDeclSecurity
@@ -75,13 +75,13 @@ var codedMap = [codedMax][]table{
 
 // codedTagBits returns the minimum number of bits
 // to identify a table from the possible options.
-func codedTagBits(c coded) int {
+func codedTagBits(c codedKind) int {
 	return bits.Len8(uint8(len(codedMap[c]) - 1))
 }
 
 // codedTable returns the table associated to the tag
 // of the coded c as defined in §II.24.2.6.
-func codedTable(c coded, tag uint8) (table, bool) {
+func codedTable(c codedKind, tag uint8) (table, bool) {
 	tbls := codedMap[c]
 	if int(tag) < len(tbls) {
 		return tbls[tag], true
@@ -90,20 +90,37 @@ func codedTable(c coded, tag uint8) (table, bool) {
 }
 
 // parseCoded parses an encoded CodedIndex.
-func parseCoded(coded coded, code uint32) (CodedIndex, error) {
-	tagbits := codedTagBits(coded)
+func parseCoded[T CodedTag](code uint32) (CodedIndex[T], error) {
+	var zero T
+	kind := zero.kind()
+	tagbits := codedTagBits(kind)
 	bitmask := (1 << tagbits) - 1
 	if code < 1 {
-		return CodedIndex{Tag: -1}, nil
+		return CodedIndex[T]{Tag: codedFromInt8[T](-1)}, nil
 	}
 	tag := code & uint32(bitmask)
 	row := (code >> tagbits) - 1
-	_, ok := codedTable(coded, uint8(tag))
+	_, ok := codedTable(kind, uint8(tag))
 	if !ok {
-		return CodedIndex{}, fmt.Errorf("unknown coded %d tag %d", coded, tag)
+		return CodedIndex[T]{}, fmt.Errorf("unknown coded %d tag %d", kind, tag)
 	}
-	return CodedIndex{
+	return CodedIndex[T]{
 		Index: Index(row),
-		Tag:   int8(tag),
+		Tag:   codedFromInt8[T](int8(tag)),
 	}, nil
+}
+
+func readCoded[T CodedTag](r *ecma335Reader) CodedIndex[T] {
+	if r.err != nil {
+		return CodedIndex[T]{}
+	}
+	var zero T
+	kind := zero.kind()
+	code := r.uint(r.layout.codedSizes[kind])
+	index, err := parseCoded[T](code)
+	if err != nil {
+		r.err = err
+		return CodedIndex[T]{}
+	}
+	return index
 }

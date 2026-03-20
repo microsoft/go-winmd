@@ -284,21 +284,21 @@ func (rec *ClassLayout) decode(r recordReader) error {
 func (rec *Constant) decode(r recordReader) error {
 	rec.Type = ElementType(r.uint8())
 	rec.Padding = r.uint8()
-	rec.Parent = r.coded(codedHasConstant)
+	rec.Parent = readCoded[HasConstant](&r.ecma335Reader)
 	rec.Value = r.blob()
 	return r.err
 }
 
 func (rec *CustomAttribute) decode(r recordReader) error {
-	rec.Parent = r.coded(codedHasCustomAttribute)
-	rec.Type = r.coded(codedCustomAttributeType)
+	rec.Parent = readCoded[HasCustomAttribute](&r.ecma335Reader)
+	rec.Type = readCoded[CustomAttributeType](&r.ecma335Reader)
 	rec.Value = r.blob()
 	return r.err
 }
 
 func (rec *DeclSecurity) decode(r recordReader) error {
 	rec.Action = r.uint16()
-	rec.Parent = r.coded(codedHasDeclSecurity)
+	rec.Parent = readCoded[HasDeclSecurity](&r.ecma335Reader)
 	rec.PermissionSet = r.blob()
 	return r.err
 }
@@ -312,7 +312,7 @@ func (rec *EventMap) decode(r recordReader) error {
 func (rec *Event) decode(r recordReader) error {
 	rec.EventFlags = EventAttributes(r.uint16())
 	rec.Name = r.string()
-	rec.EventType = r.coded(codedTypeDefOrRef)
+	rec.EventType = readCoded[TypeDefOrRef](&r.ecma335Reader)
 	return r.err
 }
 
@@ -321,7 +321,7 @@ func (rec *ExportedType) decode(r recordReader) error {
 	rec.TypeDefID = r.uint32()
 	rec.Name = r.string()
 	rec.Namespace = r.string()
-	rec.Implementation = r.coded(codedImplementation)
+	rec.Implementation = readCoded[Implementation](&r.ecma335Reader)
 	return r.err
 }
 
@@ -339,7 +339,7 @@ func (rec *FieldLayout) decode(r recordReader) error {
 }
 
 func (rec *FieldMarshal) decode(r recordReader) error {
-	rec.Parent = r.coded(codedHasFieldMarshal)
+	rec.Parent = readCoded[HasFieldMarshal](&r.ecma335Reader)
 	rec.NativeType = r.blob()
 	return r.err
 }
@@ -360,20 +360,20 @@ func (rec *File) decode(r recordReader) error {
 func (rec *GenericParam) decode(r recordReader) error {
 	rec.Number = r.uint16()
 	rec.Flags = GenericParamAttributes(r.uint16())
-	rec.Owner = r.coded(codedTypeOrMethodDef)
+	rec.Owner = readCoded[TypeOrMethodDef](&r.ecma335Reader)
 	rec.Name = r.string()
 	return r.err
 }
 
 func (rec *GenericParamConstraint) decode(r recordReader) error {
 	rec.Owner = r.index(tableGenericParam)
-	rec.Constraint = r.coded(codedTypeDefOrRef)
+	rec.Constraint = readCoded[TypeDefOrRef](&r.ecma335Reader)
 	return r.err
 }
 
 func (rec *ImplMap) decode(r recordReader) error {
 	rec.MappingFlags = PInvokeAttributes(r.uint16())
-	rec.MemberForwarded = r.coded(codedMemberForwarded)
+	rec.MemberForwarded = readCoded[MemberForwarded](&r.ecma335Reader)
 	rec.ImportName = r.string()
 	rec.ImportScope = r.index(tableModuleRef)
 	return r.err
@@ -381,7 +381,7 @@ func (rec *ImplMap) decode(r recordReader) error {
 
 func (rec *InterfaceImpl) decode(r recordReader) error {
 	rec.Class = r.index(tableTypeDef)
-	rec.Interface = r.coded(codedTypeDefOrRef)
+	rec.Interface = readCoded[TypeDefOrRef](&r.ecma335Reader)
 	return r.err
 }
 
@@ -389,12 +389,12 @@ func (rec *ManifestResource) decode(r recordReader) error {
 	rec.Offset = r.uint32()
 	rec.Flags = ManifestResourceAttributes(r.uint32())
 	rec.Name = r.string()
-	rec.Implementation = r.coded(codedImplementation)
+	rec.Implementation = readCoded[Implementation](&r.ecma335Reader)
 	return r.err
 }
 
 func (rec *MemberRef) decode(r recordReader) error {
-	rec.Class = r.coded(codedMemberRefParent)
+	rec.Class = readCoded[MemberRefParent](&r.ecma335Reader)
 	rec.Name = r.string()
 	rec.Signature = r.blob()
 	return r.err
@@ -412,20 +412,20 @@ func (rec *MethodDef) decode(r recordReader) error {
 
 func (rec *MethodImpl) decode(r recordReader) error {
 	rec.Class = r.index(tableTypeDef)
-	rec.MethodBody = r.coded(codedMethodDefOrRef)
-	rec.MethodDeclaration = r.coded(codedMethodDefOrRef)
+	rec.MethodBody = readCoded[MethodDefOrRef](&r.ecma335Reader)
+	rec.MethodDeclaration = readCoded[MethodDefOrRef](&r.ecma335Reader)
 	return r.err
 }
 
 func (rec *MethodSemantics) decode(r recordReader) error {
 	rec.Semantics = MethodSemanticsAttributes(r.uint16())
 	rec.Method = r.index(tableMethodDef)
-	rec.Association = r.coded(codedHasSemantics)
+	rec.Association = readCoded[HasSemantics](&r.ecma335Reader)
 	return r.err
 }
 
 func (rec *MethodSpec) decode(r recordReader) error {
-	rec.Method = r.coded(codedMethodDefOrRef)
+	rec.Method = readCoded[MethodDefOrRef](&r.ecma335Reader)
 	rec.Instantiation = r.blob()
 	return r.err
 }
@@ -479,14 +479,14 @@ func (rec *TypeDef) decode(r recordReader) error {
 	rec.Flags = TypeAttributes(r.uint32())
 	rec.Name = r.string()
 	rec.Namespace = r.string()
-	rec.Extends = r.coded(codedTypeDefOrRef)
+	rec.Extends = readCoded[TypeDefOrRef](&r.ecma335Reader)
 	rec.FieldList = r.slice(tableTypeDef, tableField)
 	rec.MethodList = r.slice(tableTypeDef, tableMethodDef)
 	return r.err
 }
 
 func (rec *TypeRef) decode(r recordReader) error {
-	rec.ResolutionScope = r.coded(codedResolutionScope)
+	rec.ResolutionScope = readCoded[ResolutionScope](&r.ecma335Reader)
 	rec.Name = r.string()
 	rec.Namespace = r.string()
 	return r.err

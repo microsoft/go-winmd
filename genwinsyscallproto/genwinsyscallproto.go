@@ -17,7 +17,6 @@ import (
 	"strings"
 
 	"github.com/microsoft/go-winmd/winmd"
-	"github.com/microsoft/go-winmd/winmd/coded"
 )
 
 // Arch is a bitmask of architectures.
@@ -140,7 +139,7 @@ func NewContext(f *winmd.Metadata) (*Context, error) {
 		if err != nil {
 			return nil, err
 		}
-		if im.MemberForwarded.Tag != coded.MemberForwarded_MethodDef {
+		if im.MemberForwarded.Tag != winmd.MemberForwarded_MethodDef {
 			continue
 		}
 		if existing, ok := l.methodDefImplMap[im.MemberForwarded.Index]; ok {
@@ -157,7 +156,7 @@ func NewContext(f *winmd.Metadata) (*Context, error) {
 		if err != nil {
 			return nil, err
 		}
-		if c.Parent.Tag != coded.HasConstant_Field {
+		if c.Parent.Tag != winmd.HasConstant_Field {
 			continue
 		}
 		if existing, ok := l.fieldConstant[c.Parent.Index]; ok {
@@ -174,14 +173,14 @@ func NewContext(f *winmd.Metadata) (*Context, error) {
 		if err != nil {
 			return nil, err
 		}
-		if a.Type.Tag != coded.CustomAttributeType_MemberRef {
+		if a.Type.Tag != winmd.CustomAttributeType_MemberRef {
 			continue
 		}
 		m, err := f.Tables.MemberRef.Record(a.Type.Index)
 		if err != nil {
 			return nil, err
 		}
-		if m.Class.Tag != coded.MemberRefParent_TypeRef {
+		if m.Class.Tag != winmd.MemberRefParent_TypeRef {
 			continue
 		}
 		c, err := f.Tables.TypeRef.Record(m.Class.Index)
@@ -193,7 +192,7 @@ func NewContext(f *winmd.Metadata) (*Context, error) {
 		}
 		switch c.Name.String() {
 		case "NativeTypedefAttribute":
-			if a.Parent.Tag != coded.HasCustomAttribute_TypeDef {
+			if a.Parent.Tag != winmd.HasCustomAttribute_TypeDef {
 				break
 			}
 			if existing, ok := l.typeDefNativeTypedefAttribute[a.Parent.Index]; ok {
@@ -214,7 +213,7 @@ func NewContext(f *winmd.Metadata) (*Context, error) {
 			// implement.
 			arch := Arch(binary.LittleEndian.Uint32(a.Value[2:]))
 			switch a.Parent.Tag {
-			case coded.HasCustomAttribute_MethodDef:
+			case winmd.HasCustomAttribute_MethodDef:
 				if existing, ok := l.methodDefSupportedArch[a.Parent.Index]; ok {
 					return nil, fmt.Errorf(
 						"multiple SupportedArchitectureAttribute rows found pointing at MethodDef %v: found %v; already found %v",
@@ -223,7 +222,7 @@ func NewContext(f *winmd.Metadata) (*Context, error) {
 						existing)
 				}
 				l.methodDefSupportedArch[a.Parent.Index] = arch
-			case coded.HasCustomAttribute_TypeDef:
+			case winmd.HasCustomAttribute_TypeDef:
 				if existing, ok := l.typeDefSupportedArch[a.Parent.Index]; ok {
 					return nil, fmt.Errorf(
 						"multiple SupportedArchitectureAttribute rows found pointing at TypeDef %v: found %v; already found %v",
@@ -448,9 +447,9 @@ func (c *Context) writeType(w io.StringWriter, p *winmd.SigType, arch Arch) erro
 				w.WriteString("*")
 			}
 			switch v := p.Value.(type) {
-			case winmd.CodedIndex:
+			case winmd.CodedIndex[winmd.TypeDefOrRefOrSpec]:
 				switch v.Tag {
-				case coded.TypeDefOrRefOrSpec_TypeDef:
+				case winmd.TypeDefOrRefOrSpec_TypeDef:
 					def, err := c.resolveTypeDef(v.Index)
 					if err != nil {
 						return err
@@ -459,7 +458,7 @@ func (c *Context) writeType(w io.StringWriter, p *winmd.SigType, arch Arch) erro
 						w.WriteString("*")
 					}
 					w.WriteString(def.GoName)
-				case coded.TypeDefOrRefOrSpec_TypeRef:
+				case winmd.TypeDefOrRefOrSpec_TypeRef:
 					def, err := c.resolveTypeRef(v.Index, arch)
 					if err != nil && !errors.Is(err, errTypeDefNotDefinedInCurrentModule) {
 						return err
@@ -568,7 +567,7 @@ func (c *Context) resolveTypeRef(refIndex winmd.Index, arch Arch) (*resolvedDef,
 		}
 		switch r.ResolutionScope.Tag {
 		// We assume module-level TypeRefs refer to the current module.
-		case coded.ResolutionScope_Module:
+		case winmd.ResolutionScope_Module:
 			if def := c.typeDefCache.get(r.Namespace, r.Name, arch); def != nil {
 				return def, nil
 			}
@@ -595,7 +594,7 @@ func (c *Context) resolveTypeRef(refIndex winmd.Index, arch Arch) (*resolvedDef,
 				}
 			}
 		// TypeRef scope indicates that this is a nested type. The Index is the immediate parent.
-		case coded.ResolutionScope_TypeRef:
+		case winmd.ResolutionScope_TypeRef:
 			// Recurse to find the parent def.
 			parentDefIndex, err := visit(r.ResolutionScope.Index)
 			if err != nil {
@@ -687,12 +686,12 @@ func (c *Context) resolveTypeDef(defIndex winmd.Index) (*resolvedDef, error) {
 }
 
 func (c *Context) writeTypeDef(w io.StringWriter, r *resolvedDef, arch Arch) error {
-	if r.def.Flags&winmd.TypeAttributes_ClassSemanticsMask == winmd.TypeAttributes_Interface {
+	if r.IsInterface() {
 		// Issue tracking implementing interface types: https://github.com/microsoft/go-winmd/issues/14
 		w.WriteString("// Interface type is likely missing members. Not yet implemented in go-winmd.\n")
 	}
 	switch r.def.Extends.Tag {
-	case coded.TypeDefOrRef_TypeRef:
+	case winmd.TypeDefOrRef_TypeRef:
 		extendsRef, err := c.Metadata.Tables.TypeRef.Record(r.def.Extends.Index)
 		if err != nil {
 			return err
@@ -712,7 +711,7 @@ func (c *Context) writeTypeDef(w io.StringWriter, r *resolvedDef, arch Arch) err
 			return c.writeTypeDefNative(w, r, arch)
 		}
 		return c.writeTypeDefStruct(w, r, arch)
-	case coded.Null:
+	case winmd.TypeDefOrRef_Null:
 		return c.writeTypeDefStruct(w, r, arch)
 	default:
 		return fmt.Errorf("unexpected type extends coded index %#v in def %v :: %v", r.def.Extends, r.def.Namespace, r.def.Name)
@@ -888,12 +887,12 @@ func (c *Context) writeStructField(w io.StringWriter, fieldIndex winmd.Index, ar
 		return err
 	}
 	if signature.Type.Kind == winmd.ElementType_VALUETYPE {
-		if v, ok := signature.Type.Value.(winmd.CodedIndex); ok && v.Tag == coded.TypeDefOrRefOrSpec_TypeRef {
+		if v, ok := signature.Type.Value.(winmd.CodedIndex[winmd.TypeDefOrRefOrSpec]); ok && v.Tag == winmd.TypeDefOrRefOrSpec_TypeRef {
 			ref, err := c.Metadata.Tables.TypeRef.Record(v.Index)
 			if err != nil {
 				return err
 			}
-			if ref.ResolutionScope.Tag == coded.ResolutionScope_TypeRef {
+			if ref.ResolutionScope.Tag == winmd.ResolutionScope_TypeRef {
 				// This is a reference to a nested type. Embed each of its fields. Don't create a
 				// new named type, because in the winmd files we work with, the nested structs don't
 				// have meaningful names. It makes the API clunky if we generate unique names.
