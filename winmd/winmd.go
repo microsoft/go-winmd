@@ -102,13 +102,14 @@ func newTable[T any](data []byte, hps heaps, layout *layout, table table, decode
 }
 
 // Record returns the record at row.
-func (t Table[T]) Record(row Index) (*T, error) {
+func (t Table[T]) Record(row Index) (T, error) {
+	var zero T
 	if uint32(row) >= t.Len {
-		return nil, fmt.Errorf("row %d is beyond the end of the table", row)
+		return zero, fmt.Errorf("row %d is beyond the end of the table", row)
 	}
 	offset := int(t.width) * int(row)
 	if offset+int(t.width) > len(t.data) {
-		return nil, io.ErrUnexpectedEOF
+		return zero, io.ErrUnexpectedEOF
 	}
 	r := recordReader{
 		ecma335Reader: ecma335Reader{
@@ -117,10 +118,10 @@ func (t Table[T]) Record(row Index) (*T, error) {
 		},
 		heaps: t.heaps,
 	}
-	rec := new(T)
-	err := t.decode(rec, r)
+	var rec T
+	err := t.decode(&rec, r)
 	if err != nil {
-		return nil, err
+		return zero, err
 	}
 	return rec, nil
 }

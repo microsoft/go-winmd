@@ -79,18 +79,18 @@ type Context struct {
 	resolvedDefsByIndex map[winmd.Index]*resolvedDef
 	// unresolvableTypeRefs is a set of TypeRefs that were discovered but unable to be resolved
 	// inside the current module.
-	unresolvableTypeRefs map[typeNameKey]*winmd.TypeRef
+	unresolvableTypeRefs map[typeNameKey]winmd.TypeRef
 
 	// The maps below index commonly used winmd table relationships to allow fast access when
 	// interpreting the metadata and writing the Go source code. This helps with (e.g.) traversing
 	// one-way pointers backwards rather than scanning the entire table each time.
 
 	// methodDefImplMap maps MethodDef index -> ImplMap with matching MemberForwarded index.
-	methodDefImplMap map[winmd.Index]*winmd.ImplMap
+	methodDefImplMap map[winmd.Index]winmd.ImplMap
 	// fieldConstant maps Field index -> the Constant with the field as its parent.
-	fieldConstant map[winmd.Index]*winmd.Constant
+	fieldConstant map[winmd.Index]winmd.Constant
 	// typeDefNativeTypedefAttribute maps TypeDef -> CustomAttribute (if NativeTypedefAttribute).
-	typeDefNativeTypedefAttribute map[winmd.Index]*winmd.CustomAttribute
+	typeDefNativeTypedefAttribute map[winmd.Index]winmd.CustomAttribute
 	// typeDefSupportedArch maps TypeDef -> the Value of the SupportedArchitectureAttribute on that type.
 	typeDefSupportedArch map[winmd.Index]Arch
 	// methodDefSupportedArch maps MethodDef -> the Value of the SupportedArchitectureAttribute on that method.
@@ -108,11 +108,11 @@ func NewContext(f *winmd.Metadata) (*Context, error) {
 		Metadata:             f,
 		typeDefCache:         *newTypeDefCache(),
 		resolvedDefsByIndex:  make(map[winmd.Index]*resolvedDef),
-		unresolvableTypeRefs: make(map[typeNameKey]*winmd.TypeRef),
+		unresolvableTypeRefs: make(map[typeNameKey]winmd.TypeRef),
 
-		methodDefImplMap:              make(map[winmd.Index]*winmd.ImplMap),
-		fieldConstant:                 make(map[winmd.Index]*winmd.Constant),
-		typeDefNativeTypedefAttribute: make(map[winmd.Index]*winmd.CustomAttribute),
+		methodDefImplMap:              make(map[winmd.Index]winmd.ImplMap),
+		fieldConstant:                 make(map[winmd.Index]winmd.Constant),
+		typeDefNativeTypedefAttribute: make(map[winmd.Index]winmd.CustomAttribute),
 		typeDefSupportedArch:          make(map[winmd.Index]Arch),
 		methodDefSupportedArch:        make(map[winmd.Index]Arch),
 		fieldOffset:                   make(map[winmd.Index]uint32),
@@ -278,7 +278,7 @@ func (c *Context) TypeDefSupportedArch(idx winmd.Index) Arch {
 //
 // arch is the architecture that the method is being generated for, or ArchAll if the method is
 // supported on all architectures.
-func (c *Context) WriteMethod(w io.StringWriter, methodIndex winmd.Index, method *winmd.MethodDef, arch Arch) error {
+func (c *Context) WriteMethod(w io.StringWriter, methodIndex winmd.Index, method winmd.MethodDef, arch Arch) error {
 	goName := method.Name.String()
 
 	w.WriteString("//sys\t")
@@ -525,7 +525,7 @@ type resolvedDef struct {
 
 	Arch Arch
 
-	def *winmd.TypeDef
+	def winmd.TypeDef
 }
 
 func (r *resolvedDef) IsInterface() bool {

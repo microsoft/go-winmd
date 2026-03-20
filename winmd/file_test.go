@@ -66,3 +66,64 @@ func testLen[T any](t *testing.T, table winmd.Table[T], size uint32) {
 		t.Errorf("len = %v, want %v", table.Len, size)
 	}
 }
+
+func BenchmarkReadAllTableEntries(b *testing.B) {
+	b.ReportAllocs()
+
+	for b.Loop() {
+		pefile, err := pe.Open("../testdata/Windows.Win32.winmd")
+		if err != nil {
+			b.Fatal(err)
+		}
+		defer pefile.Close()
+
+		metadata, err := winmd.New(pefile)
+		if err != nil {
+			b.Fatal(err)
+		}
+
+		benchmarkReadTable(b, metadata.Tables.Assembly)
+		benchmarkReadTable(b, metadata.Tables.AssemblyRef)
+		benchmarkReadTable(b, metadata.Tables.ClassLayout)
+		benchmarkReadTable(b, metadata.Tables.Constant)
+		benchmarkReadTable(b, metadata.Tables.CustomAttribute)
+		benchmarkReadTable(b, metadata.Tables.DeclSecurity)
+		benchmarkReadTable(b, metadata.Tables.EventMap)
+		benchmarkReadTable(b, metadata.Tables.Event)
+		benchmarkReadTable(b, metadata.Tables.ExportedType)
+		benchmarkReadTable(b, metadata.Tables.Field)
+		benchmarkReadTable(b, metadata.Tables.FieldLayout)
+		benchmarkReadTable(b, metadata.Tables.FieldMarshal)
+		benchmarkReadTable(b, metadata.Tables.FieldRVA)
+		benchmarkReadTable(b, metadata.Tables.File)
+		benchmarkReadTable(b, metadata.Tables.GenericParam)
+		benchmarkReadTable(b, metadata.Tables.GenericParamConstraint)
+		benchmarkReadTable(b, metadata.Tables.ImplMap)
+		benchmarkReadTable(b, metadata.Tables.InterfaceImpl)
+		benchmarkReadTable(b, metadata.Tables.ManifestResource)
+		benchmarkReadTable(b, metadata.Tables.MemberRef)
+		benchmarkReadTable(b, metadata.Tables.MethodDef)
+		benchmarkReadTable(b, metadata.Tables.MethodImpl)
+		benchmarkReadTable(b, metadata.Tables.MethodSemantics)
+		benchmarkReadTable(b, metadata.Tables.MethodSpec)
+		benchmarkReadTable(b, metadata.Tables.Module)
+		benchmarkReadTable(b, metadata.Tables.ModuleRef)
+		benchmarkReadTable(b, metadata.Tables.NestedClass)
+		benchmarkReadTable(b, metadata.Tables.Param)
+		benchmarkReadTable(b, metadata.Tables.Property)
+		benchmarkReadTable(b, metadata.Tables.PropertyMap)
+		benchmarkReadTable(b, metadata.Tables.StandAloneSig)
+		benchmarkReadTable(b, metadata.Tables.TypeDef)
+		benchmarkReadTable(b, metadata.Tables.TypeRef)
+		benchmarkReadTable(b, metadata.Tables.TypeSpec)
+	}
+}
+
+func benchmarkReadTable[T any](b *testing.B, table winmd.Table[T]) {
+	b.Helper()
+	for i := uint32(0); i < table.Len; i++ {
+		if _, err := table.Record(winmd.Index(i)); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
