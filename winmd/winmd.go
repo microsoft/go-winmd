@@ -149,9 +149,5 @@ func (t Table[T]) At(row Index) (T, error) {
 		},
 		heaps: t.heaps,
 	}
-	rec, err := t.decode(r)
-	if err != nil {
-		return zero, err
-	}
-	return rec, nil
+	return t.decode(r)
 }
