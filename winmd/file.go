@@ -88,7 +88,7 @@ func newMetadata(pefile *pe.File) (*Metadata, error) {
 		}
 	}
 	if tableHeap != nil {
-		f.Tables, f.layout, err = readTablesHeap(tableHeap, heaps{f.Strings, f.Blob, f.GUID})
+		f.Tables, f.layout, err = readTablesHeap(tableHeap, &heaps{f.Strings, f.Blob, f.GUID})
 		if err != nil {
 			return nil, err
 		}
@@ -327,7 +327,7 @@ func readStringHeap(r *heap) (StringHeap, error) {
 	return StringHeap(buf), nil
 }
 
-func readTablesHeap(tableHeap *heap, hps heaps) (*Tables, *layout, error) {
+func readTablesHeap(tableHeap *heap, hps *heaps) (*Tables, *layout, error) {
 	// The #~ stream can be huge, we better don't call ds.Data()
 	r := tableHeap.Open()
 

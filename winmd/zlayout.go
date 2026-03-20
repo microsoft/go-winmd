@@ -48,7 +48,7 @@ type Tables struct {
 	TypeSpec               Table[TypeSpec]
 }
 
-func newTables(data []byte, hps heaps, layout *layout) *Tables {
+func newTables(data []byte, hps *heaps, layout *layout) *Tables {
 	var t Tables
 	t.Assembly = newTable(data, hps, layout, tableAssembly, decodeAssembly)
 	t.AssemblyRef = newTable(data, hps, layout, tableAssemblyRef, decodeAssemblyRef)
@@ -222,7 +222,8 @@ func (t table) width(la *layout) uint8 {
 
 // Define table decoding functions
 
-func decodeAssembly(rec *Assembly, r recordReader) error {
+func decodeAssembly(r recordReader) (Assembly, error) {
+	var rec Assembly
 	rec.HashAlgID = AssemblyHashAlgorithm(r.uint32())
 	rec.MajorVersion = r.uint16()
 	rec.MinorVersion = r.uint16()
@@ -232,22 +233,25 @@ func decodeAssembly(rec *Assembly, r recordReader) error {
 	rec.PublicKey = r.blob()
 	rec.Name = r.string()
 	rec.Culture = r.string()
-	return r.err
+	return rec, r.err
 }
 
-func decodeassemblyOS(rec *assemblyOS, r recordReader) error {
+func decodeassemblyOS(r recordReader) (assemblyOS, error) {
+	var rec assemblyOS
 	rec.OSPlatformID = r.uint32()
 	rec.OSMajorVersion = r.uint32()
 	rec.OSMinorVersion = r.uint32()
-	return r.err
+	return rec, r.err
 }
 
-func decodeassemblyProcessor(rec *assemblyProcessor, r recordReader) error {
+func decodeassemblyProcessor(r recordReader) (assemblyProcessor, error) {
+	var rec assemblyProcessor
 	rec.Processor = r.uint32()
-	return r.err
+	return rec, r.err
 }
 
-func decodeAssemblyRef(rec *AssemblyRef, r recordReader) error {
+func decodeAssemblyRef(r recordReader) (AssemblyRef, error) {
+	var rec AssemblyRef
 	rec.MajorVersion = r.uint16()
 	rec.MinorVersion = r.uint16()
 	rec.BuildNumber = r.uint16()
@@ -257,242 +261,276 @@ func decodeAssemblyRef(rec *AssemblyRef, r recordReader) error {
 	rec.Name = r.string()
 	rec.Culture = r.string()
 	rec.HashValue = r.blob()
-	return r.err
+	return rec, r.err
 }
 
-func decodeassemblyRefOS(rec *assemblyRefOS, r recordReader) error {
+func decodeassemblyRefOS(r recordReader) (assemblyRefOS, error) {
+	var rec assemblyRefOS
 	rec.OSPlatformID = r.uint32()
 	rec.OSMajorVersion = r.uint32()
 	rec.OSMinorVersion = r.uint32()
 	rec.AssemblyRef = r.index(tableAssemblyRef)
-	return r.err
+	return rec, r.err
 }
 
-func decodeassemblyRefProcessor(rec *assemblyRefProcessor, r recordReader) error {
+func decodeassemblyRefProcessor(r recordReader) (assemblyRefProcessor, error) {
+	var rec assemblyRefProcessor
 	rec.Processor = r.uint32()
 	rec.AssemblyRef = r.index(tableAssemblyRef)
-	return r.err
+	return rec, r.err
 }
 
-func decodeClassLayout(rec *ClassLayout, r recordReader) error {
+func decodeClassLayout(r recordReader) (ClassLayout, error) {
+	var rec ClassLayout
 	rec.PackingSize = r.uint16()
 	rec.ClassSize = r.uint32()
 	rec.Parent = r.index(tableTypeDef)
-	return r.err
+	return rec, r.err
 }
 
-func decodeConstant(rec *Constant, r recordReader) error {
+func decodeConstant(r recordReader) (Constant, error) {
+	var rec Constant
 	rec.Type = ElementType(r.uint8())
 	rec.Padding = r.uint8()
 	rec.Parent = readCoded[HasConstant](&r.ecma335Reader)
 	rec.Value = r.blob()
-	return r.err
+	return rec, r.err
 }
 
-func decodeCustomAttribute(rec *CustomAttribute, r recordReader) error {
+func decodeCustomAttribute(r recordReader) (CustomAttribute, error) {
+	var rec CustomAttribute
 	rec.Parent = readCoded[HasCustomAttribute](&r.ecma335Reader)
 	rec.Type = readCoded[CustomAttributeType](&r.ecma335Reader)
 	rec.Value = r.blob()
-	return r.err
+	return rec, r.err
 }
 
-func decodeDeclSecurity(rec *DeclSecurity, r recordReader) error {
+func decodeDeclSecurity(r recordReader) (DeclSecurity, error) {
+	var rec DeclSecurity
 	rec.Action = r.uint16()
 	rec.Parent = readCoded[HasDeclSecurity](&r.ecma335Reader)
 	rec.PermissionSet = r.blob()
-	return r.err
+	return rec, r.err
 }
 
-func decodeEventMap(rec *EventMap, r recordReader) error {
+func decodeEventMap(r recordReader) (EventMap, error) {
+	var rec EventMap
 	rec.Parent = r.index(tableTypeDef)
 	rec.EventList = r.slice(tableEventMap, tableEvent)
-	return r.err
+	return rec, r.err
 }
 
-func decodeEvent(rec *Event, r recordReader) error {
+func decodeEvent(r recordReader) (Event, error) {
+	var rec Event
 	rec.EventFlags = EventAttributes(r.uint16())
 	rec.Name = r.string()
 	rec.EventType = readCoded[TypeDefOrRef](&r.ecma335Reader)
-	return r.err
+	return rec, r.err
 }
 
-func decodeExportedType(rec *ExportedType, r recordReader) error {
+func decodeExportedType(r recordReader) (ExportedType, error) {
+	var rec ExportedType
 	rec.Flags = TypeAttributes(r.uint32())
 	rec.TypeDefID = r.uint32()
 	rec.Name = r.string()
 	rec.Namespace = r.string()
 	rec.Implementation = readCoded[Implementation](&r.ecma335Reader)
-	return r.err
+	return rec, r.err
 }
 
-func decodeField(rec *Field, r recordReader) error {
+func decodeField(r recordReader) (Field, error) {
+	var rec Field
 	rec.Flags = FieldAttributes(r.uint16())
 	rec.Name = r.string()
 	rec.Signature = r.blob()
-	return r.err
+	return rec, r.err
 }
 
-func decodeFieldLayout(rec *FieldLayout, r recordReader) error {
+func decodeFieldLayout(r recordReader) (FieldLayout, error) {
+	var rec FieldLayout
 	rec.Offset = r.uint32()
 	rec.Field = r.index(tableField)
-	return r.err
+	return rec, r.err
 }
 
-func decodeFieldMarshal(rec *FieldMarshal, r recordReader) error {
+func decodeFieldMarshal(r recordReader) (FieldMarshal, error) {
+	var rec FieldMarshal
 	rec.Parent = readCoded[HasFieldMarshal](&r.ecma335Reader)
 	rec.NativeType = r.blob()
-	return r.err
+	return rec, r.err
 }
 
-func decodeFieldRVA(rec *FieldRVA, r recordReader) error {
+func decodeFieldRVA(r recordReader) (FieldRVA, error) {
+	var rec FieldRVA
 	rec.RVA = r.uint32()
 	rec.Field = r.index(tableField)
-	return r.err
+	return rec, r.err
 }
 
-func decodeFile(rec *File, r recordReader) error {
+func decodeFile(r recordReader) (File, error) {
+	var rec File
 	rec.Flags = FileAttributes(r.uint16())
 	rec.Name = r.string()
 	rec.HashValue = r.blob()
-	return r.err
+	return rec, r.err
 }
 
-func decodeGenericParam(rec *GenericParam, r recordReader) error {
+func decodeGenericParam(r recordReader) (GenericParam, error) {
+	var rec GenericParam
 	rec.Number = r.uint16()
 	rec.Flags = GenericParamAttributes(r.uint16())
 	rec.Owner = readCoded[TypeOrMethodDef](&r.ecma335Reader)
 	rec.Name = r.string()
-	return r.err
+	return rec, r.err
 }
 
-func decodeGenericParamConstraint(rec *GenericParamConstraint, r recordReader) error {
+func decodeGenericParamConstraint(r recordReader) (GenericParamConstraint, error) {
+	var rec GenericParamConstraint
 	rec.Owner = r.index(tableGenericParam)
 	rec.Constraint = readCoded[TypeDefOrRef](&r.ecma335Reader)
-	return r.err
+	return rec, r.err
 }
 
-func decodeImplMap(rec *ImplMap, r recordReader) error {
+func decodeImplMap(r recordReader) (ImplMap, error) {
+	var rec ImplMap
 	rec.MappingFlags = PInvokeAttributes(r.uint16())
 	rec.MemberForwarded = readCoded[MemberForwarded](&r.ecma335Reader)
 	rec.ImportName = r.string()
 	rec.ImportScope = r.index(tableModuleRef)
-	return r.err
+	return rec, r.err
 }
 
-func decodeInterfaceImpl(rec *InterfaceImpl, r recordReader) error {
+func decodeInterfaceImpl(r recordReader) (InterfaceImpl, error) {
+	var rec InterfaceImpl
 	rec.Class = r.index(tableTypeDef)
 	rec.Interface = readCoded[TypeDefOrRef](&r.ecma335Reader)
-	return r.err
+	return rec, r.err
 }
 
-func decodeManifestResource(rec *ManifestResource, r recordReader) error {
+func decodeManifestResource(r recordReader) (ManifestResource, error) {
+	var rec ManifestResource
 	rec.Offset = r.uint32()
 	rec.Flags = ManifestResourceAttributes(r.uint32())
 	rec.Name = r.string()
 	rec.Implementation = readCoded[Implementation](&r.ecma335Reader)
-	return r.err
+	return rec, r.err
 }
 
-func decodeMemberRef(rec *MemberRef, r recordReader) error {
+func decodeMemberRef(r recordReader) (MemberRef, error) {
+	var rec MemberRef
 	rec.Class = readCoded[MemberRefParent](&r.ecma335Reader)
 	rec.Name = r.string()
 	rec.Signature = r.blob()
-	return r.err
+	return rec, r.err
 }
 
-func decodeMethodDef(rec *MethodDef, r recordReader) error {
+func decodeMethodDef(r recordReader) (MethodDef, error) {
+	var rec MethodDef
 	rec.RVA = r.uint32()
 	rec.ImplFlags = MethodImplAttributes(r.uint16())
 	rec.Flags = MethodAttributes(r.uint16())
 	rec.Name = r.string()
 	rec.Signature = r.blob()
 	rec.ParamList = r.slice(tableMethodDef, tableParam)
-	return r.err
+	return rec, r.err
 }
 
-func decodeMethodImpl(rec *MethodImpl, r recordReader) error {
+func decodeMethodImpl(r recordReader) (MethodImpl, error) {
+	var rec MethodImpl
 	rec.Class = r.index(tableTypeDef)
 	rec.MethodBody = readCoded[MethodDefOrRef](&r.ecma335Reader)
 	rec.MethodDeclaration = readCoded[MethodDefOrRef](&r.ecma335Reader)
-	return r.err
+	return rec, r.err
 }
 
-func decodeMethodSemantics(rec *MethodSemantics, r recordReader) error {
+func decodeMethodSemantics(r recordReader) (MethodSemantics, error) {
+	var rec MethodSemantics
 	rec.Semantics = MethodSemanticsAttributes(r.uint16())
 	rec.Method = r.index(tableMethodDef)
 	rec.Association = readCoded[HasSemantics](&r.ecma335Reader)
-	return r.err
+	return rec, r.err
 }
 
-func decodeMethodSpec(rec *MethodSpec, r recordReader) error {
+func decodeMethodSpec(r recordReader) (MethodSpec, error) {
+	var rec MethodSpec
 	rec.Method = readCoded[MethodDefOrRef](&r.ecma335Reader)
 	rec.Instantiation = r.blob()
-	return r.err
+	return rec, r.err
 }
 
-func decodeModule(rec *Module, r recordReader) error {
+func decodeModule(r recordReader) (Module, error) {
+	var rec Module
 	rec.Generation = r.uint16()
 	rec.Name = r.string()
 	rec.Mvid = r.guid()
 	rec.EncID = r.guid()
 	rec.EncBaseID = r.guid()
-	return r.err
+	return rec, r.err
 }
 
-func decodeModuleRef(rec *ModuleRef, r recordReader) error {
+func decodeModuleRef(r recordReader) (ModuleRef, error) {
+	var rec ModuleRef
 	rec.Name = r.string()
-	return r.err
+	return rec, r.err
 }
 
-func decodeNestedClass(rec *NestedClass, r recordReader) error {
+func decodeNestedClass(r recordReader) (NestedClass, error) {
+	var rec NestedClass
 	rec.NestedClass = r.index(tableTypeDef)
 	rec.EnclosingClass = r.index(tableTypeDef)
-	return r.err
+	return rec, r.err
 }
 
-func decodeParam(rec *Param, r recordReader) error {
+func decodeParam(r recordReader) (Param, error) {
+	var rec Param
 	rec.Flags = ParamAttributes(r.uint16())
 	rec.Sequence = r.uint16()
 	rec.Name = r.string()
-	return r.err
+	return rec, r.err
 }
 
-func decodeProperty(rec *Property, r recordReader) error {
+func decodeProperty(r recordReader) (Property, error) {
+	var rec Property
 	rec.Flags = PropertyAttributes(r.uint16())
 	rec.Name = r.string()
 	rec.Type = r.blob()
-	return r.err
+	return rec, r.err
 }
 
-func decodePropertyMap(rec *PropertyMap, r recordReader) error {
+func decodePropertyMap(r recordReader) (PropertyMap, error) {
+	var rec PropertyMap
 	rec.Parent = r.index(tableTypeDef)
 	rec.PropertyList = r.slice(tablePropertyMap, tableProperty)
-	return r.err
+	return rec, r.err
 }
 
-func decodeStandAloneSig(rec *StandAloneSig, r recordReader) error {
+func decodeStandAloneSig(r recordReader) (StandAloneSig, error) {
+	var rec StandAloneSig
 	rec.Signature = r.blob()
-	return r.err
+	return rec, r.err
 }
 
-func decodeTypeDef(rec *TypeDef, r recordReader) error {
+func decodeTypeDef(r recordReader) (TypeDef, error) {
+	var rec TypeDef
 	rec.Flags = TypeAttributes(r.uint32())
 	rec.Name = r.string()
 	rec.Namespace = r.string()
 	rec.Extends = readCoded[TypeDefOrRef](&r.ecma335Reader)
 	rec.FieldList = r.slice(tableTypeDef, tableField)
 	rec.MethodList = r.slice(tableTypeDef, tableMethodDef)
-	return r.err
+	return rec, r.err
 }
 
-func decodeTypeRef(rec *TypeRef, r recordReader) error {
+func decodeTypeRef(r recordReader) (TypeRef, error) {
+	var rec TypeRef
 	rec.ResolutionScope = readCoded[ResolutionScope](&r.ecma335Reader)
 	rec.Name = r.string()
 	rec.Namespace = r.string()
-	return r.err
+	return rec, r.err
 }
 
-func decodeTypeSpec(rec *TypeSpec, r recordReader) error {
+func decodeTypeSpec(r recordReader) (TypeSpec, error) {
+	var rec TypeSpec
 	rec.Signature = r.blob()
-	return r.err
+	return rec, r.err
 }

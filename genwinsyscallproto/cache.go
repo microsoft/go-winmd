@@ -9,11 +9,11 @@ type typeNameKey struct {
 	NameStart      uint32
 }
 
-func typeRefKey(ref *winmd.TypeRef) typeNameKey {
+func typeRefKey(ref winmd.TypeRef) typeNameKey {
 	return typeNameKey{ref.Namespace.Start, ref.Name.Start}
 }
 
-func typeDefKey(def *winmd.TypeDef) typeNameKey {
+func typeDefKey(def winmd.TypeDef) typeNameKey {
 	return typeNameKey{def.Namespace.Start, def.Name.Start}
 }
 
@@ -43,7 +43,7 @@ func newTypeDefCache() *typeDefCache {
 	}
 }
 
-func (tc *typeDefCache) add(i winmd.Index, typ *winmd.TypeDef) {
+func (tc *typeDefCache) add(i winmd.Index, typ winmd.TypeDef) {
 	key := typeDefKey(typ)
 	if _, ok := tc.unresolvedDuplicated[key]; ok {
 		tc.unresolvedDuplicated[key] = append(tc.unresolvedDuplicated[key], i)

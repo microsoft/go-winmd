@@ -129,8 +129,8 @@ func writePrototypes(b map[genwinsyscallproto.Arch]*strings.Builder, f *winmd.Me
 		return err
 	}
 
-	for i := uint32(0); i < f.Tables.TypeDef.Len; i++ {
-		r, err := f.Tables.TypeDef.Record(winmd.Index(i))
+	for idx := range f.Tables.TypeDef.Indices() {
+		r, err := f.Tables.TypeDef.At(idx)
 		if err != nil {
 			return err
 		}
@@ -140,8 +140,8 @@ func writePrototypes(b map[genwinsyscallproto.Arch]*strings.Builder, f *winmd.Me
 		}
 
 		archSeen := make(map[genwinsyscallproto.Arch]bool)
-		for j := r.MethodList.Start; j < r.MethodList.End; j++ {
-			md, err := f.Tables.MethodDef.Record(j)
+		for j := range r.MethodList.All() {
+			md, err := f.Tables.MethodDef.At(j)
 			if err != nil {
 				return err
 			}

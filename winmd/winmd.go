@@ -6,7 +6,7 @@ package winmd
 import (
 	"debug/pe"
 	"fmt"
-	"io"
+	"iter"
 )
 
 // A Metadata represents an open Windows Metadata file.
@@ -78,21 +78,40 @@ type Slice struct {
 	End   Index
 }
 
+// Len returns the number of records in the slice.
+func (s Slice) Len() uint32 {
+	if s.End < s.Start {
+		return 0
+	}
+	return uint32(s.End - s.Start)
+}
+
+// All returns a sequence of all indices in the slice.
+func (s Slice) All() iter.Seq[Index] {
+	return func(yield func(Index) bool) {
+		for i := s.Start; i < s.End; i++ {
+			if !yield(i) {
+				return
+			}
+		}
+	}
+}
+
 // Table is a record container as defined in §II.22.
 type Table[T any] struct {
-	Len uint32
+	len uint32
 
-	decode func(*T, recordReader) error
+	decode func(recordReader) (T, error)
 	width  uint8
 	data   []byte
-	heaps  heaps
+	heaps  *heaps
 	layout *layout
 }
 
-func newTable[T any](data []byte, hps heaps, layout *layout, table table, decode func(*T, recordReader) error) Table[T] {
+func newTable[T any](data []byte, hps *heaps, layout *layout, table table, decode func(recordReader) (T, error)) Table[T] {
 	info := layout.tables[table]
 	return Table[T]{
-		Len:    info.rowCount,
+		len:    info.rowCount,
 		decode: decode,
 		width:  uint8(info.width),
 		data:   data[info.offset : info.offset+int(info.width)*int(info.rowCount)],
@@ -101,15 +120,28 @@ func newTable[T any](data []byte, hps heaps, layout *layout, table table, decode
 	}
 }
 
-// Record returns the record at row.
-func (t Table[T]) Record(row Index) (*T, error) {
-	if uint32(row) >= t.Len {
-		return nil, fmt.Errorf("row %d is beyond the end of the table", row)
+func (t Table[T]) Indices() iter.Seq[Index] {
+	return func(yield func(Index) bool) {
+		for i := uint32(0); i < t.len; i++ {
+			if !yield(Index(i)) {
+				return
+			}
+		}
+	}
+}
+
+// Len returns the number of records in the table.
+func (t Table[T]) Len() uint32 {
+	return t.len
+}
+
+// At returns the record at row.
+func (t Table[T]) At(row Index) (T, error) {
+	var zero T
+	if uint32(row) >= t.len {
+		return zero, fmt.Errorf("row %d is beyond the end of the table", row)
 	}
 	offset := int(t.width) * int(row)
-	if offset+int(t.width) > len(t.data) {
-		return nil, io.ErrUnexpectedEOF
-	}
 	r := recordReader{
 		ecma335Reader: ecma335Reader{
 			data:   t.data[offset:],
@@ -117,10 +149,5 @@ func (t Table[T]) Record(row Index) (*T, error) {
 		},
 		heaps: t.heaps,
 	}
-	rec := new(T)
-	err := t.decode(rec, r)
-	if err != nil {
-		return nil, err
-	}
-	return rec, nil
+	return t.decode(r)
 }

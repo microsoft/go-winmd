@@ -160,7 +160,7 @@ func writeTablesStruct(w io.Writer, tables []tableInfo) {
 	}
 	fmt.Fprintf(w, "}\n")
 	fmt.Fprintf(w, "\n")
-	fmt.Fprintf(w, "func newTables(data []byte, hps heaps, layout *layout) *Tables {\n")
+	fmt.Fprintf(w, "func newTables(data []byte, hps *heaps, layout *layout) *Tables {\n")
 	fmt.Fprintf(w, "\tvar t Tables\n")
 	for _, t := range tables {
 		if !t.exported {
@@ -177,7 +177,8 @@ func writeTableEncoding(w io.Writer, tables []tableInfo) {
 	fmt.Fprintf(w, "// Define table decoding functions\n")
 	fmt.Fprintf(w, "\n")
 	for _, t := range tables {
-		fmt.Fprintf(w, "func decode%s(rec *%s, r recordReader) error {\n", t.name, t.name)
+		fmt.Fprintf(w, "func decode%s(r recordReader) (%s, error) {\n", t.name, t.name)
+		fmt.Fprintf(w, "\tvar rec %s\n", t.name)
 		for _, f := range t.fields {
 			switch f.columnType {
 			case columnTypeIndex:
@@ -211,7 +212,7 @@ func writeTableEncoding(w io.Writer, tables []tableInfo) {
 				fmt.Fprintf(w, "\trec.%s = r.slice(%s, %s)\n", f.name, t.tableName, f.tableName)
 			}
 		}
-		fmt.Fprintf(w, "\treturn r.err\n")
+		fmt.Fprintf(w, "\treturn rec, r.err\n")
 		fmt.Fprintf(w, "}\n")
 		fmt.Fprintf(w, "\n")
 	}

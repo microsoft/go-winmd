@@ -436,7 +436,7 @@ func (r *sigReader) array() (a SigArray) {
 // recordReader reads table record data.
 type recordReader struct {
 	ecma335Reader
-	heaps heaps
+	heaps *heaps
 }
 
 // slice reads a Slice from r.
