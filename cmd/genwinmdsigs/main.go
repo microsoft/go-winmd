@@ -129,8 +129,8 @@ func writePrototypes(b map[genwinsyscallproto.Arch]*strings.Builder, f *winmd.Me
 		return err
 	}
 
-	for i := uint32(0); i < f.Tables.TypeDef.Len(); i++ {
-		r, err := f.Tables.TypeDef.At(winmd.Index(i))
+	for idx := range f.Tables.TypeDef.Indices() {
+		r, err := f.Tables.TypeDef.At(idx)
 		if err != nil {
 			return err
 		}
