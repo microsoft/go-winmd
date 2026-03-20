@@ -7,12 +7,12 @@
 //
 // The necessary information is taken using the following rules:
 //
-// - All structs defined in tables.go will be mapped to a WinMD table
+// - All structs in tables.go annotated with `// @table=$code` will be mapped to a WinMD table
 // - The table code is taken from the struct doc line starting with `// @table=$code`
 // - Index properties are treated as a table index
 // - Index properties must have the comment `@ref=$table`, where $table is the name of the referenced table
 // - CodedIndex properties are treated as a table coded index
-// - CodedIndex properties must have the comment `@code=$code`, where $code is the name of the code
+// - CodedIndex properties use their single type argument as the coded tag family
 // - String properties are treated as a String heap index
 // - BlobIndex properties are treated as a Blob heap index
 // - GUIDIndex properties are treated as a GUID heap index
@@ -64,6 +64,7 @@ func formatSource(d []byte) []byte {
 		if err != nil {
 			log.Fatalf("writing rejected output: %s", err)
 		}
+		log.Fatal("refusing to overwrite zlayout.go with invalid generated output")
 	}
 	return src
 }
@@ -77,10 +78,7 @@ func writePrelude(w io.Writer) {
 
 package winmd
 
-import (
-	"fmt"
-	"github.com/microsoft/go-winmd/flags"
-)
+import "fmt"
 
 `)
 }
@@ -158,7 +156,7 @@ func writeTablesStruct(w io.Writer, tables []tableInfo) {
 		if !t.exported {
 			continue
 		}
-		fmt.Fprintf(w, "\t%s Table[%s, *%s]\n", t.name, t.name, t.name)
+		fmt.Fprintf(w, "\t%s Table[%s]\n", t.name, t.name)
 	}
 	fmt.Fprintf(w, "}\n")
 	fmt.Fprintf(w, "\n")
@@ -168,7 +166,7 @@ func writeTablesStruct(w io.Writer, tables []tableInfo) {
 		if !t.exported {
 			continue
 		}
-		fmt.Fprintf(w, "\tt.%s = newTable[%s](data, hps, layout, %s)\n", t.name, t.name, t.tableName)
+		fmt.Fprintf(w, "\tt.%s = newTable(data, hps, layout, %s, decode%s)\n", t.name, t.tableName, t.name)
 	}
 	fmt.Fprintf(w, "\treturn &t\n")
 	fmt.Fprintf(w, "}\n")
@@ -179,7 +177,7 @@ func writeTableEncoding(w io.Writer, tables []tableInfo) {
 	fmt.Fprintf(w, "// Define table decoding functions\n")
 	fmt.Fprintf(w, "\n")
 	for _, t := range tables {
-		fmt.Fprintf(w, "func (rec *%s) decode(r recordReader) error {\n", t.name)
+		fmt.Fprintf(w, "func decode%s(rec *%s, r recordReader) error {\n", t.name, t.name)
 		for _, f := range t.fields {
 			switch f.columnType {
 			case columnTypeIndex:
@@ -202,13 +200,13 @@ func writeTableEncoding(w io.Writer, tables []tableInfo) {
 				default:
 					log.Fatalf("unsupported uint size %d", f.size)
 				}
-				if strings.HasPrefix(f.typeName, "flags.") {
+				if f.needsCast {
 					fmt.Fprintf(w, "\trec.%s = %s(r.%s())\n", f.name, f.typeName, fn)
 				} else {
 					fmt.Fprintf(w, "\trec.%s = r.%s()\n", f.name, fn)
 				}
 			case columnTypeCodedIndex:
-				fmt.Fprintf(w, "\trec.%s = r.coded(coded%s)\n", f.name, f.coded)
+				fmt.Fprintf(w, "\trec.%s = readCoded[%s](&r.ecma335Reader)\n", f.name, f.coded)
 			case columnTypeSlice:
 				fmt.Fprintf(w, "\trec.%s = r.slice(%s, %s)\n", f.name, t.tableName, f.tableName)
 			}

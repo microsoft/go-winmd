@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"math/bits"
 
-	"github.com/microsoft/go-winmd/flags"
 	"github.com/microsoft/go-winmd/internal/ecma335"
 )
 
@@ -40,7 +39,7 @@ func generateLayout(heapSizes uint8, tableRowCounts [tableMax]uint32) *layout {
 	}
 
 	// Coded index column sizes depend on the maximum number of rows in the set of allowed tables to reference.
-	for e := coded(0); e < codedMax; e++ {
+	for e := codedKind(0); e < codedMax; e++ {
 		la.codedSizes[e] = codedIndexSize(e, tableRowCounts)
 	}
 
@@ -75,7 +74,7 @@ func simpleIndexSize(e table, tableRowCounts [tableMax]uint32) uint8 {
 
 // codedIndexSize calculates the size of the coded index e.
 // Algorithm defined in §II.24.2.6.
-func codedIndexSize(e coded, tableRowCounts [tableMax]uint32) uint8 {
+func codedIndexSize(e codedKind, tableRowCounts [tableMax]uint32) uint8 {
 	// e is a coded index that points into table t[i] out of n possible tables {t[0], t[n-1]}.
 	tables := codedMap[e]
 	// The index is stored using 2 bytes if the maximum number of rows of tables is less than 2^(16 – (log2(n))),
@@ -129,19 +128,6 @@ type ecma335Reader struct {
 	layout *layout
 
 	err error
-}
-
-func (r *ecma335Reader) coded(coded coded) CodedIndex {
-	if r.err != nil {
-		return CodedIndex{}
-	}
-	code := r.uint(r.layout.codedSizes[coded])
-	index, err := parseCoded(coded, code)
-	if err != nil {
-		r.err = err
-		return CodedIndex{}
-	}
-	return index
 }
 
 func (r *ecma335Reader) uint8() uint8 {
@@ -243,7 +229,7 @@ func (r *sigReader) fieldSig() (v SigField) {
 		return
 	}
 	kind := firstByte & 0xF
-	if kind != uint8(flags.SigKind_FIELD) {
+	if kind != uint8(sigKind_FIELD) {
 		r.err = fmt.Errorf("signature kind is not a field signature: %v", kind)
 		return
 	}
@@ -265,14 +251,15 @@ func (r *sigReader) methodDefSig() (v SigMethodDef) {
 		return
 	}
 	kind := firstByte & 0xF
-	if kind > uint8(flags.SigKind_VARARG) {
+	if kind > uint8(sigKind_VARARG) {
 		r.err = fmt.Errorf("signature kind is not a method def signature: %v", kind)
 		return
 	}
+
 	thisiness := firstByte & 0xF0
-	v.HasThis = thisiness&uint8(flags.SigAttributes_HASTHIS) != 0
-	v.ExplicitThis = thisiness&uint8(flags.SigAttributes_EXPLICITTHIS) != 0
-	if thisiness&uint8(flags.SigAttributes_GENERIC) != 0 {
+	v.HasThis = thisiness&uint8(sigAbbrev_HASTHIS) != 0
+	v.ExplicitThis = thisiness&uint8(sigAbbrev_EXPLICITTHIS) != 0
+	if thisiness&uint8(sigAbbrev_GENERIC) != 0 {
 		v.Generic = r.compressedUint32()
 		if r.err != nil {
 			return
@@ -302,9 +289,9 @@ func (r *sigReader) param() (v SigParam) {
 	}
 	v.Type = r.decodeType()
 	switch v.Type.Kind {
-	case flags.ElementType_BYREF:
+	case ElementType_BYREF:
 		v.Kind = SigParamKind_ByRef
-	case flags.ElementType_TYPEDBYREF:
+	case ElementType_TYPEDBYREF:
 		v.Kind = SigParamKind_TypedByRef
 	default:
 		v.Kind = SigParamKind_ByValue
@@ -318,11 +305,11 @@ func (r *sigReader) retType() (v SigRetType) {
 	}
 	v.Type = r.decodeType()
 	switch v.Type.Kind {
-	case flags.ElementType_BYREF:
+	case ElementType_BYREF:
 		v.Kind = SigRetTypeKind_ByRef
-	case flags.ElementType_TYPEDBYREF:
+	case ElementType_TYPEDBYREF:
 		v.Kind = SigRetTypeKind_ByRef
-	case flags.ElementType_VOID:
+	case ElementType_VOID:
 		v.Kind = SigRetTypeKind_Void
 	default:
 		v.Kind = SigRetTypeKind_ByValue
@@ -343,7 +330,7 @@ func (r *sigReader) customModReqd() (v SigCustomMod) {
 }
 
 // typeHandle reads a type handle (a TypeDefOrRefOrSpecEncoded).
-func (r *sigReader) typeHandle() (v CodedIndex) {
+func (r *sigReader) typeHandle() (v CodedIndex[TypeDefOrRefOrSpec]) {
 	if r.err != nil {
 		return
 	}
@@ -353,7 +340,7 @@ func (r *sigReader) typeHandle() (v CodedIndex) {
 	}
 	// Once we decompress the uint32, we could reverse the encoding steps listed in §II.23.2.8, but
 	// the coded index algorithm has the same result if we define codedTypeDefOrRefOrSpec.
-	v, r.err = parseCoded(codedTypeDefOrRefOrSpec, value)
+	v, r.err = parseCoded[TypeDefOrRefOrSpec](value)
 	return
 }
 
@@ -361,60 +348,60 @@ func (r *sigReader) decodeType() (v SigType) {
 	if r.err != nil {
 		return
 	}
-	switch b := flags.ElementType(r.compressedUint32()); b {
+	switch b := ElementType(r.compressedUint32()); b {
 	// Use recursion to collect the full list of mods, like the System.Reflection.Metadata impl.
-	case flags.ElementType_CMOD_OPT:
+	case ElementType_CMOD_OPT:
 		mod := r.customModOpt()
 		v = r.decodeType()
 		v.Mod = append(v.Mod, mod)
-	case flags.ElementType_CMOD_REQD:
+	case ElementType_CMOD_REQD:
 		mod := r.customModReqd()
 		v = r.decodeType()
 		v.Mod = append(v.Mod, mod)
 
-	case flags.ElementType_BYREF:
+	case ElementType_BYREF:
 		v.Kind = b
 		v.Value = r.decodeType()
 
 	// TypedByRef and Void have no SigType afterwards.
-	case flags.ElementType_TYPEDBYREF:
-		v.Kind = flags.ElementType_TYPEDBYREF
-	case flags.ElementType_VOID:
-		v.Kind = flags.ElementType_VOID
+	case ElementType_TYPEDBYREF:
+		v.Kind = ElementType_TYPEDBYREF
+	case ElementType_VOID:
+		v.Kind = ElementType_VOID
 
-	case flags.ElementType_GENERICINST:
+	case ElementType_GENERICINST:
 		// See https://github.com/microsoft/go-winmd/issues/19
 		r.err = errors.New("generic types are not yet supported")
 
-	case flags.ElementType_CLASS,
-		flags.ElementType_VALUETYPE:
+	case ElementType_CLASS,
+		ElementType_VALUETYPE:
 		v.Kind = b
 		v.Value = r.typeHandle()
 
-	case flags.ElementType_PTR:
+	case ElementType_PTR:
 		v.Kind = b
 		v.Value = r.decodeType()
 
-	case flags.ElementType_ARRAY:
+	case ElementType_ARRAY:
 		v.Kind = b
 		v.Value = r.array()
 
-	case flags.ElementType_BOOLEAN,
-		flags.ElementType_CHAR,
-		flags.ElementType_I1,
-		flags.ElementType_U1,
-		flags.ElementType_I2,
-		flags.ElementType_U2,
-		flags.ElementType_I4,
-		flags.ElementType_U4,
-		flags.ElementType_I8,
-		flags.ElementType_U8,
-		flags.ElementType_R4,
-		flags.ElementType_R8,
-		flags.ElementType_I,
-		flags.ElementType_U,
-		flags.ElementType_OBJECT,
-		flags.ElementType_STRING:
+	case ElementType_BOOLEAN,
+		ElementType_CHAR,
+		ElementType_I1,
+		ElementType_U1,
+		ElementType_I2,
+		ElementType_U2,
+		ElementType_I4,
+		ElementType_U4,
+		ElementType_I8,
+		ElementType_U8,
+		ElementType_R4,
+		ElementType_R8,
+		ElementType_I,
+		ElementType_U,
+		ElementType_OBJECT,
+		ElementType_STRING:
 		v.Kind = b
 
 	default:

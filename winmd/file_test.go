@@ -7,11 +7,11 @@ import (
 	"debug/pe"
 	"testing"
 
-	"github.com/microsoft/go-winmd"
+	"github.com/microsoft/go-winmd/winmd"
 )
 
 func TestNew(t *testing.T) {
-	pefile, err := pe.Open("./testdata/Windows.Win32.winmd")
+	pefile, err := pe.Open("../testdata/Windows.Win32.winmd")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,7 +60,7 @@ func TestNew(t *testing.T) {
 	testLen(t, f.Tables.NestedClass, 1744)
 }
 
-func testLen[T any, TP winmd.Record[T]](t *testing.T, table winmd.Table[T, TP], size uint32) {
+func testLen[T any](t *testing.T, table winmd.Table[T], size uint32) {
 	t.Helper()
 	if table.Len != size {
 		t.Errorf("len = %v, want %v", table.Len, size)

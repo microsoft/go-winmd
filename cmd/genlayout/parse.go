@@ -41,9 +41,36 @@ type columnInfo struct {
 	name       string
 	typeName   string
 	size       int
+	needsCast  bool
 	columnType columnType
 	tableName  string
 	coded      string
+}
+
+func setUintColumn(col *columnInfo, tp types.Type) bool {
+	basic, ok := tp.Underlying().(*types.Basic)
+	if !ok {
+		return false
+	}
+
+	var rawType types.Type
+	switch basic.Kind() {
+	case types.Uint8:
+		col.size = 1
+		rawType = types.Typ[types.Uint8]
+	case types.Uint16:
+		col.size = 2
+		rawType = types.Typ[types.Uint16]
+	case types.Uint32:
+		col.size = 4
+		rawType = types.Typ[types.Uint32]
+	default:
+		return false
+	}
+
+	col.columnType = columnTypeUint
+	col.needsCast = !types.Identical(tp, rawType)
+	return true
 }
 
 // parsePackage analyzes the single package constructed from the current directory.
@@ -81,13 +108,19 @@ func parseTables(pkg *packages.Package, file *ast.File) []tableInfo {
 		if !ok || len(decl.Specs) != 1 {
 			return true
 		}
+		if tableCode(decl) == nil {
+			return false
+		}
 		spec, ok := decl.Specs[0].(*ast.TypeSpec)
 		if !ok {
 			// some specs do not define a type
 			return false
 		}
+		if _, ok := pkg.TypesInfo.TypeOf(spec.Type).Underlying().(*types.Struct); !ok {
+			log.Panicf("@table type %s must be a struct", spec.Name.Name)
+		}
 		info := parseTable(pkg, spec)
-		info.code = tableCode(decl)
+		info.code = *tableCode(decl)
 		info.tableName = tableName(info.name)
 		tables = append(tables, info)
 		return false
@@ -135,7 +168,7 @@ func parseTable(pkg *packages.Package, spec *ast.TypeSpec) (info tableInfo) {
 				col.tableName = tableName(fieldComment(spec, i, objName, tp.String(), "@ref"))
 			case "CodedIndex":
 				col.columnType = columnTypeCodedIndex
-				col.coded = fieldComment(spec, i, objName, tp.String(), "@code")
+				col.coded = codedTypeName(tp)
 			case "Slice":
 				col.columnType = columnTypeSlice
 				col.tableName = tableName(fieldComment(spec, i, objName, tp.String(), "@ref"))
@@ -144,32 +177,13 @@ func parseTable(pkg *packages.Package, spec *ast.TypeSpec) (info tableInfo) {
 			default:
 				if strings.HasPrefix(objName, "Sig") && strings.HasSuffix(objName, "Blob") {
 					col.columnType = columnTypeBlob
-				} else if obj.Pkg().Name() == "flags" {
-					col.columnType = columnTypeUint
-					col.typeName = "flags." + col.typeName
-					switch tp.Underlying().(*types.Basic).Kind() {
-					case types.Uint8:
-						col.size = 1
-					case types.Uint16:
-						col.size = 2
-					case types.Uint32:
-						col.size = 4
-					}
+				} else {
+					setUintColumn(&col, tp)
 				}
 			}
 		case *types.Basic:
 			col.typeName = tp.Name()
-			switch tp.Kind() {
-			case types.Uint8:
-				col.columnType = columnTypeUint
-				col.size = 1
-			case types.Uint16:
-				col.columnType = columnTypeUint
-				col.size = 2
-			case types.Uint32:
-				col.columnType = columnTypeUint
-				col.size = 4
-			}
+			setUintColumn(&col, tp)
 		case *types.Array:
 			if tp.Len() == 16 {
 				col.columnType = columnTypeGUID
@@ -185,6 +199,19 @@ func parseTable(pkg *packages.Package, spec *ast.TypeSpec) (info tableInfo) {
 	return
 }
 
+func codedTypeName(tp *types.Named) string {
+	args := tp.TypeArgs()
+	if args == nil || args.Len() != 1 {
+		log.Panicf("CodedIndex %s requires exactly one type argument", tp.String())
+	}
+	arg := args.At(0)
+	named, ok := arg.(*types.Named)
+	if !ok {
+		log.Panicf("CodedIndex %s type argument must be a named type", tp.String())
+	}
+	return named.Obj().Name()
+}
+
 func fieldComment(spec *ast.TypeSpec, i int, t, tp, marker string) (v string) {
 	comment := spec.Type.(*ast.StructType).Fields.List[i].Comment
 	if comment != nil && len(comment.List) == 1 {
@@ -196,7 +223,10 @@ func fieldComment(spec *ast.TypeSpec, i int, t, tp, marker string) (v string) {
 	return v
 }
 
-func tableCode(decl *ast.GenDecl) uint8 {
+func tableCode(decl *ast.GenDecl) *uint8 {
+	if decl.Doc == nil {
+		return nil
+	}
 	for _, c := range decl.Doc.List {
 		const tablePrefix = "// @table="
 		if strings.HasPrefix(c.Text, tablePrefix) {
@@ -204,11 +234,11 @@ func tableCode(decl *ast.GenDecl) uint8 {
 			if err != nil {
 				log.Panic(err)
 			}
-			return uint8(code)
+			v := uint8(code)
+			return &v
 		}
 	}
-	log.Panic("table code not found")
-	return 0
+	return nil
 }
 
 func tableName(s string) string {

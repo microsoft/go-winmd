@@ -45,19 +45,13 @@ func (m *Metadata) sigReader(data []byte) sigReader {
 	}
 }
 
-// Record is an item in a metadata table.
-type Record[T any] interface {
-	decode(r recordReader) error
-	*T
-}
-
 // Index indexes a record in a table.
 type Index uint32
 
 // CodedIndex indexes a record on any table.
-type CodedIndex struct {
+type CodedIndex[T CodedTag] struct {
 	Index Index
-	Tag   int8
+	Tag   T
 }
 
 // String is complete UTF8 string from the #String heap
@@ -85,19 +79,21 @@ type Slice struct {
 }
 
 // Table is a record container as defined in §II.22.
-type Table[T any, TP Record[T]] struct {
+type Table[T any] struct {
 	Len uint32
 
+	decode func(*T, recordReader) error
 	width  uint8
 	data   []byte
 	heaps  heaps
 	layout *layout
 }
 
-func newTable[T any, TP Record[T]](data []byte, hps heaps, layout *layout, table table) Table[T, TP] {
+func newTable[T any](data []byte, hps heaps, layout *layout, table table, decode func(*T, recordReader) error) Table[T] {
 	info := layout.tables[table]
-	return Table[T, TP]{
+	return Table[T]{
 		Len:    info.rowCount,
+		decode: decode,
 		width:  uint8(info.width),
 		data:   data[info.offset : info.offset+int(info.width)*int(info.rowCount)],
 		heaps:  hps,
@@ -106,7 +102,7 @@ func newTable[T any, TP Record[T]](data []byte, hps heaps, layout *layout, table
 }
 
 // Record returns the record at row.
-func (t Table[T, TP]) Record(row Index) (TP, error) {
+func (t Table[T]) Record(row Index) (*T, error) {
 	if uint32(row) >= t.Len {
 		return nil, fmt.Errorf("row %d is beyond the end of the table", row)
 	}
@@ -121,10 +117,10 @@ func (t Table[T, TP]) Record(row Index) (TP, error) {
 		},
 		heaps: t.heaps,
 	}
-	rec := TP(new(T))
-	err := rec.decode(r)
+	rec := new(T)
+	err := t.decode(rec, r)
 	if err != nil {
 		return nil, err
 	}
-	return rec, err
+	return rec, nil
 }

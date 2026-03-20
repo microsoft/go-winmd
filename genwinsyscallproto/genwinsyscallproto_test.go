@@ -7,15 +7,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/microsoft/go-winmd"
-	"github.com/microsoft/go-winmd/flags"
+	"github.com/microsoft/go-winmd/winmd"
 )
 
 func TestContext_writeType_cycle(t *testing.T) {
 	t.Skip("cycles can't be built with SigType rather than *SigType, and this code only supports SigType")
 
-	p1 := winmd.SigType{Kind: flags.ElementType_PTR}
-	p2 := winmd.SigType{Kind: flags.ElementType_PTR}
+	p1 := winmd.SigType{Kind: winmd.ElementType_PTR}
+	p2 := winmd.SigType{Kind: winmd.ElementType_PTR}
 	// These are copies, not pointers...
 	var p1a any = p1
 	var p2a any = p2
