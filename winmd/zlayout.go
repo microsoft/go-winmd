@@ -48,7 +48,7 @@ type Tables struct {
 	TypeSpec               Table[TypeSpec]
 }
 
-func newTables(data []byte, hps heaps, layout *layout) *Tables {
+func newTables(data []byte, hps *heaps, layout *layout) *Tables {
 	var t Tables
 	t.Assembly = newTable(data, hps, layout, tableAssembly, decodeAssembly)
 	t.AssemblyRef = newTable(data, hps, layout, tableAssemblyRef, decodeAssemblyRef)

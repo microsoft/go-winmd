@@ -6,7 +6,6 @@ package winmd
 import (
 	"debug/pe"
 	"fmt"
-	"io"
 	"iter"
 )
 
@@ -105,11 +104,11 @@ type Table[T any] struct {
 	decode func(recordReader) (T, error)
 	width  uint8
 	data   []byte
-	heaps  heaps
+	heaps  *heaps
 	layout *layout
 }
 
-func newTable[T any](data []byte, hps heaps, layout *layout, table table, decode func(recordReader) (T, error)) Table[T] {
+func newTable[T any](data []byte, hps *heaps, layout *layout, table table, decode func(recordReader) (T, error)) Table[T] {
 	info := layout.tables[table]
 	return Table[T]{
 		len:    info.rowCount,
@@ -143,9 +142,6 @@ func (t Table[T]) At(row Index) (T, error) {
 		return zero, fmt.Errorf("row %d is beyond the end of the table", row)
 	}
 	offset := int(t.width) * int(row)
-	if offset+int(t.width) > len(t.data) {
-		return zero, io.ErrUnexpectedEOF
-	}
 	r := recordReader{
 		ecma335Reader: ecma335Reader{
 			data:   t.data[offset:],

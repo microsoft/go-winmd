@@ -160,7 +160,7 @@ func writeTablesStruct(w io.Writer, tables []tableInfo) {
 	}
 	fmt.Fprintf(w, "}\n")
 	fmt.Fprintf(w, "\n")
-	fmt.Fprintf(w, "func newTables(data []byte, hps heaps, layout *layout) *Tables {\n")
+	fmt.Fprintf(w, "func newTables(data []byte, hps *heaps, layout *layout) *Tables {\n")
 	fmt.Fprintf(w, "\tvar t Tables\n")
 	for _, t := range tables {
 		if !t.exported {
