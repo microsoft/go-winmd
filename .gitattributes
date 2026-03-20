@@ -2,3 +2,4 @@
 **/testdata/** text eol=lf
 # Set winmd back to binary to avoid checkout trouble on Windows.
 *.winmd binary
+*.reject

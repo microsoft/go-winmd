@@ -7,7 +7,7 @@
 //
 // The necessary information is taken using the following rules:
 //
-// - All structs defined in tables.go will be mapped to a WinMD table
+// - All structs in tables.go annotated with `// @table=$code` will be mapped to a WinMD table
 // - The table code is taken from the struct doc line starting with `// @table=$code`
 // - Index properties are treated as a table index
 // - Index properties must have the comment `@ref=$table`, where $table is the name of the referenced table
@@ -64,6 +64,7 @@ func formatSource(d []byte) []byte {
 		if err != nil {
 			log.Fatalf("writing rejected output: %s", err)
 		}
+		log.Fatal("refusing to overwrite zlayout.go with invalid generated output")
 	}
 	return src
 }
@@ -77,10 +78,7 @@ func writePrelude(w io.Writer) {
 
 package winmd
 
-import (
-	"fmt"
-	"github.com/microsoft/go-winmd/flags"
-)
+import "fmt"
 
 `)
 }
@@ -202,7 +200,7 @@ func writeTableEncoding(w io.Writer, tables []tableInfo) {
 				default:
 					log.Fatalf("unsupported uint size %d", f.size)
 				}
-				if strings.HasPrefix(f.typeName, "flags.") {
+				if f.needsCast {
 					fmt.Fprintf(w, "\trec.%s = %s(r.%s())\n", f.name, f.typeName, fn)
 				} else {
 					fmt.Fprintf(w, "\trec.%s = r.%s()\n", f.name, fn)

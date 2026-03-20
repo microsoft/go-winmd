@@ -16,9 +16,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/microsoft/go-winmd"
-	"github.com/microsoft/go-winmd/coded"
-	"github.com/microsoft/go-winmd/flags"
+	"github.com/microsoft/go-winmd/winmd"
+	"github.com/microsoft/go-winmd/winmd/coded"
 )
 
 // Arch is a bitmask of architectures.
@@ -131,7 +130,7 @@ func NewContext(f *winmd.Metadata) (*Context, error) {
 			return nil, err
 		}
 		// Nested types can't be resolved at module scope. Skip.
-		if r.Flags&flags.TypeAttributes_NestedPublic != 0 {
+		if r.Flags&winmd.TypeAttributes_NestedPublic != 0 {
 			continue
 		}
 		l.typeDefCache.add(winmd.Index(i), r)
@@ -334,7 +333,7 @@ func (c *Context) WriteMethod(w io.StringWriter, methodIndex winmd.Index, method
 	var moduleName string
 	var lastErr bool
 	if implMap, ok := c.methodDefImplMap[methodIndex]; ok {
-		if implMap.MappingFlags&flags.PInvokeAttributes_SupportsLastError != 0 {
+		if implMap.MappingFlags&winmd.PInvokeAttributes_SupportsLastError != 0 {
 			lastErr = true
 		}
 		mr, err := c.Metadata.Tables.ModuleRef.Record(implMap.ImportScope)
@@ -398,9 +397,9 @@ func (c *Context) writeType(w io.StringWriter, p *winmd.SigType, arch Arch) erro
 		}
 
 		// Special case: *void is unsafe.Pointer
-		if p.Kind == flags.ElementType_PTR {
+		if p.Kind == winmd.ElementType_PTR {
 			if t, ok := p.Value.(winmd.SigType); ok {
-				if t.Kind == flags.ElementType_VOID {
+				if t.Kind == winmd.ElementType_VOID {
 					w.WriteString("unsafe.Pointer")
 					return nil
 				}
@@ -409,43 +408,43 @@ func (c *Context) writeType(w io.StringWriter, p *winmd.SigType, arch Arch) erro
 
 		switch p.Kind {
 		// Translate ECMA-335 primitive types to Go types.
-		case flags.ElementType_BOOLEAN:
+		case winmd.ElementType_BOOLEAN:
 			w.WriteString("bool")
-		case flags.ElementType_I1:
+		case winmd.ElementType_I1:
 			w.WriteString("int8")
-		case flags.ElementType_U1:
+		case winmd.ElementType_U1:
 			w.WriteString("uint8")
-		case flags.ElementType_I2:
+		case winmd.ElementType_I2:
 			w.WriteString("int16")
-		case flags.ElementType_U2, flags.ElementType_CHAR:
+		case winmd.ElementType_U2, winmd.ElementType_CHAR:
 			w.WriteString("uint16")
-		case flags.ElementType_I4:
+		case winmd.ElementType_I4:
 			w.WriteString("int32")
-		case flags.ElementType_U4:
+		case winmd.ElementType_U4:
 			w.WriteString("uint32")
-		case flags.ElementType_I8:
+		case winmd.ElementType_I8:
 			w.WriteString("int64")
-		case flags.ElementType_U8:
+		case winmd.ElementType_U8:
 			w.WriteString("uint64")
-		case flags.ElementType_R4:
+		case winmd.ElementType_R4:
 			w.WriteString("float32")
-		case flags.ElementType_R8:
+		case winmd.ElementType_R8:
 			w.WriteString("float64")
 
 		// ECMA-335 distinguishes uintptr and intptr, Go only has uintptr used in both cases.
-		case flags.ElementType_I, flags.ElementType_U:
+		case winmd.ElementType_I, winmd.ElementType_U:
 			w.WriteString("uintptr")
 
-		case flags.ElementType_VOID:
+		case winmd.ElementType_VOID:
 			// We catch "*void" with a special case above. We should never see simply VOID.
 			return errors.New("unexpected primitive type: VOID")
 
-		case flags.ElementType_OBJECT:
+		case winmd.ElementType_OBJECT:
 			w.WriteString("any")
 
 		// If this is not a simple value type, there will be p.Value. Handle all those cases here.
 		default:
-			if p.Kind == flags.ElementType_PTR {
+			if p.Kind == winmd.ElementType_PTR {
 				w.WriteString("*")
 			}
 			switch v := p.Value.(type) {
@@ -531,7 +530,7 @@ type resolvedDef struct {
 }
 
 func (r *resolvedDef) IsInterface() bool {
-	return r.def.Flags&flags.TypeAttributes_ClassSemanticsMask == flags.TypeAttributes_Interface
+	return r.def.Flags&winmd.TypeAttributes_ClassSemanticsMask == winmd.TypeAttributes_Interface
 }
 
 func (r *resolvedDef) NeedsPointerWhenUsed() bool {
@@ -658,9 +657,9 @@ func (c *Context) resolveTypeDef(defIndex winmd.Index) (*resolvedDef, error) {
 			if err != nil {
 				return nil, err
 			}
-			if signature.Type.Kind == flags.ElementType_PTR {
+			if signature.Type.Kind == winmd.ElementType_PTR {
 				to := signature.Type.Value.(winmd.SigType)
-				if to.Kind != flags.ElementType_VOID {
+				if to.Kind != winmd.ElementType_VOID {
 					r.NativePointer = true
 					// Clarify the Go name, to avoid confusion for anyone with a strong expectation
 					// about types like PWSTR.
@@ -669,7 +668,7 @@ func (c *Context) resolveTypeDef(defIndex winmd.Index) (*resolvedDef, error) {
 			}
 		}
 		// Nested types can't be resolved at module scope. Don't add it to the module lookup.
-		if def.Flags&flags.TypeAttributes_NestedPublic == 0 {
+		if def.Flags&winmd.TypeAttributes_NestedPublic == 0 {
 			c.typeDefCache.resolve(&r)
 		}
 		c.resolvedDefsByIndex[defIndex] = &r
@@ -688,7 +687,7 @@ func (c *Context) resolveTypeDef(defIndex winmd.Index) (*resolvedDef, error) {
 }
 
 func (c *Context) writeTypeDef(w io.StringWriter, r *resolvedDef, arch Arch) error {
-	if r.def.Flags&flags.TypeAttributes_ClassSemanticsMask == flags.TypeAttributes_Interface {
+	if r.def.Flags&winmd.TypeAttributes_ClassSemanticsMask == winmd.TypeAttributes_Interface {
 		// Issue tracking implementing interface types: https://github.com/microsoft/go-winmd/issues/14
 		w.WriteString("// Interface type is likely missing members. Not yet implemented in go-winmd.\n")
 	}
@@ -757,21 +756,21 @@ func (c *Context) writeTypeDefEnum(w io.StringWriter, r *resolvedDef, arch Arch)
 		// possible types further than what we can handle here, but we handle all simple integer
 		// types for simplicity and in case this code needs to be moved and reused elsewhere.
 		switch constant.Type {
-		case flags.ElementType_I1:
+		case winmd.ElementType_I1:
 			hex = strconv.FormatInt(int64(int8(constant.Value[0])), 16)
-		case flags.ElementType_I2:
+		case winmd.ElementType_I2:
 			hex = strconv.FormatInt(int64(int16(binary.LittleEndian.Uint16(constant.Value))), 16)
-		case flags.ElementType_I4:
+		case winmd.ElementType_I4:
 			hex = strconv.FormatInt(int64(int32(binary.LittleEndian.Uint32(constant.Value))), 16)
-		case flags.ElementType_I8:
+		case winmd.ElementType_I8:
 			hex = strconv.FormatInt(int64(binary.LittleEndian.Uint64(constant.Value)), 16)
-		case flags.ElementType_U1:
+		case winmd.ElementType_U1:
 			hex = strconv.FormatUint(uint64(constant.Value[0]), 16)
-		case flags.ElementType_U2:
+		case winmd.ElementType_U2:
 			hex = strconv.FormatUint(uint64(binary.LittleEndian.Uint16(constant.Value)), 16)
-		case flags.ElementType_U4:
+		case winmd.ElementType_U4:
 			hex = strconv.FormatUint(uint64(binary.LittleEndian.Uint32(constant.Value)), 16)
-		case flags.ElementType_U8:
+		case winmd.ElementType_U8:
 			hex = strconv.FormatUint(binary.LittleEndian.Uint64(constant.Value), 16)
 		default:
 			return fmt.Errorf("enum member has unexpected type: %v, field %v", constant.Type, fd.Name)
@@ -888,7 +887,7 @@ func (c *Context) writeStructField(w io.StringWriter, fieldIndex winmd.Index, ar
 	if err != nil {
 		return err
 	}
-	if signature.Type.Kind == flags.ElementType_VALUETYPE {
+	if signature.Type.Kind == winmd.ElementType_VALUETYPE {
 		if v, ok := signature.Type.Value.(winmd.CodedIndex); ok && v.Tag == coded.TypeDefOrRefOrSpec_TypeRef {
 			ref, err := c.Metadata.Tables.TypeRef.Record(v.Index)
 			if err != nil {

@@ -7,7 +7,7 @@ import (
 	"debug/pe"
 	"testing"
 
-	"github.com/microsoft/go-winmd"
+	"github.com/microsoft/go-winmd/winmd"
 )
 
 func TestNew(t *testing.T) {

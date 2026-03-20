@@ -16,8 +16,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/microsoft/go-winmd"
 	"github.com/microsoft/go-winmd/genwinsyscallproto"
+	"github.com/microsoft/go-winmd/winmd"
 )
 
 func main() {

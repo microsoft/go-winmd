@@ -5,10 +5,7 @@
 
 package winmd
 
-import (
-	"fmt"
-	"github.com/microsoft/go-winmd/flags"
-)
+import "fmt"
 
 // Define tables struct
 
@@ -226,12 +223,12 @@ func (t table) width(la *layout) uint8 {
 // Define table decoding functions
 
 func (rec *Assembly) decode(r recordReader) error {
-	rec.HashAlgID = flags.AssemblyHashAlgorithm(r.uint32())
+	rec.HashAlgID = AssemblyHashAlgorithm(r.uint32())
 	rec.MajorVersion = r.uint16()
 	rec.MinorVersion = r.uint16()
 	rec.BuildNumber = r.uint16()
 	rec.RevisionNumber = r.uint16()
-	rec.Flags = flags.AssemblyFlags(r.uint32())
+	rec.Flags = AssemblyFlags(r.uint32())
 	rec.PublicKey = r.blob()
 	rec.Name = r.string()
 	rec.Culture = r.string()
@@ -255,7 +252,7 @@ func (rec *AssemblyRef) decode(r recordReader) error {
 	rec.MinorVersion = r.uint16()
 	rec.BuildNumber = r.uint16()
 	rec.RevisionNumber = r.uint16()
-	rec.Flags = flags.AssemblyFlags(r.uint32())
+	rec.Flags = AssemblyFlags(r.uint32())
 	rec.PublicKeyOrToken = r.blob()
 	rec.Name = r.string()
 	rec.Culture = r.string()
@@ -285,7 +282,7 @@ func (rec *ClassLayout) decode(r recordReader) error {
 }
 
 func (rec *Constant) decode(r recordReader) error {
-	rec.Type = flags.ElementType(r.uint8())
+	rec.Type = ElementType(r.uint8())
 	rec.Padding = r.uint8()
 	rec.Parent = r.coded(codedHasConstant)
 	rec.Value = r.blob()
@@ -313,14 +310,14 @@ func (rec *EventMap) decode(r recordReader) error {
 }
 
 func (rec *Event) decode(r recordReader) error {
-	rec.EventFlags = flags.EventAttributes(r.uint16())
+	rec.EventFlags = EventAttributes(r.uint16())
 	rec.Name = r.string()
 	rec.EventType = r.coded(codedTypeDefOrRef)
 	return r.err
 }
 
 func (rec *ExportedType) decode(r recordReader) error {
-	rec.Flags = flags.TypeAttributes(r.uint32())
+	rec.Flags = TypeAttributes(r.uint32())
 	rec.TypeDefID = r.uint32()
 	rec.Name = r.string()
 	rec.Namespace = r.string()
@@ -329,7 +326,7 @@ func (rec *ExportedType) decode(r recordReader) error {
 }
 
 func (rec *Field) decode(r recordReader) error {
-	rec.Flags = flags.FieldAttributes(r.uint16())
+	rec.Flags = FieldAttributes(r.uint16())
 	rec.Name = r.string()
 	rec.Signature = r.blob()
 	return r.err
@@ -354,7 +351,7 @@ func (rec *FieldRVA) decode(r recordReader) error {
 }
 
 func (rec *File) decode(r recordReader) error {
-	rec.Flags = flags.FileAttributes(r.uint16())
+	rec.Flags = FileAttributes(r.uint16())
 	rec.Name = r.string()
 	rec.HashValue = r.blob()
 	return r.err
@@ -362,7 +359,7 @@ func (rec *File) decode(r recordReader) error {
 
 func (rec *GenericParam) decode(r recordReader) error {
 	rec.Number = r.uint16()
-	rec.Flags = flags.GenericParamAttributes(r.uint16())
+	rec.Flags = GenericParamAttributes(r.uint16())
 	rec.Owner = r.coded(codedTypeOrMethodDef)
 	rec.Name = r.string()
 	return r.err
@@ -375,7 +372,7 @@ func (rec *GenericParamConstraint) decode(r recordReader) error {
 }
 
 func (rec *ImplMap) decode(r recordReader) error {
-	rec.MappingFlags = flags.PInvokeAttributes(r.uint16())
+	rec.MappingFlags = PInvokeAttributes(r.uint16())
 	rec.MemberForwarded = r.coded(codedMemberForwarded)
 	rec.ImportName = r.string()
 	rec.ImportScope = r.index(tableModuleRef)
@@ -390,7 +387,7 @@ func (rec *InterfaceImpl) decode(r recordReader) error {
 
 func (rec *ManifestResource) decode(r recordReader) error {
 	rec.Offset = r.uint32()
-	rec.Flags = flags.ManifestResourceAttributes(r.uint32())
+	rec.Flags = ManifestResourceAttributes(r.uint32())
 	rec.Name = r.string()
 	rec.Implementation = r.coded(codedImplementation)
 	return r.err
@@ -405,8 +402,8 @@ func (rec *MemberRef) decode(r recordReader) error {
 
 func (rec *MethodDef) decode(r recordReader) error {
 	rec.RVA = r.uint32()
-	rec.ImplFlags = flags.MethodImplAttributes(r.uint16())
-	rec.Flags = flags.MethodAttributes(r.uint16())
+	rec.ImplFlags = MethodImplAttributes(r.uint16())
+	rec.Flags = MethodAttributes(r.uint16())
 	rec.Name = r.string()
 	rec.Signature = r.blob()
 	rec.ParamList = r.slice(tableMethodDef, tableParam)
@@ -421,7 +418,7 @@ func (rec *MethodImpl) decode(r recordReader) error {
 }
 
 func (rec *MethodSemantics) decode(r recordReader) error {
-	rec.Semantics = flags.MethodSemanticsAttributes(r.uint16())
+	rec.Semantics = MethodSemanticsAttributes(r.uint16())
 	rec.Method = r.index(tableMethodDef)
 	rec.Association = r.coded(codedHasSemantics)
 	return r.err
@@ -454,14 +451,14 @@ func (rec *NestedClass) decode(r recordReader) error {
 }
 
 func (rec *Param) decode(r recordReader) error {
-	rec.Flags = flags.ParamAttributes(r.uint16())
+	rec.Flags = ParamAttributes(r.uint16())
 	rec.Sequence = r.uint16()
 	rec.Name = r.string()
 	return r.err
 }
 
 func (rec *Property) decode(r recordReader) error {
-	rec.Flags = flags.PropertyAttributes(r.uint16())
+	rec.Flags = PropertyAttributes(r.uint16())
 	rec.Name = r.string()
 	rec.Type = r.blob()
 	return r.err
@@ -479,7 +476,7 @@ func (rec *StandAloneSig) decode(r recordReader) error {
 }
 
 func (rec *TypeDef) decode(r recordReader) error {
-	rec.Flags = flags.TypeAttributes(r.uint32())
+	rec.Flags = TypeAttributes(r.uint32())
 	rec.Name = r.string()
 	rec.Namespace = r.string()
 	rec.Extends = r.coded(codedTypeDefOrRef)
