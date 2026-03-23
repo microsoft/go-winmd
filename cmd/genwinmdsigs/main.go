@@ -4,7 +4,6 @@
 package main
 
 import (
-	"debug/pe"
 	"errors"
 	"flag"
 	"fmt"
@@ -16,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/microsoft/go-winmd/genwinsyscallproto"
+	"github.com/microsoft/go-winmd/cmd/genwinmdsigs/internal/genwinsyscallproto"
 	"github.com/microsoft/go-winmd/winmd"
 )
 
@@ -57,12 +56,7 @@ func Run() error {
 
 	start := time.Now()
 
-	pefile, err := pe.Open(*source)
-	if err != nil {
-		return err
-	}
-	defer pefile.Close()
-	f, err := winmd.New(pefile)
+	f, err := winmd.Open(*source)
 	if err != nil {
 		return err
 	}

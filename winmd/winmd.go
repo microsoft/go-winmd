@@ -21,7 +21,20 @@ type Metadata struct {
 	layout *layout
 }
 
-// New creates a new File from an underlying PE file.
+// Open opens a Windows Metadata file at path and returns
+// a Metadata struct that provides access to its contents.
+func Open(path string) (*Metadata, error) {
+	pefile, err := pe.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer pefile.Close()
+	return New(pefile)
+}
+
+// New creates a new Metadata from an underlying PE file.
+// The PE file can be closed after calling New, as the
+// returned Metadata doesn't keep any reference to it.
 func New(pefile *pe.File) (*Metadata, error) {
 	return newMetadata(pefile)
 }
@@ -99,7 +112,8 @@ func (s Slice) All() iter.Seq[Index] {
 
 // Table is a record container as defined in §II.22.
 type Table[T any] struct {
-	len uint32
+	name string
+	len  uint32
 
 	decode func(recordReader) (T, error)
 	width  uint8
@@ -108,9 +122,10 @@ type Table[T any] struct {
 	layout *layout
 }
 
-func newTable[T any](data []byte, hps *heaps, layout *layout, table table, decode func(recordReader) (T, error)) Table[T] {
+func newTable[T any](name string, data []byte, hps *heaps, layout *layout, table table, decode func(recordReader) (T, error)) Table[T] {
 	info := layout.tables[table]
 	return Table[T]{
+		name:   name,
 		len:    info.rowCount,
 		decode: decode,
 		width:  uint8(info.width),
@@ -133,6 +148,11 @@ func (t Table[T]) Indices() iter.Seq[Index] {
 // Len returns the number of records in the table.
 func (t Table[T]) Len() uint32 {
 	return t.len
+}
+
+// Name returns the metadata table name.
+func (t Table[T]) Name() string {
+	return t.name
 }
 
 // At returns the record at row.

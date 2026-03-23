@@ -1,9 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-package ecma335
+package winmd
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestDecodeCompressedUint32(t *testing.T) {
 	type args struct {
@@ -29,7 +31,7 @@ func TestDecodeCompressedUint32(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotResult, gotN, err := DecodeCompressedUint32(tt.args.bh)
+			gotResult, gotN, err := decodeCompressedUint32(tt.args.bh)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("DecodeCompressedUint32() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -67,7 +69,7 @@ func TestDecodeCompressedInt32(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotResult, gotN, err := DecodeCompressedInt32(tt.args.data)
+			gotResult, gotN, err := decodeCompressedInt32(tt.args.data)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("DecodeCompressedInt32() error = %v, wantErr %v", err, tt.wantErr)
 				return
