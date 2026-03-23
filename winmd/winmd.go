@@ -32,9 +32,9 @@ func Open(path string) (*Metadata, error) {
 	return New(pefile)
 }
 
-// New creates a new File from an underlying PE file.
-// the PE file can be closed after calling New, as the
-// returned File doesn't keep any reference to it.
+// New creates a new Metadata from an underlying PE file.
+// The PE file can be closed after calling New, as the
+// returned Metadata doesn't keep any reference to it.
 func New(pefile *pe.File) (*Metadata, error) {
 	return newMetadata(pefile)
 }
