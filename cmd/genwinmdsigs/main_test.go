@@ -4,14 +4,13 @@
 package main
 
 import (
-	"debug/pe"
 	"go/format"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
 
-	"github.com/microsoft/go-winmd/genwinsyscallproto"
+	"github.com/microsoft/go-winmd/cmd/genwinmdsigs/internal/genwinsyscallproto"
 	"github.com/microsoft/go-winmd/winmd"
 )
 
@@ -72,14 +71,9 @@ func TestFullFile(t *testing.T) {
 	// exceptionally long time.
 
 	// To see the output, use:
-	//   go run ./cmd/genwinmdsigs -o all.go.temp -source .\testdata\Windows.Win32.winmd
+	//   go run ./cmd/genwinmdsigs -o all.go.temp -source .\winmd\testdata\Windows.Win32.winmd
 }
 
 func openTestWinmd() (*winmd.Metadata, error) {
-	pefile, err := pe.Open("../../testdata/Windows.Win32.winmd")
-	if err != nil {
-		return nil, err
-	}
-	defer pefile.Close()
-	return winmd.New(pefile)
+	return winmd.Open("../../winmd/testdata/Windows.Win32.winmd")
 }

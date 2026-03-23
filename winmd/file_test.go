@@ -5,13 +5,23 @@ package winmd_test
 
 import (
 	"debug/pe"
+	"flag"
 	"testing"
 
 	"github.com/microsoft/go-winmd/winmd"
 )
 
+type tableSnapshot struct {
+	Name    string `json:"-"`
+	Len     uint32 `json:"len"`
+	Entries []any  `json:"entries,omitempty"`
+}
+
+var update = flag.Bool("update", false, "update golden files")
+
 func TestNew(t *testing.T) {
-	pefile, err := pe.Open("../testdata/Windows.Win32.winmd")
+	t.Parallel()
+	pefile, err := pe.Open("./testdata/Windows.Win32.winmd")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -63,20 +73,68 @@ func TestNew(t *testing.T) {
 func testLen[T any](t *testing.T, table winmd.Table[T], size uint32) {
 	t.Helper()
 	if table.Len() != size {
-		t.Errorf("len = %v, want %v", table.Len(), size)
+		t.Errorf("table = %v, len = %v, want %v", table.Name(), table.Len(), size)
 	}
+}
+
+func TestTable(t *testing.T) {
+	t.Parallel()
+	f, err := winmd.Open("./testdata/Windows.Win32.winmd")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	testTable(t, f.Tables.Assembly)
+	testTable(t, f.Tables.AssemblyRef)
+	testTable(t, f.Tables.ClassLayout)
+	testTable(t, f.Tables.Constant)
+	testTable(t, f.Tables.CustomAttribute)
+	testTable(t, f.Tables.DeclSecurity)
+	testTable(t, f.Tables.EventMap)
+	testTable(t, f.Tables.Event)
+	testTable(t, f.Tables.ExportedType)
+	testTable(t, f.Tables.Field)
+	testTable(t, f.Tables.FieldLayout)
+	testTable(t, f.Tables.FieldMarshal)
+	testTable(t, f.Tables.FieldRVA)
+	testTable(t, f.Tables.File)
+	testTable(t, f.Tables.GenericParam)
+	testTable(t, f.Tables.GenericParamConstraint)
+	testTable(t, f.Tables.ImplMap)
+	testTable(t, f.Tables.InterfaceImpl)
+	testTable(t, f.Tables.ManifestResource)
+	testTable(t, f.Tables.MemberRef)
+	testTable(t, f.Tables.MethodDef)
+	testTable(t, f.Tables.MethodImpl)
+	testTable(t, f.Tables.MethodSemantics)
+	testTable(t, f.Tables.MethodSpec)
+	testTable(t, f.Tables.Module)
+	testTable(t, f.Tables.ModuleRef)
+	testTable(t, f.Tables.NestedClass)
+	testTable(t, f.Tables.Param)
+	testTable(t, f.Tables.Property)
+	testTable(t, f.Tables.PropertyMap)
+	testTable(t, f.Tables.StandAloneSig)
+	testTable(t, f.Tables.TypeDef)
+	testTable(t, f.Tables.TypeRef)
+	testTable(t, f.Tables.TypeSpec)
+}
+
+func testTable[T any](t *testing.T, table winmd.Table[T]) {
+	t.Run(table.Name(), func(t *testing.T) {
+		t.Parallel()
+		for idx := range table.Indices() {
+			if _, err := table.At(idx); err != nil {
+				t.Errorf("%d: %v", idx, err)
+			}
+		}
+	})
 }
 
 func BenchmarkReadAllTableEntries(b *testing.B) {
 	b.ReportAllocs()
 
-	pefile, err := pe.Open("../testdata/Windows.Win32.winmd")
-	if err != nil {
-		b.Fatal(err)
-	}
-	defer pefile.Close()
-
-	metadata, err := winmd.New(pefile)
+	metadata, err := winmd.Open("./testdata/Windows.Win32.winmd")
 	if err != nil {
 		b.Fatal(err)
 	}

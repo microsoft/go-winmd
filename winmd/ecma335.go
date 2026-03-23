@@ -1,13 +1,13 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-package ecma335
+package winmd
 
 import "fmt"
 
 // DecodeCompressedUint32 converts 1-4 compressed bytes into one uint32, as defined in §II.23.2.
 // Returns the result and the number of bytes read to obtain the result, or an error.
-func DecodeCompressedUint32(data []byte) (result uint32, n int, err error) {
+func decodeCompressedUint32(data []byte) (result uint32, n int, err error) {
 	// The first byte determines the amount of data to read.
 	const (
 		mask1 byte = 0b_1000_0000
@@ -34,10 +34,10 @@ func DecodeCompressedUint32(data []byte) (result uint32, n int, err error) {
 
 // DecodeCompressedInt32 converts 1-4 compressed bytes into one int32, as defined in §II.23.2.
 // Returns the result and the number of bytes read to obtain the result, or an error.
-func DecodeCompressedInt32(data []byte) (result int32, n int, err error) {
+func decodeCompressedInt32(data []byte) (result int32, n int, err error) {
 	// Based on .NET System.Reflection.Metadata.BlobReader TryReadCompressedSignedInteger.
 	// https://github.com/dotnet/runtime/blob/582e522d6e164de6f9c961bc3cce226a241b11e5/src/libraries/System.Reflection.Metadata/src/System/Reflection/Metadata/BlobReader.cs#L490
-	u, n, err := DecodeCompressedUint32(data)
+	u, n, err := decodeCompressedUint32(data)
 	if err != nil {
 		return 0, 0, err
 	}
