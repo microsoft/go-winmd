@@ -5,19 +5,10 @@ package winmd_test
 
 import (
 	"debug/pe"
-	"flag"
 	"testing"
 
 	"github.com/microsoft/go-winmd/winmd"
 )
-
-type tableSnapshot struct {
-	Name    string `json:"-"`
-	Len     uint32 `json:"len"`
-	Entries []any  `json:"entries,omitempty"`
-}
-
-var update = flag.Bool("update", false, "update golden files")
 
 func TestNew(t *testing.T) {
 	t.Parallel()
