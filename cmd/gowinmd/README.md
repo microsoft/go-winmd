@@ -8,7 +8,7 @@ See [go-winmd#8](https://github.com/microsoft/go-winmd/issues/8)
 ## Usage
 
 ```
-gowinmd -source <path/to/Windows.Win32.winmd> -format mkwinsyscall [-o <output.go>] <input.go ...>
+gowinmd -source <path/to/Windows.Win32.winmd> -format mkwinsyscall [-output <output.go>] <input.go ...>
 ```
 
 Input Go files are scanned for `//winmd` directives that specify which APIs to generate. The package name for the generated output is inferred from the input files.
