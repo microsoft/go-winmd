@@ -37,6 +37,9 @@ func TestWriteMethod(t *testing.T) {
 		t.Fatal(err)
 	}
 	for arch, w := range b {
+		if w.Len() == 0 {
+			continue
+		}
 		formattedContent, err := format.Source([]byte(w.String()))
 		if err != nil {
 			t.Fatal(err)
@@ -101,7 +104,7 @@ func buildNamespaceFilter(f *winmd.Metadata, namespaces ...string) (methodFilter
 		if err != nil {
 			return nil, err
 		}
-		if !nsSet[r.Namespace.String()] || !strings.Contains(r.Name.String(), "Apis") {
+		if !nsSet[r.Namespace.String()] {
 			continue
 		}
 		for j := range r.MethodList.All() {

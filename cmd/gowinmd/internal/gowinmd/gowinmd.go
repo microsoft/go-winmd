@@ -186,52 +186,51 @@ func NewContext(f *winmd.Metadata) (*Context, error) {
 		if err != nil {
 			return nil, err
 		}
-		if c.Namespace.String() != "Windows.Win32.Interop" {
-			continue
-		}
-		switch c.Name.String() {
-		case "NativeTypedefAttribute":
-			if a.Parent.Tag != winmd.HasCustomAttribute_TypeDef {
-				break
-			}
-			if existing, ok := l.typeDefNativeTypedefAttribute[a.Parent.Index]; ok {
-				return nil, fmt.Errorf(
-					"multiple NativeTypedefAttribute rows found pointing at TypeDef %v: found %v; already found %v",
-					a.Parent.Index,
-					idx,
-					existing)
-			}
-			l.typeDefNativeTypedefAttribute[a.Parent.Index] = a
-		case "SupportedArchitectureAttribute":
-			if len(a.Value) < 2 {
-				break
-			}
-			// Ideally we should decode the blob as a
-			// a Custom Attributes signature (§II.23.3),
-			// but that would require a lot of work to
-			// implement.
-			arch := Arch(binary.LittleEndian.Uint32(a.Value[2:]))
-			switch a.Parent.Tag {
-			case winmd.HasCustomAttribute_MethodDef:
-				if existing, ok := l.methodDefSupportedArch[a.Parent.Index]; ok {
+		switch c.Namespace.String() {
+		case "Windows.Win32.Foundation.Metadata", "Windows.Win32.Interop": // The former is legacy
+			switch c.Name.String() {
+			case "NativeTypedefAttribute":
+				if a.Parent.Tag != winmd.HasCustomAttribute_TypeDef {
+					break
+				}
+				if existing, ok := l.typeDefNativeTypedefAttribute[a.Parent.Index]; ok {
 					return nil, fmt.Errorf(
-						"multiple SupportedArchitectureAttribute rows found pointing at MethodDef %v: found %v; already found %v",
+						"multiple NativeTypedefAttribute rows found pointing at TypeDef %v: found %v; already found %v",
 						a.Parent.Index,
 						idx,
 						existing)
 				}
-				l.methodDefSupportedArch[a.Parent.Index] = arch
-			case winmd.HasCustomAttribute_TypeDef:
-				if existing, ok := l.typeDefSupportedArch[a.Parent.Index]; ok {
-					return nil, fmt.Errorf(
-						"multiple SupportedArchitectureAttribute rows found pointing at TypeDef %v: found %v; already found %v",
-						a.Parent.Index,
-						idx,
-						existing)
+				l.typeDefNativeTypedefAttribute[a.Parent.Index] = a
+			case "SupportedArchitectureAttribute":
+				if len(a.Value) < 2 {
+					break
 				}
-				l.typeDefSupportedArch[a.Parent.Index] = arch
+				// Ideally we should decode the blob as a
+				// a Custom Attributes signature (§II.23.3),
+				// but that would require a lot of work to
+				// implement.
+				arch := Arch(binary.LittleEndian.Uint32(a.Value[2:]))
+				switch a.Parent.Tag {
+				case winmd.HasCustomAttribute_MethodDef:
+					if existing, ok := l.methodDefSupportedArch[a.Parent.Index]; ok {
+						return nil, fmt.Errorf(
+							"multiple SupportedArchitectureAttribute rows found pointing at MethodDef %v: found %v; already found %v",
+							a.Parent.Index,
+							idx,
+							existing)
+					}
+					l.methodDefSupportedArch[a.Parent.Index] = arch
+				case winmd.HasCustomAttribute_TypeDef:
+					if existing, ok := l.typeDefSupportedArch[a.Parent.Index]; ok {
+						return nil, fmt.Errorf(
+							"multiple SupportedArchitectureAttribute rows found pointing at TypeDef %v: found %v; already found %v",
+							a.Parent.Index,
+							idx,
+							existing)
+					}
+					l.typeDefSupportedArch[a.Parent.Index] = arch
+				}
 			}
-
 		}
 	}
 	for idx := range f.Tables.FieldLayout.Indices() {
@@ -918,10 +917,13 @@ func (c *Context) writeStructField(w io.StringWriter, fieldIndex winmd.Index, ar
 				// new named type, because in the winmd files we work with, the nested structs don't
 				// have meaningful names. It makes the API clunky if we generate unique names.
 				def, err := c.resolveTypeRef(v.Index, arch)
-				if err != nil {
+				if err != nil && !errors.Is(err, errTypeDefNotDefinedInCurrentModule) {
 					return err
 				}
-				return c.writeStructFields(w, def, arch)
+				if def != nil {
+					return c.writeStructFields(w, def, arch)
+				}
+				// Fall through to write the field as-is if the nested type can't be resolved.
 			}
 		}
 	}

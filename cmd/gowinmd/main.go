@@ -225,6 +225,12 @@ func writePrototypes(b map[gowinmd.Arch]*strings.Builder, f *winmd.Metadata, fil
 				}
 				// Pass rename to WriteMethod if specified on the exact match.
 				override = goName
+			} else {
+				// When no filter is applied, skip methods without an ImplMap entry
+				// (e.g. .ctor) since they aren't P/Invoke methods.
+				if context.MethodModuleName(j) == "" {
+					continue
+				}
 			}
 
 			supportedArches := context.MethodDefSupportedArch(j)
