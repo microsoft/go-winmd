@@ -91,7 +91,9 @@ func Run() error {
 			if arch != gowinmd.ArchAll {
 				target = strings.TrimSuffix(target, ".go") + "_" + arch.String() + ".go"
 			}
-			os.WriteFile(target, formattedContent, 0666)
+			if err := os.WriteFile(target, formattedContent, 0666); err != nil {
+				return fmt.Errorf("failed to write output file %s: %w", target, err)
+			}
 		} else {
 			log.Printf("Printing signature results for %s because no output path was specified:\n", arch)
 			log.Println("---")
@@ -130,9 +132,16 @@ func parseInputFiles(files []string) (methodFilter, string, error) {
 			}
 			// Parse: module.method [-name GoName]
 			// If only a method name is given (no dot), default to kernel32.
+			// If a dotless, all-lowercase token is given, treat it as a module-wide directive (module.*).
 			ref, goName := parseDirective(t)
 			if !strings.Contains(ref, ".") {
-				ref = "kernel32." + ref
+				if ref == strings.ToLower(ref) {
+					// Module-wide directive, e.g. "kernel32" -> "kernel32.*".
+					ref = ref + ".*"
+				} else {
+					// Method on default module, e.g. "CreateFileW" -> "kernel32.CreateFileW".
+					ref = "kernel32." + ref
+				}
 			}
 			filter[strings.ToLower(ref)] = goName
 		}
