@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-// Package genwinsyscallproto generates Windows syscall function prototypes ("//sys ..." comments)
+// Package gowinmd generates Windows syscall function prototypes ("//sys ..." comments)
 // using given win32metadata information parsed by go-winmd as specified by ECMA-335.
-package genwinsyscallproto
+package gowinmd
 
 import (
 	"encoding/binary"
@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"go/token"
 	"io"
-	"log"
 	"sort"
 	"strconv"
 	"strings"
@@ -261,6 +260,30 @@ func (c *Context) MethodDefSupportedArch(idx winmd.Index) Arch {
 	return v
 }
 
+// UnresolvableTypeRefs returns the qualified names (namespace::name) of TypeRefs that were
+// referenced during generation but could not be resolved to a TypeDef in the current module.
+func (c *Context) UnresolvableTypeRefs() []string {
+	result := make([]string, 0, len(c.unresolvableTypeRefs))
+	for _, r := range c.unresolvableTypeRefs {
+		result = append(result, r.Namespace.String()+"::"+r.Name.String())
+	}
+	return result
+}
+
+// MethodModuleName returns the lowercase DLL module name for a MethodDef via its ImplMap entry.
+// Returns an empty string if the method has no ImplMap entry.
+func (c *Context) MethodModuleName(methodIndex winmd.Index) string {
+	implMap, ok := c.methodDefImplMap[methodIndex]
+	if !ok {
+		return ""
+	}
+	mr, err := c.Metadata.Tables.ModuleRef.At(implMap.ImportScope)
+	if err != nil {
+		return ""
+	}
+	return strings.ToLower(mr.Name.String())
+}
+
 // TypeDefSupportedArch returns the set of architectures that the given type is supported on.
 func (c *Context) TypeDefSupportedArch(idx winmd.Index) Arch {
 	v, ok := c.typeDefSupportedArch[idx]
@@ -278,8 +301,13 @@ func (c *Context) TypeDefSupportedArch(idx winmd.Index) Arch {
 //
 // arch is the architecture that the method is being generated for, or ArchAll if the method is
 // supported on all architectures.
-func (c *Context) WriteMethod(w io.StringWriter, methodIndex winmd.Index, method winmd.MethodDef, arch Arch) error {
+//
+// goNameOverride, if non-empty, replaces the default Go function name.
+func (c *Context) WriteMethod(w io.StringWriter, methodIndex winmd.Index, method winmd.MethodDef, arch Arch, goNameOverride string) error {
 	goName := method.Name.String()
+	if goNameOverride != "" {
+		goName = goNameOverride
+	}
 
 	w.WriteString("//sys\t")
 	w.WriteString(escapedUpper(goName))
@@ -797,13 +825,6 @@ func (c *Context) writeTypeDefEnum(w io.StringWriter, r *resolvedDef, arch Arch)
 	for _, pair := range members {
 		name := pair.Name.String()
 		w.WriteString("\t")
-		// Add enum name prefix to generated name if the original member name doesn't already have
-		// the prefix. This may be necessary to avoid collisions, and also makes the API easier to
-		// find in Go via autocomplete.
-		if !strings.HasPrefix(name, r.def.Name.String()) {
-			w.WriteString(r.GoName)
-			w.WriteString("_")
-		}
 		w.WriteString(escapedUpper(name))
 		w.WriteString(" ")
 		w.WriteString(r.GoName)
@@ -918,12 +939,6 @@ func (c *Context) writeStructField(w io.StringWriter, fieldIndex winmd.Index, ar
 // calls to b. For a given Context c, only call this method one time, and only after all WriteMethod
 // calls are complete.
 func (c *Context) WriteUsedTypeDefs(b map[Arch]*strings.Builder) error {
-	// Log TypeRefs to the console to let the def know these are expected.
-	// This issue tracks better approaches than simply logging: https://github.com/microsoft/go-winmd/issues/18
-	for _, r := range c.unresolvableTypeRefs {
-		log.Printf("unable to resolve type: %v :: %v", r.Namespace, r.Name)
-	}
-
 	archSeen := make(map[Arch]bool)
 	// Keep going until we stop finding new types that need definitions.
 	written := make(map[*resolvedDef]struct{})

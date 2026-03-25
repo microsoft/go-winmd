@@ -1,4 +1,4 @@
-package genwinsyscallproto
+package gowinmd
 
 import (
 	"github.com/microsoft/go-winmd/winmd"
