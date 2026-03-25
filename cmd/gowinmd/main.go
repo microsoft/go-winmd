@@ -132,16 +132,10 @@ func parseInputFiles(files []string) (methodFilter, string, error) {
 			}
 			// Parse: module.method [-name GoName]
 			// If only a method name is given (no dot), default to kernel32.
-			// If a dotless, all-lowercase token is given, treat it as a module-wide directive (module.*).
 			ref, goName := parseDirective(t)
 			if !strings.Contains(ref, ".") {
-				if ref == strings.ToLower(ref) {
-					// Module-wide directive, e.g. "kernel32" -> "kernel32.*".
-					ref = ref + ".*"
-				} else {
-					// Method on default module, e.g. "CreateFileW" -> "kernel32.CreateFileW".
-					ref = "kernel32." + ref
-				}
+				// Method on default module, e.g. "CreateFileW" -> "kernel32.CreateFileW".
+				ref = "kernel32." + ref
 			}
 			filter[strings.ToLower(ref)] = goName
 		}

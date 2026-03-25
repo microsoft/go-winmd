@@ -26,7 +26,7 @@ Each directive specifies an API to import using the format `moduleref.methoddef`
 If only the module name is specified, all methods from that module are generated:
 
 ```go
-//winmd kernel32
+//winmd kernel32.*
 ```
 
 Use `-name` to specify a custom Go function name:
