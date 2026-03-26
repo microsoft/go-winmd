@@ -38,7 +38,7 @@ This directive supports the following optional flags:
 
 - `-name` — Specify a custom Go function name for the imported method. By default, the Go name is the same as the method name in the winmd file. Example:
   
-        `//winmd:func kernel32.CreateFileW -name CreateFile`
+        //winmd:func kernel32.CreateFileW -name CreateFile
 
 ## Output
 
