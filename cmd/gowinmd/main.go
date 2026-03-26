@@ -119,10 +119,10 @@ func parseInputFiles(files []string) (methodFilter, string, error) {
 		s := bufio.NewScanner(file)
 		for s.Scan() {
 			t := strings.TrimSpace(s.Text())
-			if !strings.HasPrefix(t, "//winmd") {
+			if !strings.HasPrefix(t, "//winmd:func") {
 				continue
 			}
-			t = t[len("//winmd"):]
+			t = t[len("//winmd:func"):]
 			if len(t) == 0 || (t[0] != ' ' && t[0] != '\t') {
 				continue
 			}
@@ -165,7 +165,7 @@ func parseInputFiles(files []string) (methodFilter, string, error) {
 		return nil, "", errors.New("could not determine package name from input files")
 	}
 	if len(filter) == 0 {
-		return nil, "", errors.New("no //winmd directives found in input files")
+		return nil, "", errors.New("no //winmd:func directives found in input files")
 	}
 	return filter, pkg, nil
 }
