@@ -11,4 +11,4 @@ permissions:
 
 jobs:
   check-line-endings:
-    uses: microsoft/go-infra/.github/workflows/check-line-endings.yml@944d1d054c1265bf35b6632d42682217330907c4
+    uses: microsoft/go-infra/.github/workflows/check-line-endings.yml@f4e3833067a0e64dbf9581e3e4d2df2a353f6dd0 # v0.0.13
