@@ -1,21 +1,21 @@
 
 
 // APIs for Windows.Win32.System.Diagnostics.Debug
-//sys	RtlAddFunctionTable(FunctionTable *IMAGE_ARM64_RUNTIME_FUNCTION_ENTRY, EntryCount uint32, BaseAddress uintptr) (r BOOLEAN) = kernel32.dll.RtlAddFunctionTable
-//sys	RtlDeleteFunctionTable(FunctionTable *IMAGE_ARM64_RUNTIME_FUNCTION_ENTRY) (r BOOLEAN) = kernel32.dll.RtlDeleteFunctionTable
-//sys	RtlInstallFunctionTableCallback(TableIdentifier uint64, BaseAddress uint64, Length uint32, Callback PGET_RUNTIME_FUNCTION_CALLBACK, Context unsafe.Pointer, OutOfProcessCallbackDll *PWSTRElement) (r BOOLEAN) = kernel32.dll.RtlInstallFunctionTableCallback
-//sys	RtlAddGrowableFunctionTable(DynamicTable *unsafe.Pointer, FunctionTable *IMAGE_ARM64_RUNTIME_FUNCTION_ENTRY, EntryCount uint32, MaximumEntryCount uint32, RangeBase uintptr, RangeEnd uintptr) (r uint32) = ntdll.dll.RtlAddGrowableFunctionTable
-//sys	RtlLookupFunctionEntry(ControlPc uintptr, ImageBase *uintptr, HistoryTable *UNWIND_HISTORY_TABLE) (r *IMAGE_ARM64_RUNTIME_FUNCTION_ENTRY) = kernel32.dll.RtlLookupFunctionEntry
-//sys	RtlVirtualUnwind(HandlerType RTL_VIRTUAL_UNWIND_HANDLER_TYPE, ImageBase uintptr, ControlPc uintptr, FunctionEntry *IMAGE_ARM64_RUNTIME_FUNCTION_ENTRY, ContextRecord *CONTEXT, HandlerData *unsafe.Pointer, EstablisherFrame *uintptr, ContextPointers *KNONVOLATILE_CONTEXT_POINTERS) (r EXCEPTION_ROUTINE) = kernel32.dll.RtlVirtualUnwind
-//sys	RtlGrowFunctionTable(DynamicTable unsafe.Pointer, NewEntryCount uint32) = ntdll.dll.RtlGrowFunctionTable
-//sys	RtlDeleteGrowableFunctionTable(DynamicTable unsafe.Pointer) = ntdll.dll.RtlDeleteGrowableFunctionTable
-//sys	RtlUnwindEx(TargetFrame unsafe.Pointer, TargetIp unsafe.Pointer, ExceptionRecord *EXCEPTION_RECORD, ReturnValue unsafe.Pointer, ContextRecord *CONTEXT, HistoryTable *UNWIND_HISTORY_TABLE) = kernel32.dll.RtlUnwindEx
-//sys	CheckSumMappedFile(BaseAddress unsafe.Pointer, FileLength uint32, HeaderSum *uint32, CheckSum *uint32) (r *IMAGE_NT_HEADERS64, err error) = imagehlp.dll.CheckSumMappedFile
-//sys	GetImageConfigInformation(LoadedImage *LOADED_IMAGE, ImageConfigInformation *IMAGE_LOAD_CONFIG_DIRECTORY64) (r BOOL, err error) = imagehlp.dll.GetImageConfigInformation
-//sys	SetImageConfigInformation(LoadedImage *LOADED_IMAGE, ImageConfigInformation *IMAGE_LOAD_CONFIG_DIRECTORY64) (r BOOL, err error) = imagehlp.dll.SetImageConfigInformation
-//sys	ImageNtHeader(Base unsafe.Pointer) (r *IMAGE_NT_HEADERS64, err error) = dbghelp.dll.ImageNtHeader
-//sys	ImageRvaToSection(NtHeaders *IMAGE_NT_HEADERS64, Base unsafe.Pointer, Rva uint32) (r *IMAGE_SECTION_HEADER, err error) = dbghelp.dll.ImageRvaToSection
-//sys	ImageRvaToVa(NtHeaders *IMAGE_NT_HEADERS64, Base unsafe.Pointer, Rva uint32, LastRvaSection **IMAGE_SECTION_HEADER) (r unsafe.Pointer, err error) = dbghelp.dll.ImageRvaToVa
+//sys	RtlAddFunctionTable(FunctionTable *IMAGE_ARM64_RUNTIME_FUNCTION_ENTRY, EntryCount uint32, BaseAddress uintptr) (r BOOLEAN)
+//sys	RtlDeleteFunctionTable(FunctionTable *IMAGE_ARM64_RUNTIME_FUNCTION_ENTRY) (r BOOLEAN)
+//sys	RtlInstallFunctionTableCallback(TableIdentifier uint64, BaseAddress uint64, Length uint32, Callback PGET_RUNTIME_FUNCTION_CALLBACK, Context unsafe.Pointer, OutOfProcessCallbackDll *PWSTRElement) (r BOOLEAN)
+//sys	RtlAddGrowableFunctionTable(DynamicTable *unsafe.Pointer, FunctionTable *IMAGE_ARM64_RUNTIME_FUNCTION_ENTRY, EntryCount uint32, MaximumEntryCount uint32, RangeBase uintptr, RangeEnd uintptr) (r uint32) = ntdll.RtlAddGrowableFunctionTable
+//sys	RtlLookupFunctionEntry(ControlPc uintptr, ImageBase *uintptr, HistoryTable *UNWIND_HISTORY_TABLE) (r *IMAGE_ARM64_RUNTIME_FUNCTION_ENTRY)
+//sys	RtlVirtualUnwind(HandlerType RTL_VIRTUAL_UNWIND_HANDLER_TYPE, ImageBase uintptr, ControlPc uintptr, FunctionEntry *IMAGE_ARM64_RUNTIME_FUNCTION_ENTRY, ContextRecord *CONTEXT, HandlerData *unsafe.Pointer, EstablisherFrame *uintptr, ContextPointers *KNONVOLATILE_CONTEXT_POINTERS) (r EXCEPTION_ROUTINE)
+//sys	RtlGrowFunctionTable(DynamicTable unsafe.Pointer, NewEntryCount uint32) = ntdll.RtlGrowFunctionTable
+//sys	RtlDeleteGrowableFunctionTable(DynamicTable unsafe.Pointer) = ntdll.RtlDeleteGrowableFunctionTable
+//sys	RtlUnwindEx(TargetFrame unsafe.Pointer, TargetIp unsafe.Pointer, ExceptionRecord *EXCEPTION_RECORD, ReturnValue unsafe.Pointer, ContextRecord *CONTEXT, HistoryTable *UNWIND_HISTORY_TABLE)
+//sys	CheckSumMappedFile(BaseAddress unsafe.Pointer, FileLength uint32, HeaderSum *uint32, CheckSum *uint32) (r *IMAGE_NT_HEADERS64, err error) = imagehlp.CheckSumMappedFile
+//sys	GetImageConfigInformation(LoadedImage *LOADED_IMAGE, ImageConfigInformation *IMAGE_LOAD_CONFIG_DIRECTORY64) (r BOOL, err error) = imagehlp.GetImageConfigInformation
+//sys	SetImageConfigInformation(LoadedImage *LOADED_IMAGE, ImageConfigInformation *IMAGE_LOAD_CONFIG_DIRECTORY64) (r BOOL, err error) = imagehlp.SetImageConfigInformation
+//sys	ImageNtHeader(Base unsafe.Pointer) (r *IMAGE_NT_HEADERS64, err error) = dbghelp.ImageNtHeader
+//sys	ImageRvaToSection(NtHeaders *IMAGE_NT_HEADERS64, Base unsafe.Pointer, Rva uint32) (r *IMAGE_SECTION_HEADER, err error) = dbghelp.ImageRvaToSection
+//sys	ImageRvaToVa(NtHeaders *IMAGE_NT_HEADERS64, Base unsafe.Pointer, Rva uint32, LastRvaSection **IMAGE_SECTION_HEADER) (r unsafe.Pointer, err error) = dbghelp.ImageRvaToVa
 
 // Types used in generated APIs for
 
