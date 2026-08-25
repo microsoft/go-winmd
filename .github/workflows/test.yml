@@ -9,14 +9,28 @@ jobs:
         venv: [windows-2022, windows-2025, windows-11-arm]
     runs-on: ${{ matrix.venv }}
     steps:
-    - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-      with:
-        go-version: ${{ matrix.go-version }}
-        go-download-base-url: 'https://aka.ms/golang/release/latest'
-    - name: Checkout code
-      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-    - name: Run Test - Build
-      env:
-        RACE_FLAG: ${{ runner.arch != 'ARM64' && '-race' || '' }}
-      run: go test -v $RACE_FLAG ./...
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ matrix.go-version }}
+          go-download-base-url: "https://aka.ms/golang/release/latest"
 
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Run Test - Build
+        env:
+          RACE_FLAG: ${{ runner.arch != 'ARM64' && '-race' || '' }}
+        run: go test -v $RACE_FLAG ./...
+
+  conclusion:
+    needs:
+      - test
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Result
+        run: |
+          if [[ "${{ contains(needs.*.result, 'failure') }}" == "true" || "${{ contains(needs.*.result, 'cancelled') }}" == "true" ]]; then
+            echo "One or more jobs failed or were cancelled."
+            exit 1
+          fi
+          echo "All jobs passed."
