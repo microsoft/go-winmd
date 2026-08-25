@@ -13,6 +13,7 @@ import (
 	"go/token"
 	"log"
 	"os"
+	"sort"
 	"strings"
 	"time"
 
@@ -56,10 +57,11 @@ func Run() error {
 	}
 
 	// Parse //winmd directives and infer package name from the input files.
-	filter, pkg, err := parseInputFiles(inputFiles)
+	filter, selectedTypes, pkg, err := parseInputFiles(inputFiles)
 	if err != nil {
 		return err
 	}
+	_ = selectedTypes
 
 	start := time.Now()
 
@@ -76,7 +78,7 @@ func Run() error {
 		gowinmd.ArchNone:  {},
 	}
 
-	if err := writePrototypesWithProjection(b, f, filter, projection); err != nil {
+	if err := writeSelectionsWithProjection(b, f, filter, selectedTypes, projection); err != nil {
 		return err
 	}
 
@@ -114,21 +116,47 @@ func Run() error {
 }
 
 // parseInputFiles reads Go source files to extract //winmd directives and infer the package name.
-// Each //winmd directive should contain a module.method reference (e.g. "kernel32.CreateFileW"),
-// optionally followed by -name GoFuncName to rename the generated function.
-// Returns a map of "module.method" -> Go name (empty string if no rename) and the inferred package name.
-func parseInputFiles(files []string) (methodFilter, string, error) {
-	filter := make(methodFilter)
+// Each //winmd directive selects either a function or a fully qualified WinMD type.
+func parseInputFiles(files []string) (methodFilter, typeFilter, string, error) {
+	methods := make(methodFilter)
+	types := make(typeFilter)
 	var pkg string
 	for _, path := range files {
 		file, err := os.Open(path)
 		if err != nil {
-			return nil, "", err
+			return nil, nil, "", err
 		}
 
 		s := bufio.NewScanner(file)
+		line := 0
 		for s.Scan() {
+			line++
 			t := strings.TrimSpace(s.Text())
+			if strings.HasPrefix(t, "//winmd:type") {
+				body := t[len("//winmd:type"):]
+				if len(body) == 0 || (body[0] != ' ' && body[0] != '\t') {
+					file.Close()
+					return nil, nil, "", fmt.Errorf("%s:%d: malformed //winmd:type directive: expected //winmd:type <namespace>.<type> [-name <GoName>]", path, line)
+				}
+				selection, err := parseTypeDirective(strings.TrimSpace(body))
+				if err != nil {
+					file.Close()
+					return nil, nil, "", fmt.Errorf("%s:%d: %w", path, line, err)
+				}
+				qualifiedName := selection.Namespace + "." + selection.Name
+				if existing, ok := types[qualifiedName]; ok {
+					if existing.GoName != "" && selection.GoName != "" && existing.GoName != selection.GoName {
+						file.Close()
+						return nil, nil, "", fmt.Errorf("%s:%d: conflicting Go names %q and %q for WinMD type %s", path, line, existing.GoName, selection.GoName, qualifiedName)
+					}
+					if existing.GoName == "" && selection.GoName != "" {
+						types[qualifiedName] = selection
+					}
+				} else {
+					types[qualifiedName] = selection
+				}
+				continue
+			}
 			if !strings.HasPrefix(t, "//winmd:func") {
 				continue
 			}
@@ -147,24 +175,24 @@ func parseInputFiles(files []string) (methodFilter, string, error) {
 				// Method on default module, e.g. "CreateFileW" -> "kernel32.CreateFileW".
 				ref = "kernel32." + ref
 			}
-			filter[strings.ToLower(ref)] = goName
+			methods[strings.ToLower(ref)] = goName
 		}
 		if err := s.Err(); err != nil {
 			file.Close()
-			return nil, "", err
+			return nil, nil, "", err
 		}
 
 		// Infer package name from the Go source file.
 		if pkg == "" {
 			if _, err := file.Seek(0, 0); err != nil {
 				file.Close()
-				return nil, "", err
+				return nil, nil, "", err
 			}
 			fset := token.NewFileSet()
 			parsed, err := parser.ParseFile(fset, path, file, parser.PackageClauseOnly)
 			if err != nil {
 				file.Close()
-				return nil, "", fmt.Errorf("failed to parse package name from %s: %w", path, err)
+				return nil, nil, "", fmt.Errorf("failed to parse package name from %s: %w", path, err)
 			}
 			pkg = parsed.Name.Name
 		}
@@ -172,12 +200,53 @@ func parseInputFiles(files []string) (methodFilter, string, error) {
 		file.Close()
 	}
 	if pkg == "" {
-		return nil, "", errors.New("could not determine package name from input files")
+		return nil, nil, "", errors.New("could not determine package name from input files")
 	}
-	if len(filter) == 0 {
-		return nil, "", errors.New("no //winmd:func directives found in input files")
+	if len(methods) == 0 && len(types) == 0 {
+		return nil, nil, "", errors.New("no //winmd:func or //winmd:type directives found in input files")
 	}
-	return filter, pkg, nil
+	return methods, types, pkg, nil
+}
+
+type typeSelection struct {
+	Namespace string
+	Name      string
+	GoName    string
+}
+
+type typeFilter map[string]typeSelection
+
+func parseTypeDirective(s string) (typeSelection, error) {
+	fields := strings.Fields(s)
+	if len(fields) == 0 {
+		return typeSelection{}, errors.New("malformed //winmd:type directive: missing fully qualified type name")
+	}
+
+	qualifiedName := fields[0]
+	separator := strings.LastIndexByte(qualifiedName, '.')
+	if separator <= 0 || separator == len(qualifiedName)-1 || strings.Contains(qualifiedName, "..") {
+		return typeSelection{}, fmt.Errorf("WinMD type %q is not fully qualified; expected <namespace>.<type>", qualifiedName)
+	}
+	selection := typeSelection{
+		Namespace: qualifiedName[:separator],
+		Name:      qualifiedName[separator+1:],
+	}
+
+	switch len(fields) {
+	case 1:
+		return selection, nil
+	case 3:
+		if fields[1] != "-name" {
+			return typeSelection{}, fmt.Errorf("malformed //winmd:type directive: unexpected option %q", fields[1])
+		}
+		if !token.IsIdentifier(fields[2]) || fields[2] == "_" {
+			return typeSelection{}, fmt.Errorf("invalid Go type name %q: expected a non-blank Go identifier", fields[2])
+		}
+		selection.GoName = fields[2]
+		return selection, nil
+	default:
+		return typeSelection{}, errors.New("malformed //winmd:type directive: expected <namespace>.<type> [-name <GoName>]")
+	}
 }
 
 // parseDirective parses a //winmd directive body into the ref (module.method or module)
@@ -203,9 +272,24 @@ func writePrototypes(b map[gowinmd.Arch]*strings.Builder, f *winmd.Metadata, fil
 }
 
 func writePrototypesWithProjection(b map[gowinmd.Arch]*strings.Builder, f *winmd.Metadata, filter methodFilter, projection gowinmd.Projection) error {
+	return writeSelectionsWithProjection(b, f, filter, nil, projection)
+}
+
+func writeSelectionsWithProjection(b map[gowinmd.Arch]*strings.Builder, f *winmd.Metadata, filter methodFilter, selectedTypes typeFilter, projection gowinmd.Projection) error {
 	context, err := gowinmd.NewContext(f)
 	if err != nil {
 		return err
+	}
+	qualifiedNames := make([]string, 0, len(selectedTypes))
+	for qualifiedName := range selectedTypes {
+		qualifiedNames = append(qualifiedNames, qualifiedName)
+	}
+	sort.Strings(qualifiedNames)
+	for _, qualifiedName := range qualifiedNames {
+		selection := selectedTypes[qualifiedName]
+		if err := context.SelectTypeDef(selection.Namespace, selection.Name, selection.GoName); err != nil {
+			return err
+		}
 	}
 
 	for idx := range f.Tables.TypeDef.Indices() {

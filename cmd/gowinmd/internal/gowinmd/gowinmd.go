@@ -73,6 +73,8 @@ type Context struct {
 	Metadata *winmd.Metadata
 
 	typeDefCache typeDefCache
+	// typeDefsByName maps case-sensitive qualified names to module-level TypeDef indices.
+	typeDefsByName map[qualifiedTypeName][]winmd.Index
 
 	// resolvedDefsByIndex maps TypeDef Index -> resolved TypeDef information.
 	resolvedDefsByIndex map[winmd.Index]*resolvedDef
@@ -84,6 +86,9 @@ type Context struct {
 	// requiredTypeDefs contains projected typedefs that are also referenced by generated declarations.
 	requiredTypeDefs map[winmd.Index]bool
 	projectingType   bool
+	// abiLayoutTypeDefs contains explicitly selected types and their field dependencies.
+	abiLayoutTypeDefs map[winmd.Index]bool
+	writingABIType    bool
 
 	// The maps below index commonly used winmd table relationships to allow fast access when
 	// interpreting the metadata and writing the Go source code. This helps with (e.g.) traversing
@@ -103,6 +108,8 @@ type Context struct {
 	paramSizeIndex map[winmd.Index]uint16
 	// fieldOffset maps Field -> the Value of the FieldIndexAttribute on that field.
 	fieldOffset map[winmd.Index]uint32
+	// classLayout maps TypeDef -> its explicit packing and class size metadata.
+	classLayout map[winmd.Index]winmd.ClassLayout
 	// nestedTypeDefChildren maps TypeDef -> all of its child (nested) TypeDefs.
 	nestedTypeDefChildren map[winmd.Index][]winmd.Index
 }
@@ -128,10 +135,12 @@ func NewContext(f *winmd.Metadata) (*Context, error) {
 	l := &Context{
 		Metadata:             f,
 		typeDefCache:         *newTypeDefCache(),
+		typeDefsByName:       make(map[qualifiedTypeName][]winmd.Index),
 		resolvedDefsByIndex:  make(map[winmd.Index]*resolvedDef),
 		unresolvableTypeRefs: make(map[typeNameKey]winmd.TypeRef),
 		projectedTypeDefs:    make(map[winmd.Index]bool),
 		requiredTypeDefs:     make(map[winmd.Index]bool),
+		abiLayoutTypeDefs:    make(map[winmd.Index]bool),
 
 		methodDefImplMap:              make(map[winmd.Index]winmd.ImplMap),
 		fieldConstant:                 make(map[winmd.Index]winmd.Constant),
@@ -140,6 +149,7 @@ func NewContext(f *winmd.Metadata) (*Context, error) {
 		methodDefSupportedArch:        make(map[winmd.Index]Arch),
 		paramSizeIndex:                make(map[winmd.Index]uint16),
 		fieldOffset:                   make(map[winmd.Index]uint32),
+		classLayout:                   make(map[winmd.Index]winmd.ClassLayout),
 		nestedTypeDefChildren:         make(map[winmd.Index][]winmd.Index),
 	}
 	// We index tables and resolved defs with the assumption that there is exactly one module. For
@@ -157,6 +167,8 @@ func NewContext(f *winmd.Metadata) (*Context, error) {
 			continue
 		}
 		l.typeDefCache.add(idx, r)
+		key := qualifiedTypeName{Namespace: r.Namespace.String(), Name: r.Name.String()}
+		l.typeDefsByName[key] = append(l.typeDefsByName[key], idx)
 	}
 	for idx := range f.Tables.ImplMap.Indices() {
 		im, err := f.Tables.ImplMap.At(idx)
@@ -280,6 +292,16 @@ func NewContext(f *winmd.Metadata) (*Context, error) {
 		}
 		l.fieldOffset[layout.Field] = layout.Offset
 	}
+	for idx := range f.Tables.ClassLayout.Indices() {
+		layout, err := f.Tables.ClassLayout.At(idx)
+		if err != nil {
+			return nil, err
+		}
+		if existing, ok := l.classLayout[layout.Parent]; ok {
+			return nil, fmt.Errorf("multiple ClassLayout rows found for TypeDef %v: found %v; already found %#v", layout.Parent, idx, existing)
+		}
+		l.classLayout[layout.Parent] = layout
+	}
 	for idx := range f.Tables.NestedClass.Indices() {
 		nest, err := f.Tables.NestedClass.At(idx)
 		if err != nil {
@@ -402,6 +424,47 @@ func (c *Context) TypeDefSupportedArch(idx winmd.Index) Arch {
 		v = ArchAll
 	}
 	return v
+}
+
+type qualifiedTypeName struct {
+	Namespace string
+	Name      string
+}
+
+// SelectTypeDef marks a module-level TypeDef and its architecture variants for emission.
+func (c *Context) SelectTypeDef(namespace, name, goName string) error {
+	key := qualifiedTypeName{Namespace: namespace, Name: name}
+	indices := c.typeDefsByName[key]
+	qualifiedName := namespace + "." + name
+	if len(indices) == 0 {
+		return fmt.Errorf("unknown WinMD type %q", qualifiedName)
+	}
+	if goName != "" && (!token.IsIdentifier(goName) || goName == "_") {
+		return fmt.Errorf("invalid Go type name %q", goName)
+	}
+
+	for i, left := range indices {
+		leftArch := c.TypeDefSupportedArch(left)
+		for _, right := range indices[i+1:] {
+			overlap := leftArch & c.TypeDefSupportedArch(right)
+			if overlap != 0 {
+				return fmt.Errorf("ambiguous WinMD type %q: multiple definitions apply to architecture %s", qualifiedName, overlap.String())
+			}
+		}
+	}
+
+	for _, index := range indices {
+		def, err := c.resolveTypeDef(index)
+		if err != nil {
+			return fmt.Errorf("resolve WinMD type %q: %w", qualifiedName, err)
+		}
+		if goName != "" {
+			def.GoName = goName
+		}
+		c.requiredTypeDefs[index] = true
+		c.abiLayoutTypeDefs[index] = true
+	}
+	return nil
 }
 
 // WriteMethod writes to w the signature for "method" in x/sys/windows/mkwinsyscall format.
@@ -707,6 +770,9 @@ func (c *Context) writeType(w io.StringWriter, p *winmd.SigType, arch Arch) erro
 					if !c.projectingType {
 						c.requiredTypeDefs[def.Index] = true
 					}
+					if c.writingABIType {
+						c.abiLayoutTypeDefs[def.Index] = true
+					}
 					w.WriteString(def.GoName)
 				case winmd.TypeDefOrRefOrSpec_TypeRef:
 					def, err := c.resolveTypeRef(v.Index, arch)
@@ -726,6 +792,9 @@ func (c *Context) writeType(w io.StringWriter, p *winmd.SigType, arch Arch) erro
 						}
 						if !c.projectingType {
 							c.requiredTypeDefs[def.Index] = true
+						}
+						if c.writingABIType {
+							c.abiLayoutTypeDefs[def.Index] = true
 						}
 						w.WriteString(def.GoName)
 					}
@@ -939,6 +1008,10 @@ func (c *Context) resolveTypeDef(defIndex winmd.Index) (*resolvedDef, error) {
 }
 
 func (c *Context) writeTypeDef(w io.StringWriter, r *resolvedDef, arch Arch) error {
+	previousWritingABIType := c.writingABIType
+	c.writingABIType = c.abiLayoutTypeDefs[r.Index]
+	defer func() { c.writingABIType = previousWritingABIType }()
+
 	if r.IsInterface() {
 		// Issue tracking implementing interface types: https://github.com/microsoft/go-winmd/issues/14
 		w.WriteString("// Interface type is likely missing members. Not yet implemented in go-winmd.\n")
@@ -1107,6 +1180,25 @@ func (c *Context) writeTypeDefStruct(w io.StringWriter, r *resolvedDef, arch Arc
 }
 
 func (c *Context) writeStructFields(w io.StringWriter, r *resolvedDef, arch Arch) error {
+	if c.abiLayoutTypeDefs[r.Index] && (arch == Arch386 || arch == ArchAMD64 || arch == ArchARM64) {
+		layout, err := c.planStructABI(r, arch, nil)
+		if err != nil {
+			return err
+		}
+		for _, field := range layout.fields {
+			if field.padding != 0 {
+				w.WriteString("\t_ [" + strconv.Itoa(int(field.padding)) + "]byte\n")
+			}
+			if err := c.writeStructField(w, field.index, arch); err != nil {
+				return err
+			}
+		}
+		if layout.tailPadding != 0 {
+			w.WriteString("\t_ [" + strconv.Itoa(int(layout.tailPadding)) + "]byte\n")
+		}
+		return nil
+	}
+
 	// Union type support is simple for now. Roughly follow the x/sys approach and pick one union
 	// option to implement. See the x/sys/windows "IpAdapterAddresses" struct in syscall_windows.go
 	// for an example. Better support is tracked at https://github.com/microsoft/go-winmd/issues/17
@@ -1171,9 +1263,12 @@ func (c *Context) writeStructField(w io.StringWriter, fieldIndex winmd.Index, ar
 }
 
 // WriteUsedTypeDefs writes Go definitions for TypeDefs that were discovered during WriteMethod
-// calls to b. For a given Context c, only call this method one time, and only after all WriteMethod
-// calls are complete.
+// calls or explicitly selected with SelectTypeDef. For a given Context c, only call this method one
+// time, after all WriteMethod and SelectTypeDef calls are complete.
 func (c *Context) WriteUsedTypeDefs(b map[Arch]*strings.Builder) error {
+	if err := c.discoverABILayoutDependencies(); err != nil {
+		return err
+	}
 	archSeen := make(map[Arch]bool)
 	// Keep going until we stop finding new types that need definitions.
 	written := make(map[*resolvedDef]struct{})
@@ -1199,15 +1294,45 @@ func (c *Context) WriteUsedTypeDefs(b map[Arch]*strings.Builder) error {
 			// Writing the type def (field types in particular) adds new entries to ResolvedDefs if
 			// we haven't seen them yet.
 			supportedArches := c.TypeDefSupportedArch(r.Index)
-			for _, arch := range supportedArches.Unique() {
+			type renderedType struct {
+				arch   Arch
+				text   string
+				layout abiLayoutFingerprint
+			}
+			var rendered []renderedType
+			if c.abiLayoutTypeDefs[r.Index] && supportedArches == ArchAll {
+				for _, arch := range []Arch{Arch386, ArchAMD64, ArchARM64} {
+					var definition strings.Builder
+					if err := c.writeTypeDef(&definition, r, arch); err != nil {
+						return err
+					}
+					layout, err := c.typeDefABILayoutFingerprint(r, arch)
+					if err != nil {
+						return err
+					}
+					rendered = append(rendered, renderedType{arch: arch, text: definition.String(), layout: layout})
+				}
+				if rendered[0].text == rendered[1].text && rendered[0].text == rendered[2].text &&
+					equalABILayout(rendered[0].layout, rendered[1].layout) && equalABILayout(rendered[0].layout, rendered[2].layout) {
+					rendered = []renderedType{{arch: ArchAll, text: rendered[0].text}}
+				}
+			} else {
+				for _, arch := range supportedArches.Unique() {
+					var definition strings.Builder
+					if err := c.writeTypeDef(&definition, r, arch); err != nil {
+						return err
+					}
+					rendered = append(rendered, renderedType{arch: arch, text: definition.String()})
+				}
+			}
+			for _, definition := range rendered {
+				arch := definition.arch
 				w := b[arch]
 				if !archSeen[arch] {
 					w.WriteString("\n\n// Types used in generated APIs for\n\n")
 					archSeen[arch] = true
 				}
-				if err := c.writeTypeDef(w, r, arch); err != nil {
-					return err
-				}
+				w.WriteString(definition.text)
 				w.WriteString("\n")
 			}
 		}
@@ -1228,7 +1353,7 @@ func escapeParam(s string) string {
 // lowercase, so uppercasing the first letter does two things: escapes names like "type" and exports
 // the generated types/fields.
 func escapedUpper(s string) string {
-	if len(s) > 1 {
+	if len(s) > 0 {
 		s = strings.ToUpper(string(s[0])) + s[1:]
 	}
 	return s
