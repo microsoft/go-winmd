@@ -4,11 +4,41 @@
 package gowinmd
 
 import (
+	"encoding/binary"
 	"strings"
 	"testing"
 
 	"github.com/microsoft/go-winmd/winmd"
 )
+
+func TestDecodeInt16AttributeField(t *testing.T) {
+	value := []byte{1, 0, 1, 0, 0x53, byte(winmd.ElementType_I2), 15}
+	value = append(value, "CountParamIndex"...)
+	value = binary.LittleEndian.AppendUint16(value, 3)
+
+	got, ok, err := decodeInt16AttributeField(value, "CountParamIndex")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !ok || got != 3 {
+		t.Fatalf("decodeInt16AttributeField() = %v, %v; want 3, true", got, ok)
+	}
+}
+
+func TestMkwinsyscallModuleName(t *testing.T) {
+	for _, test := range []struct {
+		name string
+		want string
+	}{
+		{"bcrypt.dll", "bcrypt"},
+		{"BCRYPT.DLL", "bcrypt"},
+		{"bcrypt", "bcrypt"},
+	} {
+		if got := mkwinsyscallModuleName(test.name); got != test.want {
+			t.Errorf("mkwinsyscallModuleName(%q) = %q; want %q", test.name, got, test.want)
+		}
+	}
+}
 
 func TestContext_writeType_cycle(t *testing.T) {
 	t.Skip("cycles can't be built with SigType rather than *SigType, and this code only supports SigType")

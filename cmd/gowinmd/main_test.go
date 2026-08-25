@@ -13,18 +13,22 @@ import (
 	"github.com/microsoft/go-winmd/winmd"
 )
 
-func TestWriteMethod(t *testing.T) {
-	f, err := openTestWinmd()
-	if err != nil {
-		t.Fatal(err)
-	}
-	b := map[gowinmd.Arch]*strings.Builder{
+func newArchBuilders() map[gowinmd.Arch]*strings.Builder {
+	return map[gowinmd.Arch]*strings.Builder{
 		gowinmd.Arch386:   {},
 		gowinmd.ArchAMD64: {},
 		gowinmd.ArchARM64: {},
 		gowinmd.ArchAll:   {},
 		gowinmd.ArchNone:  {},
 	}
+}
+
+func TestWriteMethod(t *testing.T) {
+	f, err := openTestWinmd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	b := newArchBuilders()
 	filter, err := buildNamespaceFilter(f,
 		"Windows.Win32.Storage.FileSystem",
 		"Windows.Win32.Security.Cryptography",
@@ -53,18 +57,68 @@ func TestWriteMethod(t *testing.T) {
 	}
 }
 
+func TestWriteProjectedBCryptMethods(t *testing.T) {
+	f, err := openTestWinmd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	b := newArchBuilders()
+	filter := methodFilter{}
+	for _, name := range []string{
+		"BCryptGetFipsAlgorithmMode", "BCryptGetProperty", "BCryptSetProperty",
+		"BCryptOpenAlgorithmProvider", "BCryptCreateHash", "BCryptHashData",
+		"BCryptEncrypt", "BCryptDecrypt", "BCryptGenerateSymmetricKey",
+		"BCryptSignHash", "BCryptDeriveKey",
+	} {
+		filter[strings.ToLower("bcrypt.dll."+name)] = ""
+	}
+	filter["bcrypt.dll.bcrypthashdata"] = "rawEncrypt"
+
+	if err := writePrototypesWithProjection(b, f, filter, gowinmd.ProjectionIdiomatic); err != nil {
+		t.Fatal(err)
+	}
+	got := b[gowinmd.ArchAll].String()
+	wants := []string{
+		"//sys\tBCryptGetProperty(hObject BCRYPT_HANDLE, pszProperty *uint16, pbOutput []byte, pcbResult *uint32, dwFlags uint32) (ntstatus error) = bcrypt.BCryptGetProperty",
+		"//sys\tBCryptSetProperty(hObject BCRYPT_HANDLE, pszProperty *uint16, pbInput []byte, dwFlags uint32) (ntstatus error) = bcrypt.BCryptSetProperty",
+		"//sys\trawEncrypt(hHash BCRYPT_HASH_HANDLE, pbInput []byte, dwFlags uint32) (ntstatus error) = bcrypt.BCryptHashData",
+	}
+	for _, want := range wants {
+		if !strings.Contains(got, want) {
+			t.Errorf("projected output does not contain %q\noutput:\n%s", want, got)
+		}
+	}
+	if strings.Contains(got, ".dll.") || strings.Contains(got, "PWSTRElement") {
+		t.Errorf("projected output contains an unnormalized DLL or synthetic string element type:\n%s", got)
+	}
+	if !strings.Contains(got, "BCRYPT_BLOCK_PADDING BCRYPT_FLAGS = 0x1") ||
+		!strings.Contains(got, "BCRYPT_PAD_NONE BCRYPT_FLAGS = 0x1") {
+		t.Errorf("projected output did not preserve duplicate constant values:\n%s", got)
+	}
+}
+
+func TestIdiomaticProjectionDoesNotProjectHRESULT(t *testing.T) {
+	f, err := openTestWinmd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	b := newArchBuilders()
+	filter := methodFilter{"ncrypt.dll.ncryptgetproperty": ""}
+	if err := writePrototypesWithProjection(b, f, filter, gowinmd.ProjectionIdiomatic); err != nil {
+		t.Fatal(err)
+	}
+	got := b[gowinmd.ArchAll].String()
+	if !strings.Contains(got, "(r HRESULT) = ncrypt.NCryptGetProperty") {
+		t.Fatalf("HRESULT return was unexpectedly projected:\n%s", got)
+	}
+}
+
 func TestFullFile(t *testing.T) {
 	f, err := openTestWinmd()
 	if err != nil {
 		t.Fatal(err)
 	}
-	b := map[gowinmd.Arch]*strings.Builder{
-		gowinmd.Arch386:   {},
-		gowinmd.ArchAMD64: {},
-		gowinmd.ArchARM64: {},
-		gowinmd.ArchAll:   {},
-		gowinmd.ArchNone:  {},
-	}
+	b := newArchBuilders()
 	if err := writePrototypes(b, f, nil); err != nil {
 		t.Fatal(err)
 	}

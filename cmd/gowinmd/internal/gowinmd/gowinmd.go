@@ -79,6 +79,11 @@ type Context struct {
 	// unresolvableTypeRefs is a set of TypeRefs that were discovered but unable to be resolved
 	// inside the current module.
 	unresolvableTypeRefs map[typeNameKey]winmd.TypeRef
+	// projectedTypeDefs contains native typedefs replaced with their underlying Go pointer type.
+	projectedTypeDefs map[winmd.Index]bool
+	// requiredTypeDefs contains projected typedefs that are also referenced by generated declarations.
+	requiredTypeDefs map[winmd.Index]bool
+	projectingType   bool
 
 	// The maps below index commonly used winmd table relationships to allow fast access when
 	// interpreting the metadata and writing the Go source code. This helps with (e.g.) traversing
@@ -94,10 +99,27 @@ type Context struct {
 	typeDefSupportedArch map[winmd.Index]Arch
 	// methodDefSupportedArch maps MethodDef -> the Value of the SupportedArchitectureAttribute on that method.
 	methodDefSupportedArch map[winmd.Index]Arch
+	// paramSizeIndex maps Param -> the zero-based parameter index that supplies its element or byte count.
+	paramSizeIndex map[winmd.Index]uint16
 	// fieldOffset maps Field -> the Value of the FieldIndexAttribute on that field.
 	fieldOffset map[winmd.Index]uint32
 	// nestedTypeDefChildren maps TypeDef -> all of its child (nested) TypeDefs.
 	nestedTypeDefChildren map[winmd.Index][]winmd.Index
+}
+
+// Projection controls whether signatures preserve the literal WinMD ABI types or use
+// mkwinsyscall conventions that provide more idiomatic Go wrappers.
+type Projection uint8
+
+const (
+	ProjectionRaw Projection = iota
+	ProjectionIdiomatic
+)
+
+// MethodOptions controls how WriteMethodWithOptions formats a method.
+type MethodOptions struct {
+	GoName     string
+	Projection Projection
 }
 
 // NewContext creates a Context. Reads some tables in their entirety to fill in internal index maps
@@ -108,12 +130,15 @@ func NewContext(f *winmd.Metadata) (*Context, error) {
 		typeDefCache:         *newTypeDefCache(),
 		resolvedDefsByIndex:  make(map[winmd.Index]*resolvedDef),
 		unresolvableTypeRefs: make(map[typeNameKey]winmd.TypeRef),
+		projectedTypeDefs:    make(map[winmd.Index]bool),
+		requiredTypeDefs:     make(map[winmd.Index]bool),
 
 		methodDefImplMap:              make(map[winmd.Index]winmd.ImplMap),
 		fieldConstant:                 make(map[winmd.Index]winmd.Constant),
 		typeDefNativeTypedefAttribute: make(map[winmd.Index]winmd.CustomAttribute),
 		typeDefSupportedArch:          make(map[winmd.Index]Arch),
 		methodDefSupportedArch:        make(map[winmd.Index]Arch),
+		paramSizeIndex:                make(map[winmd.Index]uint16),
 		fieldOffset:                   make(map[winmd.Index]uint32),
 		nestedTypeDefChildren:         make(map[winmd.Index][]winmd.Index),
 	}
@@ -189,6 +214,21 @@ func NewContext(f *winmd.Metadata) (*Context, error) {
 		switch c.Namespace.String() {
 		case "Windows.Win32.Foundation.Metadata", "Windows.Win32.Interop": // The former is legacy
 			switch c.Name.String() {
+			case "NativeArrayInfoAttribute", "MemorySizeAttribute":
+				if a.Parent.Tag != winmd.HasCustomAttribute_Param {
+					break
+				}
+				fieldName := "CountParamIndex"
+				if c.Name.String() == "MemorySizeAttribute" {
+					fieldName = "BytesParamIndex"
+				}
+				index, ok, err := decodeInt16AttributeField(a.Value, fieldName)
+				if err != nil {
+					return nil, fmt.Errorf("decode %s on parameter %v: %w", c.Name, a.Parent.Index, err)
+				}
+				if ok && index >= 0 {
+					l.paramSizeIndex[a.Parent.Index] = uint16(index)
+				}
 			case "NativeTypedefAttribute":
 				if a.Parent.Tag != winmd.HasCustomAttribute_TypeDef {
 					break
@@ -250,6 +290,78 @@ func NewContext(f *winmd.Metadata) (*Context, error) {
 	return l, nil
 }
 
+func decodeInt16AttributeField(value []byte, wanted string) (int16, bool, error) {
+	if len(value) < 4 || value[0] != 1 || value[1] != 0 {
+		return 0, false, errors.New("invalid custom attribute prolog")
+	}
+	namedCount := int(binary.LittleEndian.Uint16(value[2:4]))
+	value = value[4:]
+	for range namedCount {
+		if len(value) < 2 || (value[0] != 0x53 && value[0] != 0x54) {
+			return 0, false, errors.New("unsupported custom attribute named argument")
+		}
+		fieldType := winmd.ElementType(value[1])
+		value = value[2:]
+		name, rest, err := decodeAttributeString(value)
+		if err != nil {
+			return 0, false, errors.New("invalid custom attribute field name")
+		}
+		value = rest
+		if name == wanted {
+			if fieldType != winmd.ElementType_I2 || len(value) < 2 {
+				return 0, false, fmt.Errorf("field %s is not an int16", wanted)
+			}
+			return int16(binary.LittleEndian.Uint16(value[:2])), true, nil
+		}
+		var size int
+		switch fieldType {
+		case winmd.ElementType_BOOLEAN, winmd.ElementType_I1, winmd.ElementType_U1:
+			size = 1
+		case winmd.ElementType_CHAR, winmd.ElementType_I2, winmd.ElementType_U2:
+			size = 2
+		case winmd.ElementType_I4, winmd.ElementType_U4, winmd.ElementType_R4:
+			size = 4
+		case winmd.ElementType_I8, winmd.ElementType_U8, winmd.ElementType_R8:
+			size = 8
+		case winmd.ElementType_STRING:
+			_, value, err = decodeAttributeString(value)
+			if err != nil {
+				return 0, false, err
+			}
+			continue
+		default:
+			return 0, false, fmt.Errorf("unsupported custom attribute field type %v", fieldType)
+		}
+		if len(value) < size {
+			return 0, false, errors.New("truncated custom attribute field value")
+		}
+		value = value[size:]
+	}
+	return 0, false, nil
+}
+
+func decodeAttributeString(value []byte) (string, []byte, error) {
+	if len(value) == 0 || value[0] == 0xff {
+		return "", nil, errors.New("null or truncated custom attribute string")
+	}
+	var length, prefix int
+	switch {
+	case value[0]&0x80 == 0:
+		length, prefix = int(value[0]), 1
+	case value[0]&0xc0 == 0x80 && len(value) >= 2:
+		length, prefix = int(value[0]&0x3f)<<8|int(value[1]), 2
+	case value[0]&0xe0 == 0xc0 && len(value) >= 4:
+		length = int(value[0]&0x1f)<<24 | int(value[1])<<16 | int(value[2])<<8 | int(value[3])
+		prefix = 4
+	default:
+		return "", nil, errors.New("invalid custom attribute string length")
+	}
+	if len(value) < prefix+length {
+		return "", nil, errors.New("truncated custom attribute string")
+	}
+	return string(value[prefix : prefix+length]), value[prefix+length:], nil
+}
+
 // MethodDefSupportedArch returns the set of architectures that the given method is supported on.
 func (c *Context) MethodDefSupportedArch(idx winmd.Index) Arch {
 	v, ok := c.methodDefSupportedArch[idx]
@@ -303,13 +415,23 @@ func (c *Context) TypeDefSupportedArch(idx winmd.Index) Arch {
 //
 // goNameOverride, if non-empty, replaces the default Go function name.
 func (c *Context) WriteMethod(w io.StringWriter, methodIndex winmd.Index, method winmd.MethodDef, arch Arch, goNameOverride string) error {
+	return c.WriteMethodWithOptions(w, methodIndex, method, arch, MethodOptions{GoName: goNameOverride})
+}
+
+// WriteMethodWithOptions writes a signature with the requested projection options.
+func (c *Context) WriteMethodWithOptions(w io.StringWriter, methodIndex winmd.Index, method winmd.MethodDef, arch Arch, options MethodOptions) error {
 	goName := method.Name.String()
-	if goNameOverride != "" {
-		goName = goNameOverride
+	if options.GoName != "" {
+		goName = options.GoName
+		if !token.IsIdentifier(goName) {
+			return fmt.Errorf("invalid Go function name %q", goName)
+		}
+	} else if !token.IsIdentifier(goName) {
+		goName = escapedUpper(goName)
 	}
 
 	w.WriteString("//sys\t")
-	w.WriteString(escapedUpper(goName))
+	w.WriteString(goName)
 	w.WriteString("(")
 
 	sig, err := c.Metadata.MethodDefSignature(method.Signature)
@@ -317,6 +439,8 @@ func (c *Context) WriteMethod(w io.StringWriter, methodIndex winmd.Index, method
 		return err
 	}
 
+	params := make([]winmd.Param, len(sig.Param))
+	paramRows := make([]winmd.Index, len(sig.Param))
 	for paramRowIndex := range method.ParamList.All() {
 		param, err := c.Metadata.Tables.Param.At(paramRowIndex)
 		if err != nil {
@@ -340,16 +464,41 @@ func (c *Context) WriteMethod(w io.StringWriter, methodIndex winmd.Index, method
 		// Note: this assumes there are no gaps in Sequence values, but technically gaps are
 		// possible per §II.22.33 information point 5. See https://github.com/microsoft/go-winmd/issues/10
 		i := param.Sequence - 1
-		if i > 0 {
-			w.WriteString(", ")
-		}
-		w.WriteString(escapeParam(param.Name.String()))
-		w.WriteString(" ")
-
 		if int(i) >= len(sig.Param) {
 			return fmt.Errorf("param record Sequence value %v is out of range of parsed signature params, length %v", i, len(sig.Param))
 		}
-		if err := c.writeType(w, &sig.Param[i].Type, arch); err != nil {
+		params[i] = param
+		paramRows[i] = paramRowIndex
+	}
+
+	wroteParam := false
+	for i, param := range params {
+		if options.Projection == ProjectionIdiomatic && i > 0 {
+			if sizeIndex, ok := c.paramSizeIndex[paramRows[i-1]]; ok && int(sizeIndex) == i {
+				continue
+			}
+		}
+		if wroteParam {
+			w.WriteString(", ")
+		}
+		wroteParam = true
+		w.WriteString(escapeParam(param.Name.String()))
+		w.WriteString(" ")
+
+		projectSlice := false
+		if options.Projection == ProjectionIdiomatic && i+1 < len(params) {
+			sizeIndex, ok := c.paramSizeIndex[paramRows[i]]
+			projectSlice = ok && int(sizeIndex) == i+1
+		}
+		var err error
+		if projectSlice {
+			err = c.writeSliceType(w, &sig.Param[i].Type, arch)
+		} else if options.Projection == ProjectionIdiomatic {
+			err = c.writeProjectedType(w, &sig.Param[i].Type, arch)
+		} else {
+			err = c.writeType(w, &sig.Param[i].Type, arch)
+		}
+		if err != nil {
 			return fmt.Errorf("failed to interpret type of param %v of method %v: %w", i, method.Name, err)
 		}
 	}
@@ -366,7 +515,7 @@ func (c *Context) WriteMethod(w io.StringWriter, methodIndex winmd.Index, method
 		if err != nil {
 			return err
 		}
-		moduleName = strings.ToLower(mr.Name.String())
+		moduleName = mkwinsyscallModuleName(mr.Name.String())
 		if moduleName == "kernel32" {
 			moduleName = ""
 		}
@@ -376,11 +525,17 @@ func (c *Context) WriteMethod(w io.StringWriter, methodIndex winmd.Index, method
 	if value := sig.RetType.Kind != winmd.SigRetTypeKind_Void; value || lastErr {
 		w.WriteString(" (")
 		if value {
+			if options.Projection == ProjectionIdiomatic && c.isTypeNamed(&sig.RetType.Type, arch, "NTSTATUS") {
+				w.WriteString("ntstatus error")
+				value = false
+			}
 			// General return value name, because mkwinsyscall needs one.
 			// Generated returns in general could be better. See https://github.com/microsoft/go-winmd/issues/12
-			w.WriteString("r ")
-			if err := c.writeType(w, &sig.RetType.Type, arch); err != nil {
-				return err
+			if value {
+				w.WriteString("r ")
+				if err := c.writeType(w, &sig.RetType.Type, arch); err != nil {
+					return err
+				}
 			}
 			if lastErr {
 				w.WriteString(", ")
@@ -402,6 +557,71 @@ func (c *Context) WriteMethod(w io.StringWriter, methodIndex winmd.Index, method
 		w.WriteString(method.Name.String())
 	}
 	return nil
+}
+
+func mkwinsyscallModuleName(moduleName string) string {
+	return strings.TrimSuffix(strings.ToLower(moduleName), ".dll")
+}
+
+func (c *Context) writeProjectedType(w io.StringWriter, p *winmd.SigType, arch Arch) error {
+	var rendered strings.Builder
+	c.projectingType = true
+	err := c.writeType(&rendered, p, arch)
+	c.projectingType = false
+	if err != nil {
+		return err
+	}
+	typeName := rendered.String()
+	if strings.HasPrefix(typeName, "*") && strings.HasSuffix(typeName, "Element") {
+		for _, def := range c.resolvedDefsByIndex {
+			if def.NativePointer && typeName == "*"+def.GoName {
+				c.projectedTypeDefs[def.Index] = true
+				var native strings.Builder
+				if err := c.writeTypeDefNativeUnderlying(&native, def, arch); err != nil {
+					return err
+				}
+				w.WriteString("*")
+				w.WriteString(native.String())
+				return nil
+			}
+		}
+	}
+	w.WriteString(typeName)
+	return nil
+}
+
+func (c *Context) writeSliceType(w io.StringWriter, p *winmd.SigType, arch Arch) error {
+	var rendered strings.Builder
+	if err := c.writeProjectedType(&rendered, p, arch); err != nil {
+		return err
+	}
+	typeName := rendered.String()
+	if !strings.HasPrefix(typeName, "*") {
+		return fmt.Errorf("array metadata applied to non-pointer type %s", typeName)
+	}
+	w.WriteString("[]")
+	elementType := strings.TrimPrefix(typeName, "*")
+	if elementType == "uint8" {
+		elementType = "byte"
+	}
+	w.WriteString(elementType)
+	return nil
+}
+
+func (c *Context) isTypeNamed(p *winmd.SigType, _ Arch, name string) bool {
+	v, ok := p.Value.(winmd.CodedIndex[winmd.TypeDefOrRefOrSpec])
+	if !ok {
+		return false
+	}
+	switch v.Tag {
+	case winmd.TypeDefOrRefOrSpec_TypeDef:
+		def, err := c.Metadata.Tables.TypeDef.At(v.Index)
+		return err == nil && def.Name.String() == name
+	case winmd.TypeDefOrRefOrSpec_TypeRef:
+		ref, err := c.Metadata.Tables.TypeRef.At(v.Index)
+		return err == nil && ref.Name.String() == name
+	}
+	return false
 }
 
 func (c *Context) writeType(w io.StringWriter, p *winmd.SigType, arch Arch) error {
@@ -484,6 +704,9 @@ func (c *Context) writeType(w io.StringWriter, p *winmd.SigType, arch Arch) erro
 					if def.NeedsPointerWhenUsed() {
 						w.WriteString("*")
 					}
+					if !c.projectingType {
+						c.requiredTypeDefs[def.Index] = true
+					}
 					w.WriteString(def.GoName)
 				case winmd.TypeDefOrRefOrSpec_TypeRef:
 					def, err := c.resolveTypeRef(v.Index, arch)
@@ -500,6 +723,9 @@ func (c *Context) writeType(w io.StringWriter, p *winmd.SigType, arch Arch) erro
 					} else {
 						if def.NeedsPointerWhenUsed() {
 							w.WriteString("*")
+						}
+						if !c.projectingType {
+							c.requiredTypeDefs[def.Index] = true
 						}
 						w.WriteString(def.GoName)
 					}
@@ -839,6 +1065,14 @@ func (c *Context) writeTypeDefNative(w io.StringWriter, r *resolvedDef, arch Arc
 	w.WriteString("type ")
 	w.WriteString(r.GoName)
 	w.WriteString(" ")
+	if err := c.writeTypeDefNativeUnderlying(w, r, arch); err != nil {
+		return err
+	}
+	w.WriteString("\n")
+	return nil
+}
+
+func (c *Context) writeTypeDefNativeUnderlying(w io.StringWriter, r *resolvedDef, arch Arch) error {
 	if r.def.FieldList.Start+1 != r.def.FieldList.End {
 		return fmt.Errorf("expected exactly one field for native typedef %v", r.def.Name)
 	}
@@ -858,7 +1092,6 @@ func (c *Context) writeTypeDefNative(w io.StringWriter, r *resolvedDef, arch Arc
 	if err := c.writeType(w, &signature.Type, arch); err != nil {
 		return err
 	}
-	w.WriteString("\n")
 	return nil
 }
 
@@ -946,6 +1179,9 @@ func (c *Context) WriteUsedTypeDefs(b map[Arch]*strings.Builder) error {
 	written := make(map[*resolvedDef]struct{})
 	for {
 		usedTypeDefs := c.typeDefCache.collect(func(r *resolvedDef) bool {
+			if c.projectedTypeDefs[r.Index] && !c.requiredTypeDefs[r.Index] {
+				return false
+			}
 			if _, ok := written[r]; !ok {
 				written[r] = struct{}{}
 				return true

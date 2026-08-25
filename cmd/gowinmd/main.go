@@ -30,6 +30,7 @@ func Run() error {
 	source := flag.String("source", "", "The win32metadata file to parse and generate signatures for.")
 	output := flag.String("output", "", "Output file name (prints to stdout if omitted).")
 	formatFlag := flag.String("format", "", "Output format. Required. Supported values: mkwinsyscall.")
+	projectionFlag := flag.String("projection", "raw", "Signature projection. Supported values: raw, idiomatic.")
 
 	flag.Parse()
 
@@ -38,6 +39,15 @@ func Run() error {
 	}
 	if *formatFlag != "mkwinsyscall" {
 		return fmt.Errorf("format is required: pass -format mkwinsyscall (got %q)", *formatFlag)
+	}
+	var projection gowinmd.Projection
+	switch *projectionFlag {
+	case "raw":
+		projection = gowinmd.ProjectionRaw
+	case "idiomatic":
+		projection = gowinmd.ProjectionIdiomatic
+	default:
+		return fmt.Errorf("unsupported projection %q: use raw or idiomatic", *projectionFlag)
 	}
 
 	inputFiles := flag.Args()
@@ -66,7 +76,7 @@ func Run() error {
 		gowinmd.ArchNone:  {},
 	}
 
-	if err := writePrototypes(b, f, filter); err != nil {
+	if err := writePrototypesWithProjection(b, f, filter, projection); err != nil {
 		return err
 	}
 
@@ -189,6 +199,10 @@ func parseDirective(s string) (ref, goName string) {
 type methodFilter map[string]string
 
 func writePrototypes(b map[gowinmd.Arch]*strings.Builder, f *winmd.Metadata, filter methodFilter) error {
+	return writePrototypesWithProjection(b, f, filter, gowinmd.ProjectionRaw)
+}
+
+func writePrototypesWithProjection(b map[gowinmd.Arch]*strings.Builder, f *winmd.Metadata, filter methodFilter, projection gowinmd.Projection) error {
 	context, err := gowinmd.NewContext(f)
 	if err != nil {
 		return err
@@ -239,7 +253,8 @@ func writePrototypes(b map[gowinmd.Arch]*strings.Builder, f *winmd.Metadata, fil
 				}
 				w.WriteString("\n")
 
-				if err := context.WriteMethod(w, j, md, arch, override); err != nil {
+				options := gowinmd.MethodOptions{GoName: override, Projection: projection}
+				if err := context.WriteMethodWithOptions(w, j, md, arch, options); err != nil {
 					// Include context in the error for diag purposes.
 					// writeSys may have partially written into b. This is actually convenient for diag.
 					lines := strings.Split(w.String(), "\n")
