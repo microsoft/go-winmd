@@ -467,14 +467,14 @@ func TestWriteBCryptTypesGolden(t *testing.T) {
 		t.Fatalf("generated %d files; want common, 386, amd64, and arm64 files", len(first))
 	}
 	commonTypeNames := make(map[string]bool)
-	for _, line := range strings.Split(first[gowinmd.ArchAll], "\n") {
+	for line := range strings.SplitSeq(first[gowinmd.ArchAll], "\n") {
 		fields := strings.Fields(line)
 		if len(fields) >= 2 && fields[0] == "type" {
 			commonTypeNames[fields[1]] = true
 		}
 	}
 	for _, arch := range []gowinmd.Arch{gowinmd.Arch386, gowinmd.ArchAMD64, gowinmd.ArchARM64} {
-		for _, line := range strings.Split(first[arch], "\n") {
+		for line := range strings.SplitSeq(first[arch], "\n") {
 			fields := strings.Fields(line)
 			if len(fields) >= 2 && fields[0] == "type" && commonTypeNames[fields[1]] {
 				t.Fatalf("type %s was emitted in both common and %s output", fields[1], arch)

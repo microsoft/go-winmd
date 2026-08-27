@@ -1,6 +1,6 @@
 module github.com/microsoft/go-winmd
 
-go 1.25.0
+go 1.26
 
 require golang.org/x/tools v0.43.0
 

@@ -6,12 +6,13 @@
 package gowinmd
 
 import (
+	"cmp"
 	"encoding/binary"
 	"errors"
 	"fmt"
 	"go/token"
 	"io"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -807,7 +808,7 @@ func (c *Context) writeType(w io.StringWriter, p *winmd.SigType, arch Arch) erro
 				markVisited(p)
 				return visitType(&v)
 			case winmd.SigArray:
-				for i := 0; i < int(v.Rank); i++ {
+				for i := range int(v.Rank) {
 					if i < len(v.Sizes) {
 						w.WriteString("[" + strconv.Itoa(int(v.Sizes[i])) + "]")
 					} else {
@@ -1287,8 +1288,8 @@ func (c *Context) WriteUsedTypeDefs(b map[Arch]*strings.Builder) error {
 			break
 		}
 		// Order is scrambled due to the map. Put it back in some order.
-		sort.Slice(usedTypeDefs, func(i, j int) bool {
-			return usedTypeDefs[i].Index < usedTypeDefs[j].Index
+		slices.SortFunc(usedTypeDefs, func(a, b *resolvedDef) int {
+			return cmp.Compare(a.Index, b.Index)
 		})
 		for _, r := range usedTypeDefs {
 			// Writing the type def (field types in particular) adds new entries to ResolvedDefs if
