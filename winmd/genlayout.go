@@ -24,6 +24,7 @@ package main
 
 import (
 	"bytes"
+	"cmp"
 	"fmt"
 	"go/ast"
 	"go/format"
@@ -32,7 +33,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -93,16 +94,17 @@ import "fmt"
 func writeTableValues(w io.Writer, tables []tableInfo) {
 	// Sort tables by its code so the table
 	// values are defined in a nice-looking increasing order.
-	sorted := make([]struct {
+	type tableValue struct {
 		name  string
 		value uint8
-	}, len(tables))
+	}
+	sorted := make([]tableValue, len(tables))
 	for i, t := range tables {
 		sorted[i].name = t.tableName
 		sorted[i].value = t.code
 	}
-	sort.Slice(sorted, func(i, j int) bool {
-		return sorted[i].value < sorted[j].value
+	slices.SortFunc(sorted, func(a, b tableValue) int {
+		return cmp.Compare(a.value, b.value)
 	})
 
 	fmt.Fprintf(w, "// Define table enum\n")
@@ -364,7 +366,7 @@ func parseTable(pkg *packages.Package, spec *ast.TypeSpec) (info tableInfo) {
 	info.name = spec.Name.Name
 	info.exported = spec.Name.IsExported()
 	info.fields = make([]columnInfo, 0, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		f := t.Field(i)
 		var col columnInfo
 		tp := f.Type()
@@ -445,8 +447,7 @@ func tableCode(decl *ast.GenDecl) *uint8 {
 			if err != nil {
 				log.Panic(err)
 			}
-			v := uint8(code)
-			return &v
+			return new(uint8(code))
 		}
 	}
 	return nil

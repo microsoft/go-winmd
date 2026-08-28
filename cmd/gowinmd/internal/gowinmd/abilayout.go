@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"sort"
+	"slices"
 
 	"github.com/microsoft/go-winmd/winmd"
 )
@@ -180,7 +180,7 @@ func (c *Context) discoverABILayoutDependencies() error {
 		if len(indices) == 0 {
 			return nil
 		}
-		sort.Slice(indices, func(i, j int) bool { return indices[i] < indices[j] })
+		slices.Sort(indices)
 		for _, index := range indices {
 			discovered[index] = true
 			def, err := c.resolveTypeDef(index)
@@ -306,7 +306,7 @@ func (c *Context) sigTypeABITypeLayout(sig *winmd.SigType, arch Arch, visiting m
 			return abiTypeLayout{}, err
 		}
 		count := uint64(1)
-		for dimension := 0; dimension < int(array.Rank); dimension++ {
+		for dimension := range int(array.Rank) {
 			if dimension >= len(array.Sizes) {
 				return abiTypeLayout{}, errors.New("variable-length array fields are not representable in Go")
 			}

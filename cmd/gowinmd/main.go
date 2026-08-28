@@ -12,8 +12,9 @@ import (
 	"go/parser"
 	"go/token"
 	"log"
+	"maps"
 	"os"
-	"sort"
+	"slices"
 	"strings"
 	"time"
 
@@ -280,11 +281,7 @@ func writeSelectionsWithProjection(b map[gowinmd.Arch]*strings.Builder, f *winmd
 	if err != nil {
 		return err
 	}
-	qualifiedNames := make([]string, 0, len(selectedTypes))
-	for qualifiedName := range selectedTypes {
-		qualifiedNames = append(qualifiedNames, qualifiedName)
-	}
-	sort.Strings(qualifiedNames)
+	qualifiedNames := slices.Sorted(maps.Keys(selectedTypes))
 	for _, qualifiedName := range qualifiedNames {
 		selection := selectedTypes[qualifiedName]
 		if err := context.SelectTypeDef(selection.Namespace, selection.Name, selection.GoName); err != nil {
