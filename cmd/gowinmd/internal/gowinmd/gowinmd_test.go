@@ -4,24 +4,50 @@
 package gowinmd
 
 import (
-	"encoding/binary"
+	"errors"
+	"go/ast"
+	"go/parser"
+	"go/token"
+	"go/types"
+	"io"
 	"strings"
 	"testing"
 
 	"github.com/microsoft/go-winmd/winmd"
 )
 
-func TestDecodeInt16AttributeField(t *testing.T) {
-	value := []byte{1, 0, 1, 0, 0x53, byte(winmd.ElementType_I2), 15}
-	value = append(value, "CountParamIndex"...)
-	value = binary.LittleEndian.AppendUint16(value, 3)
-
-	got, ok, err := decodeInt16AttributeField(value, "CountParamIndex")
-	if err != nil {
-		t.Fatal(err)
+func TestInt16AttributeField(t *testing.T) {
+	value := winmd.CustomAttributeValue{NamedArguments: []winmd.CustomAttributeNamedArgument{
+		{Name: "Other", CustomAttributeArgument: winmd.CustomAttributeArgument{Value: int16(3)}},
+		{Name: "CountParamIndex", CustomAttributeArgument: winmd.CustomAttributeArgument{Value: int16(0)}},
+	}}
+	if got, ok, err := int16AttributeField(value, "CountParamIndex"); got != 0 || !ok || err != nil {
+		t.Fatalf("zero index = (%v, %v, %v); want (0, true, nil)", got, ok, err)
 	}
-	if !ok || got != 3 {
-		t.Fatalf("decodeInt16AttributeField() = %v, %v; want 3, true", got, ok)
+	if got, ok, err := int16AttributeField(value, "BytesParamIndex"); got != 0 || ok || err != nil {
+		t.Fatalf("missing field = (%v, %v, %v); want (0, false, nil)", got, ok, err)
+	}
+}
+
+func TestSupportedArchitecture(t *testing.T) {
+	for _, test := range []struct {
+		name      string
+		arguments []winmd.CustomAttributeArgument
+		want      Arch
+		wantErr   bool
+	}{
+		{"int32", []winmd.CustomAttributeArgument{{Value: int32(3)}}, Arch386 | ArchAMD64, false},
+		{"uint32", []winmd.CustomAttributeArgument{{Value: uint32(3)}}, ArchNone, true},
+		{"missing", nil, ArchNone, true},
+		{"multiple", []winmd.CustomAttributeArgument{{Value: int32(1)}, {Value: int32(2)}}, ArchNone, true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			value := winmd.CustomAttributeValue{FixedArguments: test.arguments}
+			got, err := supportedArchitecture(value)
+			if got != test.want || (err != nil) != test.wantErr {
+				t.Fatalf("supportedArchitecture() = (%v, %v); want (%v, error %v)", got, err, test.want, test.wantErr)
+			}
+		})
 	}
 }
 
@@ -37,6 +63,131 @@ func TestMkwinsyscallModuleName(t *testing.T) {
 		if got := mkwinsyscallModuleName(test.name); got != test.want {
 			t.Errorf("mkwinsyscallModuleName(%q) = %q; want %q", test.name, got, test.want)
 		}
+	}
+}
+
+func TestFormatEnumConstant(t *testing.T) {
+	for _, test := range []struct {
+		name string
+		typ  winmd.ElementType
+		data []byte
+		want string
+	}{
+		{"false", winmd.ElementType_BOOLEAN, []byte{0}, "false"},
+		{"true", winmd.ElementType_BOOLEAN, []byte{1}, "true"},
+		{"char", winmd.ElementType_CHAR, []byte{0xAC, 0x20}, "0x20ac"},
+		{"char-surrogate", winmd.ElementType_CHAR, []byte{0, 0xD8}, "0xd800"},
+		{"zero", winmd.ElementType_I1, []byte{0}, "0x0"},
+		{"negative-one", winmd.ElementType_I1, []byte{0xFF}, "-0x1"},
+		{"i1", winmd.ElementType_I1, []byte{0x80}, "-0x80"},
+		{"i2", winmd.ElementType_I2, []byte{0, 0x80}, "-0x8000"},
+		{"positive-i2", winmd.ElementType_I2, []byte{0x34, 0x12}, "0x1234"},
+		{"i4", winmd.ElementType_I4, []byte{0, 0, 0, 0x80}, "-0x80000000"},
+		{"i8", winmd.ElementType_I8, []byte{0, 0, 0, 0, 0, 0, 0, 0x80}, "-0x8000000000000000"},
+		{"u1", winmd.ElementType_U1, []byte{0xFF}, "0xff"},
+		{"u2", winmd.ElementType_U2, []byte{0xFF, 0xFF}, "0xffff"},
+		{"u4", winmd.ElementType_U4, []byte{0xFF, 0xFF, 0xFF, 0xFF}, "0xffffffff"},
+		{"u8", winmd.ElementType_U8, []byte{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}, "0xffffffffffffffff"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			got, err := formatEnumConstant(winmd.Constant{Type: test.typ, Value: test.data})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got != test.want {
+				t.Errorf("formatEnumConstant() = %q; want %q", got, test.want)
+			}
+		})
+	}
+}
+
+func TestWriteEnumWithNonstandardBackingField(t *testing.T) {
+	for _, test := range []struct {
+		name       string
+		kind       winmd.ElementType
+		value      []byte
+		underlying string
+		literal    string
+	}{
+		{"integer", winmd.ElementType_I4, []byte{3, 0, 0, 0}, "int32", "0x3"},
+		{"boolean", winmd.ElementType_BOOLEAN, []byte{1}, "bool", "true"},
+		{"character", winmd.ElementType_CHAR, []byte{0xAC, 0x20}, "uint16", "0x20ac"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			metadata, err := winmd.Open("../../../../winmd/testdata/Windows.Win32.winmd")
+			if err != nil {
+				t.Fatal(err)
+			}
+			context, err := NewContext(metadata)
+			if err != nil {
+				t.Fatal(err)
+			}
+			indices := context.typeDefsByName[qualifiedTypeName{Namespace: "Windows.Win32.Foundation.Metadata", Name: "Architecture"}]
+			if len(indices) != 1 {
+				t.Fatalf("found %d Architecture definitions; want 1", len(indices))
+			}
+			def, err := context.resolveTypeDef(indices[0])
+			if err != nil {
+				t.Fatal(err)
+			}
+			def.GoName = "Mode"
+			for index := range def.def.FieldList.All() {
+				field, err := metadata.Tables.Field.At(index)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if field.Flags&winmd.FieldAttributes_Static == 0 {
+					if field.Name.String() != "value__" || len(field.Signature) != 2 {
+						t.Fatal("unexpected fixture backing field")
+					}
+					// Mutate only this test's in-memory metadata, retaining heap lengths.
+					copy(metadata.Strings[field.Name.Start:], "MyValue")
+					field.Signature[1] = byte(test.kind)
+					continue
+				}
+				context.fieldConstant[index] = winmd.Constant{Type: test.kind, Value: test.value}
+			}
+			var output strings.Builder
+			if err := context.writeTypeDefEnum(&output, def, ArchAll); err != nil {
+				t.Fatal(err)
+			}
+			if !strings.Contains(output.String(), "type Mode "+test.underlying) || !strings.Contains(output.String(), " = "+test.literal) {
+				t.Fatalf("unexpected enum declaration:\n%s", output.String())
+			}
+			fset := token.NewFileSet()
+			file, err := parser.ParseFile(fset, "", "package test\n"+output.String(), 0)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var config types.Config
+			if _, err := config.Check("test", fset, []*ast.File{file}, nil); err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+}
+
+func TestFormatEnumConstantErrors(t *testing.T) {
+	for _, test := range []struct {
+		name    string
+		typ     winmd.ElementType
+		data    []byte
+		wantEOF bool
+	}{
+		{"truncated-boolean", winmd.ElementType_BOOLEAN, nil, true},
+		{"truncated-char", winmd.ElementType_CHAR, []byte{'A'}, true},
+		{"float", winmd.ElementType_R4, []byte{0, 0, 0, 0}, false},
+		{"string", winmd.ElementType_STRING, []byte{'A', 0}, false},
+		{"null", winmd.ElementType_CLASS, []byte{0, 0, 0, 0}, false},
+		{"truncated", winmd.ElementType_I4, []byte{0}, true},
+		{"extra-byte", winmd.ElementType_U2, []byte{0, 0, 0}, false},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			got, err := formatEnumConstant(winmd.Constant{Type: test.typ, Value: test.data})
+			if got != "" || err == nil || errors.Is(err, io.ErrUnexpectedEOF) != test.wantEOF {
+				t.Errorf("formatEnumConstant() = (%q, %v); want (empty, error), unexpected EOF %v", got, err, test.wantEOF)
+			}
+		})
 	}
 }
 

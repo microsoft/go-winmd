@@ -7,7 +7,6 @@ package gowinmd
 
 import (
 	"cmp"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"go/token"
@@ -205,6 +204,7 @@ func NewContext(f *winmd.Metadata) (*Context, error) {
 		}
 		l.fieldConstant[c.Parent.Index] = c
 	}
+	attributeDecoder := winmd.NewCustomAttributeDecoder(f)
 	for idx := range f.Tables.CustomAttribute.Indices() {
 		a, err := f.Tables.CustomAttribute.At(idx)
 		if err != nil {
@@ -235,7 +235,11 @@ func NewContext(f *winmd.Metadata) (*Context, error) {
 				if c.Name.String() == "MemorySizeAttribute" {
 					fieldName = "BytesParamIndex"
 				}
-				index, ok, err := decodeInt16AttributeField(a.Value, fieldName)
+				value, err := attributeDecoder.Decode(a)
+				if err != nil {
+					return nil, fmt.Errorf("decode %s on parameter %v: %w", c.Name, a.Parent.Index, err)
+				}
+				index, ok, err := int16AttributeField(value, fieldName)
 				if err != nil {
 					return nil, fmt.Errorf("decode %s on parameter %v: %w", c.Name, a.Parent.Index, err)
 				}
@@ -255,14 +259,17 @@ func NewContext(f *winmd.Metadata) (*Context, error) {
 				}
 				l.typeDefNativeTypedefAttribute[a.Parent.Index] = a
 			case "SupportedArchitectureAttribute":
-				if len(a.Value) < 2 {
+				if a.Parent.Tag != winmd.HasCustomAttribute_MethodDef && a.Parent.Tag != winmd.HasCustomAttribute_TypeDef {
 					break
 				}
-				// Ideally we should decode the blob as a
-				// a Custom Attributes signature (§II.23.3),
-				// but that would require a lot of work to
-				// implement.
-				arch := Arch(binary.LittleEndian.Uint32(a.Value[2:]))
+				value, err := attributeDecoder.Decode(a)
+				if err != nil {
+					return nil, fmt.Errorf("decode %s on %v: %w", c.Name, a.Parent, err)
+				}
+				arch, err := supportedArchitecture(value)
+				if err != nil {
+					return nil, fmt.Errorf("decode %s on %v: %w", c.Name, a.Parent, err)
+				}
 				switch a.Parent.Tag {
 				case winmd.HasCustomAttribute_MethodDef:
 					if existing, ok := l.methodDefSupportedArch[a.Parent.Index]; ok {
@@ -313,76 +320,29 @@ func NewContext(f *winmd.Metadata) (*Context, error) {
 	return l, nil
 }
 
-func decodeInt16AttributeField(value []byte, wanted string) (int16, bool, error) {
-	if len(value) < 4 || value[0] != 1 || value[1] != 0 {
-		return 0, false, errors.New("invalid custom attribute prolog")
-	}
-	namedCount := int(binary.LittleEndian.Uint16(value[2:4]))
-	value = value[4:]
-	for range namedCount {
-		if len(value) < 2 || (value[0] != 0x53 && value[0] != 0x54) {
-			return 0, false, errors.New("unsupported custom attribute named argument")
-		}
-		fieldType := winmd.ElementType(value[1])
-		value = value[2:]
-		name, rest, err := decodeAttributeString(value)
-		if err != nil {
-			return 0, false, errors.New("invalid custom attribute field name")
-		}
-		value = rest
-		if name == wanted {
-			if fieldType != winmd.ElementType_I2 || len(value) < 2 {
-				return 0, false, fmt.Errorf("field %s is not an int16", wanted)
-			}
-			return int16(binary.LittleEndian.Uint16(value[:2])), true, nil
-		}
-		var size int
-		switch fieldType {
-		case winmd.ElementType_BOOLEAN, winmd.ElementType_I1, winmd.ElementType_U1:
-			size = 1
-		case winmd.ElementType_CHAR, winmd.ElementType_I2, winmd.ElementType_U2:
-			size = 2
-		case winmd.ElementType_I4, winmd.ElementType_U4, winmd.ElementType_R4:
-			size = 4
-		case winmd.ElementType_I8, winmd.ElementType_U8, winmd.ElementType_R8:
-			size = 8
-		case winmd.ElementType_STRING:
-			_, value, err = decodeAttributeString(value)
-			if err != nil {
-				return 0, false, err
-			}
+func int16AttributeField(value winmd.CustomAttributeValue, wanted string) (int16, bool, error) {
+	for _, argument := range value.NamedArguments {
+		if argument.Name != wanted {
 			continue
-		default:
-			return 0, false, fmt.Errorf("unsupported custom attribute field type %v", fieldType)
 		}
-		if len(value) < size {
-			return 0, false, errors.New("truncated custom attribute field value")
+		index, ok := argument.Value.(int16)
+		if !ok {
+			return 0, false, fmt.Errorf("field %s is not an int16", wanted)
 		}
-		value = value[size:]
+		return index, true, nil
 	}
 	return 0, false, nil
 }
 
-func decodeAttributeString(value []byte) (string, []byte, error) {
-	if len(value) == 0 || value[0] == 0xff {
-		return "", nil, errors.New("null or truncated custom attribute string")
+func supportedArchitecture(value winmd.CustomAttributeValue) (Arch, error) {
+	if len(value.FixedArguments) != 1 {
+		return ArchNone, errors.New("expected one architecture argument")
 	}
-	var length, prefix int
-	switch {
-	case value[0]&0x80 == 0:
-		length, prefix = int(value[0]), 1
-	case value[0]&0xc0 == 0x80 && len(value) >= 2:
-		length, prefix = int(value[0]&0x3f)<<8|int(value[1]), 2
-	case value[0]&0xe0 == 0xc0 && len(value) >= 4:
-		length = int(value[0]&0x1f)<<24 | int(value[1])<<16 | int(value[2])<<8 | int(value[3])
-		prefix = 4
-	default:
-		return "", nil, errors.New("invalid custom attribute string length")
+	arch, ok := value.FixedArguments[0].Value.(int32)
+	if !ok {
+		return ArchNone, errors.New("architecture argument is not an int32")
 	}
-	if len(value) < prefix+length {
-		return "", nil, errors.New("truncated custom attribute string")
-	}
-	return string(value[prefix : prefix+length]), value[prefix+length:], nil
+	return Arch(arch), nil
 }
 
 // MethodDefSupportedArch returns the set of architectures that the given method is supported on.
@@ -1046,17 +1006,18 @@ func (c *Context) writeTypeDef(w io.StringWriter, r *resolvedDef, arch Arch) err
 }
 
 func (c *Context) writeTypeDefEnum(w io.StringWriter, r *resolvedDef, arch Arch) error {
+	underlyingType, err := c.Metadata.EnumUnderlyingType(r.Index)
+	if err != nil {
+		return err
+	}
 	w.WriteString("type ")
 	w.WriteString(r.GoName)
-
-	// Per §I.8.5.2 CLS Rule 7, the underlying type is the type of the field "__value". Find it.
-	var underlyingType *winmd.SigType
 
 	type member struct {
 		Name     winmd.String
 		HexValue string
 	}
-	// The number of enum members is the total number of fields minus the special "value__".
+	// All fields except the single instance field represent enum members.
 	members := make([]member, 0, r.def.FieldList.Len()-1)
 
 	for i := range r.def.FieldList.All() {
@@ -1064,47 +1025,17 @@ func (c *Context) writeTypeDefEnum(w io.StringWriter, r *resolvedDef, arch Arch)
 		if err != nil {
 			return err
 		}
-		if fd.Name.String() == "value__" {
-			signature, err := c.Metadata.FieldSignature(fd.Signature)
-			if err != nil {
-				return err
-			}
-			underlyingType = &signature.Type
+		if fd.Flags&winmd.FieldAttributes_Static == 0 {
 			continue
 		}
 
-		var hex string
 		constant, ok := c.fieldConstant[i]
 		if !ok {
 			return fmt.Errorf("unable to find default value for field %v", fd.Name)
 		}
-		// Read the value as a hex string. §II.22.9 informative text 1 and 2 restrict the
-		// possible types further than what we can handle here, but we handle all simple integer
-		// types for simplicity and in case this code needs to be moved and reused elsewhere.
-		switch constant.Type {
-		case winmd.ElementType_I1:
-			hex = strconv.FormatInt(int64(int8(constant.Value[0])), 16)
-		case winmd.ElementType_I2:
-			hex = strconv.FormatInt(int64(int16(binary.LittleEndian.Uint16(constant.Value))), 16)
-		case winmd.ElementType_I4:
-			hex = strconv.FormatInt(int64(int32(binary.LittleEndian.Uint32(constant.Value))), 16)
-		case winmd.ElementType_I8:
-			hex = strconv.FormatInt(int64(binary.LittleEndian.Uint64(constant.Value)), 16)
-		case winmd.ElementType_U1:
-			hex = strconv.FormatUint(uint64(constant.Value[0]), 16)
-		case winmd.ElementType_U2:
-			hex = strconv.FormatUint(uint64(binary.LittleEndian.Uint16(constant.Value)), 16)
-		case winmd.ElementType_U4:
-			hex = strconv.FormatUint(uint64(binary.LittleEndian.Uint32(constant.Value)), 16)
-		case winmd.ElementType_U8:
-			hex = strconv.FormatUint(binary.LittleEndian.Uint64(constant.Value), 16)
-		default:
-			return fmt.Errorf("enum member has unexpected type: %v, field %v", constant.Type, fd.Name)
-		}
-		if hex[0] == '-' {
-			hex = "-0x" + hex[1:]
-		} else {
-			hex = "0x" + hex
+		hex, err := formatEnumConstant(constant)
+		if err != nil {
+			return fmt.Errorf("field %v: %w", fd.Name, err)
 		}
 
 		// Don't write the members yet. We haven't written the enum type definition yet, and the
@@ -1112,12 +1043,9 @@ func (c *Context) writeTypeDefEnum(w io.StringWriter, r *resolvedDef, arch Arch)
 		p := member{fd.Name, hex}
 		members = append(members, p)
 	}
-	if underlyingType == nil {
-		return errors.New("failed to find underlying type for enum")
-	}
 
 	w.WriteString(" ")
-	if err := c.writeType(w, underlyingType, arch); err != nil {
+	if err := c.writeType(w, &winmd.SigType{Kind: underlyingType}, arch); err != nil {
 		return err
 	}
 	w.WriteString("\n\nconst (\n")
@@ -1133,6 +1061,24 @@ func (c *Context) writeTypeDefEnum(w io.StringWriter, r *resolvedDef, arch Arch)
 	}
 	w.WriteString(")\n")
 	return nil
+}
+
+func formatEnumConstant(constant winmd.Constant) (string, error) {
+	switch constant.Type {
+	case winmd.ElementType_BOOLEAN, winmd.ElementType_CHAR,
+		winmd.ElementType_I1, winmd.ElementType_I2, winmd.ElementType_I4, winmd.ElementType_I8,
+		winmd.ElementType_U1, winmd.ElementType_U2, winmd.ElementType_U4, winmd.ElementType_U8:
+	default:
+		return "", fmt.Errorf("enum member has unexpected type: %v", constant.Type)
+	}
+	value, err := constant.DecodeValue()
+	if err != nil {
+		return "", err
+	}
+	if boolean, ok := value.(bool); ok {
+		return strconv.FormatBool(boolean), nil
+	}
+	return fmt.Sprintf("%#x", value), nil
 }
 
 func (c *Context) writeTypeDefNative(w io.StringWriter, r *resolvedDef, arch Arch) error {

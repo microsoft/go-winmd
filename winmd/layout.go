@@ -191,7 +191,7 @@ func (r *ecma335Reader) compressedUint32() (v uint32) {
 		return
 	}
 	var n int
-	v, n, r.err = decodeCompressedUint32(r.data)
+	v, n, r.err = DecodeCompressedUint32(r.data)
 	if r.err != nil {
 		return
 	}
@@ -204,7 +204,7 @@ func (r *ecma335Reader) compressedInt32() (v int32) {
 		return
 	}
 	var n int
-	v, n, r.err = decodeCompressedInt32(r.data)
+	v, n, r.err = DecodeCompressedInt32(r.data)
 	if r.err != nil {
 		return
 	}
