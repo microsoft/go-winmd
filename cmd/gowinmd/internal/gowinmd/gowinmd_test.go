@@ -148,7 +148,7 @@ func TestWriteEnumWithNonstandardBackingField(t *testing.T) {
 				context.fieldConstant[index] = winmd.Constant{Type: test.kind, Value: test.value}
 			}
 			var output strings.Builder
-			if err := context.writeTypeDefEnum(&output, def, ArchAll); err != nil {
+			if err := context.writeTypeDef(&output, def, ArchAll); err != nil {
 				t.Fatal(err)
 			}
 			if !strings.Contains(output.String(), "type Mode "+test.underlying) || !strings.Contains(output.String(), " = "+test.literal) {

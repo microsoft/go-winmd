@@ -108,6 +108,56 @@ func TestDecodeCustomAttributeFixedArguments(t *testing.T) {
 	}
 }
 
+func TestDecodeCustomAttributeBoxedNull(t *testing.T) {
+	objectType := attributeType(ElementType_BOXED_OBJECT)
+	boxedNull := CustomAttributeArgument{Type: attributeType(ElementType_STRING)}
+	for _, test := range []struct {
+		name  string
+		data  []byte
+		types []CustomAttributeArgumentType
+		want  CustomAttributeValue
+	}{
+		{
+			name:  "fixed",
+			data:  attributeBlob([]byte{byte(ElementType_STRING), 0xFF, 3, 0}),
+			types: []CustomAttributeArgumentType{objectType, attributeType(ElementType_I2)},
+			want: CustomAttributeValue{FixedArguments: []CustomAttributeArgument{
+				{Type: objectType, Value: boxedNull},
+				{Type: attributeType(ElementType_I2), Value: int16(3)},
+			}},
+		},
+		{
+			name: "named",
+			data: attributeBlob(nil, namedAttribute(ElementType_PROPERTY, []byte{byte(ElementType_BOXED_OBJECT)}, "Object", []byte{byte(ElementType_STRING), 0xFF})),
+			want: CustomAttributeValue{NamedArguments: []CustomAttributeNamedArgument{
+				{Kind: ElementType_PROPERTY, Name: "Object", CustomAttributeArgument: CustomAttributeArgument{Type: objectType, Value: boxedNull}},
+			}},
+		},
+		{
+			name:  "array",
+			data:  attributeBlob([]byte{2, 0, 0, 0, byte(ElementType_STRING), 0xFF, byte(ElementType_I1), 7}),
+			types: []CustomAttributeArgumentType{attributeArray(ElementType_BOXED_OBJECT)},
+			want: CustomAttributeValue{FixedArguments: []CustomAttributeArgument{{
+				Type: attributeArray(ElementType_BOXED_OBJECT),
+				Value: []CustomAttributeArgument{
+					{Type: objectType, Value: boxedNull},
+					{Type: objectType, Value: CustomAttributeArgument{Type: attributeType(ElementType_I1), Value: int8(7)}},
+				},
+			}}},
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			got, err := decodeCustomAttributeValue(test.data, test.types, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !reflect.DeepEqual(got, test.want) {
+				t.Fatalf("boxed null = %#v; want %#v", got, test.want)
+			}
+		})
+	}
+}
+
 func TestDecodeCustomAttributeNamedArguments(t *testing.T) {
 	enumName := "Example.Mode, Assembly"
 	enumType := append([]byte{byte(ElementType_ENUM)}, attributeString(enumName)...)
@@ -211,6 +261,8 @@ func TestDecodeCustomAttributeErrors(t *testing.T) {
 		{"array-element-truncated", attributeBlob([]byte{1, 0, 0, 0, 1}), []CustomAttributeArgumentType{attributeArray(ElementType_I8)}},
 		{"boxed-object", attributeBlob([]byte{0x51}), []CustomAttributeArgumentType{attributeType(ElementType_BOXED_OBJECT)}},
 		{"boxed-null-marker", attributeBlob([]byte{0xFF}), []CustomAttributeArgumentType{attributeType(ElementType_BOXED_OBJECT)}},
+		{"named-boxed-null-marker", attributeBlob(nil, namedAttribute(ElementType_PROPERTY, []byte{byte(ElementType_BOXED_OBJECT)}, "Object", []byte{0xFF})), nil},
+		{"array-boxed-null-marker", attributeBlob([]byte{1, 0, 0, 0, 0xFF}), []CustomAttributeArgumentType{attributeArray(ElementType_BOXED_OBJECT)}},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			got, err := decodeCustomAttributeValue(test.data, test.types, nil)
