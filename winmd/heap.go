@@ -50,7 +50,7 @@ func (bh BlobHeap) Bytes(start uint32) ([]byte, error) {
 	if int(start) >= len(bh) {
 		return nil, fmt.Errorf("offset %d is beyond the end of the heap", start)
 	}
-	size, n, err := decodeCompressedUint32(bh[start:])
+	size, n, err := DecodeCompressedUint32(bh[start:])
 	if err != nil {
 		return nil, err
 	}

@@ -365,21 +365,11 @@ func (c *Context) resolvedDefABITypeLayout(def *resolvedDef, arch Arch, visiting
 		return c.sigTypeABITypeLayout(&signature.Type, arch, visiting)
 	}
 	if extendsSystemType(c.Metadata, def, "Enum") {
-		for fieldIndex := range def.def.FieldList.All() {
-			field, err := c.Metadata.Tables.Field.At(fieldIndex)
-			if err != nil {
-				return abiTypeLayout{}, err
-			}
-			if field.Name.String() != "value__" {
-				continue
-			}
-			signature, err := c.Metadata.FieldSignature(field.Signature)
-			if err != nil {
-				return abiTypeLayout{}, err
-			}
-			return c.sigTypeABITypeLayout(&signature.Type, arch, visiting)
+		underlyingType, err := c.Metadata.EnumUnderlyingType(def.Index)
+		if err != nil {
+			return abiTypeLayout{}, err
 		}
-		return abiTypeLayout{}, fmt.Errorf("enum %s has no value__ field", def.Name)
+		return c.sigTypeABITypeLayout(&winmd.SigType{Kind: underlyingType}, arch, visiting)
 	}
 	if extendsSystemType(c.Metadata, def, "MulticastDelegate") {
 		return pointerABITypeLayout(arch), nil
