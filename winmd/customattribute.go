@@ -287,6 +287,8 @@ func (r *customAttributeReader) value(typ CustomAttributeArgumentType, depth int
 		}
 		return nil
 	case ElementType_BOXED_OBJECT:
+		// The serialized type tag is required, including for null values such
+		// as STRING followed by the SerString null marker 0xff.
 		boxedType := r.argumentType(depth + 1)
 		if r.err == nil && boxedType.Kind == ElementType_BOXED_OBJECT {
 			r.err = errors.New("invalid boxed custom attribute type")

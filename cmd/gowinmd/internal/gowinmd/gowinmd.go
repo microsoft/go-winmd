@@ -978,21 +978,19 @@ func (c *Context) writeTypeDef(w io.StringWriter, r *resolvedDef, arch Arch) err
 		w.WriteString("// Interface type is likely missing members. Not yet implemented in go-winmd.\n")
 	}
 	switch r.def.Extends.Tag {
-	case winmd.TypeDefOrRef_TypeRef:
-		extendsRef, err := c.Metadata.Tables.TypeRef.At(r.def.Extends.Index)
+	case winmd.TypeDefOrRef_TypeDef, winmd.TypeDefOrRef_TypeRef:
+		base, err := systemBaseType(c.Metadata, r)
 		if err != nil {
 			return err
 		}
-		if extendsRef.Namespace.String() == "System" {
-			if extendsRef.Name.String() == "Enum" {
-				return c.writeTypeDefEnum(w, r, arch)
-			}
-			if extendsRef.Name.String() == "MulticastDelegate" {
-				w.WriteString("type ")
-				w.WriteString(r.GoName)
-				w.WriteString(" uintptr\n")
-				return nil
-			}
+		switch base {
+		case "Enum":
+			return c.writeTypeDefEnum(w, r, arch)
+		case "MulticastDelegate":
+			w.WriteString("type ")
+			w.WriteString(r.GoName)
+			w.WriteString(" uintptr\n")
+			return nil
 		}
 		if r.Native {
 			return c.writeTypeDefNative(w, r, arch)
@@ -1003,6 +1001,37 @@ func (c *Context) writeTypeDef(w io.StringWriter, r *resolvedDef, arch Arch) err
 	default:
 		return fmt.Errorf("unexpected type extends coded index %#v in def %v :: %v", r.def.Extends, r.def.Namespace, r.def.Name)
 	}
+}
+
+// systemBaseType returns the name of a non-nested base type in System, if any.
+func systemBaseType(metadata *winmd.Metadata, def *resolvedDef) (string, error) {
+	var namespace, name winmd.String
+	switch def.def.Extends.Tag {
+	case winmd.TypeDefOrRef_TypeDef:
+		base, err := metadata.Tables.TypeDef.At(def.def.Extends.Index)
+		if err != nil {
+			return "", err
+		}
+		if base.Flags&winmd.TypeAttributes_VisibilityMask > winmd.TypeAttributes_Public {
+			return "", nil
+		}
+		namespace, name = base.Namespace, base.Name
+	case winmd.TypeDefOrRef_TypeRef:
+		base, err := metadata.Tables.TypeRef.At(def.def.Extends.Index)
+		if err != nil {
+			return "", err
+		}
+		if base.ResolutionScope.Tag == winmd.ResolutionScope_TypeRef {
+			return "", nil
+		}
+		namespace, name = base.Namespace, base.Name
+	default:
+		return "", nil
+	}
+	if namespace.String() != "System" {
+		return "", nil
+	}
+	return name.String(), nil
 }
 
 func (c *Context) writeTypeDefEnum(w io.StringWriter, r *resolvedDef, arch Arch) error {

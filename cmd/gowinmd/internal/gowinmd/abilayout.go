@@ -242,7 +242,11 @@ func (c *Context) markSigTypeABILayoutDependencies(sig *winmd.SigType, arch Arch
 }
 
 func (c *Context) typeDefABILayoutFingerprint(def *resolvedDef, arch Arch) (abiLayoutFingerprint, error) {
-	if !def.Native && !extendsSystemType(c.Metadata, def, "Enum") && !extendsSystemType(c.Metadata, def, "MulticastDelegate") {
+	base, err := systemBaseType(c.Metadata, def)
+	if err != nil {
+		return abiLayoutFingerprint{}, err
+	}
+	if !def.Native && base != "Enum" && base != "MulticastDelegate" {
 		layout, err := c.planStructABI(def, arch, nil)
 		if err != nil {
 			return abiLayoutFingerprint{}, err
@@ -364,25 +368,21 @@ func (c *Context) resolvedDefABITypeLayout(def *resolvedDef, arch Arch, visiting
 		}
 		return c.sigTypeABITypeLayout(&signature.Type, arch, visiting)
 	}
-	if extendsSystemType(c.Metadata, def, "Enum") {
+	base, err := systemBaseType(c.Metadata, def)
+	if err != nil {
+		return abiTypeLayout{}, err
+	}
+	switch base {
+	case "Enum":
 		underlyingType, err := c.Metadata.EnumUnderlyingType(def.Index)
 		if err != nil {
 			return abiTypeLayout{}, err
 		}
 		return c.sigTypeABITypeLayout(&winmd.SigType{Kind: underlyingType}, arch, visiting)
-	}
-	if extendsSystemType(c.Metadata, def, "MulticastDelegate") {
+	case "MulticastDelegate":
 		return pointerABITypeLayout(arch), nil
 	}
 	return c.structABITypeLayout(def, arch, visiting)
-}
-
-func extendsSystemType(metadata *winmd.Metadata, def *resolvedDef, name string) bool {
-	if def.def.Extends.Tag != winmd.TypeDefOrRef_TypeRef {
-		return false
-	}
-	extends, err := metadata.Tables.TypeRef.At(def.def.Extends.Index)
-	return err == nil && extends.Namespace.String() == "System" && extends.Name.String() == name
 }
 
 func scalarABITypeLayout(size, abiAlign uint32, arch Arch) abiTypeLayout {
