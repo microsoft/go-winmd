@@ -18,6 +18,11 @@ func typeDefKey(def winmd.TypeDef) typeNameKey {
 }
 
 type typeDefCache struct {
+	// aliases maps duplicate heap-offset pairs to the first pair with the same
+	// namespace and name. Identity mappings are omitted, so deduplicated heaps
+	// need no extra map lookup. Definition aliases are indexed up front;
+	// reference aliases are added only when an offset lookup misses.
+	aliases map[typeNameKey]typeNameKey
 	// resolved maps type name keys -> resolved TypeDef information.
 	resolved map[typeNameKey]*resolvedDef
 	// unresolved maps type name keys -> winmd.TypeDef index.
@@ -43,8 +48,54 @@ func newTypeDefCache() *typeDefCache {
 	}
 }
 
+// indexTypeNames canonicalizes definitions during the existing top-level index
+// pass. References are canonicalized on demand; neither TypeRef nor the raw
+// #Strings heap needs an eager scan.
+func (c *Context) indexTypeNames() error {
+	for idx := range c.Metadata.Tables.TypeDef.Indices() {
+		def, err := c.Metadata.Tables.TypeDef.At(idx)
+		if err != nil {
+			return err
+		}
+		// Nested types cannot be resolved at module scope.
+		if def.Flags&winmd.TypeAttributes_VisibilityMask > winmd.TypeAttributes_Public {
+			continue
+		}
+		name := qualifiedTypeName{Namespace: def.Namespace.String(), Name: def.Name.String()}
+		if indices := c.typeDefsByName[name]; len(indices) != 0 {
+			first, err := c.Metadata.Tables.TypeDef.At(indices[0])
+			if err != nil {
+				return err
+			}
+			c.typeDefCache.addAlias(typeDefKey(def), typeDefKey(first))
+		}
+		c.typeDefCache.add(idx, def)
+		c.typeDefsByName[name] = append(c.typeDefsByName[name], idx)
+	}
+	return nil
+}
+
+func (tc *typeDefCache) addAlias(key, canonical typeNameKey) {
+	if key == canonical {
+		return
+	}
+	if tc.aliases == nil {
+		tc.aliases = make(map[typeNameKey]typeNameKey)
+	}
+	tc.aliases[key] = canonical
+}
+
+func (tc *typeDefCache) canonicalKey(key typeNameKey) typeNameKey {
+	if len(tc.aliases) != 0 {
+		if canonical, ok := tc.aliases[key]; ok {
+			return canonical
+		}
+	}
+	return key
+}
+
 func (tc *typeDefCache) add(i winmd.Index, typ winmd.TypeDef) {
-	key := typeDefKey(typ)
+	key := tc.canonicalKey(typeDefKey(typ))
 	if _, ok := tc.unresolvedDuplicated[key]; ok {
 		tc.unresolvedDuplicated[key] = append(tc.unresolvedDuplicated[key], i)
 	} else if _, ok := tc.unresolved[key]; ok {
@@ -56,7 +107,7 @@ func (tc *typeDefCache) add(i winmd.Index, typ winmd.TypeDef) {
 }
 
 func (tc *typeDefCache) resolve(r *resolvedDef) {
-	key := typeNameKey{r.Namespace.Start, r.Name.Start}
+	key := tc.canonicalKey(typeNameKey{r.Namespace.Start, r.Name.Start})
 	if tc.unresolvedDuplicated[key] == nil {
 		tc.resolved[key] = r
 		delete(tc.unresolved, key)
@@ -67,7 +118,7 @@ func (tc *typeDefCache) resolve(r *resolvedDef) {
 }
 
 func (tc *typeDefCache) get(namespace, name winmd.String, arch Arch) *resolvedDef {
-	key := typeNameKey{namespace.Start, name.Start}
+	key := tc.canonicalKey(typeNameKey{namespace.Start, name.Start})
 	if defs, ok := tc.resolvedDuplicated[key]; ok {
 		for _, def := range defs {
 			if def.Arch&arch == arch {

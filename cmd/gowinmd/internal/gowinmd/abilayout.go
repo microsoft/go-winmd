@@ -144,12 +144,18 @@ func (c *Context) planStructABI(def *resolvedDef, arch Arch, visiting map[winmd.
 	}
 
 	abiSize := alignUp(max(abiEnd, classSize), abiAlign)
-	naturalGoSize := alignUp(goOffset, goAlign)
-	if naturalGoSize > abiSize {
+	goEnd := uint64(goOffset)
+	if goEnd != 0 && len(fields) != 0 && fields[len(fields)-1].abiSize == 0 {
+		// Go adds a byte after a trailing zero-sized field in a nonempty
+		// struct, before rounding up to the struct alignment.
+		goEnd++
+	}
+	naturalGoSize := (goEnd + uint64(goAlign) - 1) &^ (uint64(goAlign) - 1)
+	if naturalGoSize > uint64(abiSize) {
 		return abiStructLayout{}, fmt.Errorf("Windows size %d for %s cannot be represented by Go size %d", abiSize, def.Name, naturalGoSize)
 	}
 	tailPadding := uint32(0)
-	if naturalGoSize < abiSize {
+	if naturalGoSize < uint64(abiSize) {
 		tailPadding = abiSize - goOffset
 		if alignUp(goOffset+tailPadding, goAlign) != abiSize {
 			return abiStructLayout{}, fmt.Errorf("Windows size %d for %s cannot be represented with Go padding", abiSize, def.Name)
