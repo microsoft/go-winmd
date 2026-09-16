@@ -250,6 +250,60 @@ func TestWriteMethodByRef(t *testing.T) {
 	}
 }
 
+func TestWriteTypeRejectsManagedSignatures(t *testing.T) {
+	t.Parallel()
+	for _, test := range []struct {
+		name string
+		typ  []byte
+	}{
+		{"szarray", []byte{0x1d, 8}},
+		{"genericinst", []byte{0x15, 0x12, 5, 1, 8}},
+		{"var", []byte{0x13, 0}},
+		{"mvar", []byte{0x1e, 0}},
+	} {
+		for _, wrapper := range []struct {
+			name   string
+			prefix []byte
+			suffix []byte
+		}{
+			{"direct", nil, nil},
+			{"pointer", []byte{0x0f}, nil},
+			{"byref", []byte{0x10}, nil},
+			{"array", []byte{0x14}, []byte{1, 1, 2, 0}},
+		} {
+			for _, arch := range []Arch{Arch386, ArchAMD64, ArchARM64} {
+				t.Run(test.name+"/"+wrapper.name+"/"+arch.String(), func(t *testing.T) {
+					var m winmd.Metadata
+					// A generic method with one parameter; no metadata is needed
+					// to decode the type or reject an unsupported projection.
+					data := append([]byte{0x10, 1, 1, 1}, wrapper.prefix...)
+					data = append(data, test.typ...)
+					data = append(data, wrapper.suffix...)
+					sig, err := m.MethodDefSignature(data)
+					if err != nil {
+						t.Fatal(err)
+					}
+					var c Context
+					var output strings.Builder
+					err = c.writeType(&output, &sig.Param[0].Type, arch)
+					want := "unsupported type for Go generation: " + winmd.ElementType(test.typ[0]).String()
+					if err == nil || !strings.Contains(err.Error(), want) {
+						t.Fatalf("rendered managed signature as %q, %v; want %q", output.String(), err, want)
+					}
+					if wrapper.name == "direct" {
+						if output.Len() != 0 {
+							t.Fatalf("unsupported type emitted output: %q", output.String())
+						}
+						if _, err := c.sigTypeABITypeLayout(&sig.Param[0].Type, arch, nil); err == nil {
+							t.Fatal("managed type accepted as a native ABI field")
+						}
+					}
+				})
+			}
+		}
+	}
+}
+
 func TestWriteMethodCountUnits(t *testing.T) {
 	t.Parallel()
 	for _, test := range []struct {

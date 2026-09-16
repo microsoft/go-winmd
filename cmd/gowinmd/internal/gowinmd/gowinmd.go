@@ -738,6 +738,12 @@ func (c *Context) writeType(w io.StringWriter, p *winmd.SigType, arch Arch) erro
 		case winmd.ElementType_OBJECT:
 			w.WriteString("any")
 
+		case winmd.ElementType_SZARRAY, winmd.ElementType_GENERICINST,
+			winmd.ElementType_VAR, winmd.ElementType_MVAR:
+			// These metadata shapes need a managed-to-native projection. Do not
+			// recurse through their Value and discard the enclosing type.
+			return fmt.Errorf("unsupported type for Go generation: %v", p.Kind)
+
 		// If this is not a simple value type, there will be p.Value. Handle all those cases here.
 		default:
 			if p.Kind == winmd.ElementType_PTR || p.Kind == winmd.ElementType_BYREF {

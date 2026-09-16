@@ -98,16 +98,18 @@ func TestSignatureTypeNesting(t *testing.T) {
 	var m winmd.Metadata
 	// The documented limit counts the leaf type as one of the 64 levels.
 	const maxDepth = 64
-	for _, kind := range []string{"pointer", "array", "mixed"} {
+	for _, kind := range []string{"pointer", "array", "szarray", "mixed"} {
 		t.Run(kind, func(t *testing.T) {
 			for _, layers := range []int{0, maxDepth - 1, maxDepth, maxDepth + 1, 4096} {
 				t.Run(fmt.Sprint(layers), func(t *testing.T) {
 					data := []byte{6}
 					arrays := 0
 					for i := range layers {
-						if kind == "array" || kind == "mixed" && i%2 == 0 {
+						if kind == "array" || kind == "mixed" && i%3 == 0 {
 							data = append(data, 0x14)
 							arrays++
+						} else if kind == "szarray" || kind == "mixed" && i%3 == 1 {
+							data = append(data, 0x1d)
 						} else {
 							data = append(data, 0x0f)
 						}
@@ -191,7 +193,11 @@ func TestSignaturesTruncated(t *testing.T) {
 		{"type-handle", []byte{6, 0x11, 0x80, 0x81}, true},
 		{"modifier", []byte{6, 0x20, 5, 8}, true},
 		{"array", []byte{6, 0x14, 8, 1, 1, 2, 1, 0}, true},
+		{"szarray", []byte{6, 0x1d, 8}, true},
+		{"szarray-modifier", []byte{6, 0x1d, 0x20, 5, 8}, true},
+		{"szarray-type-handle", []byte{6, 0x1d, 0x12, 0x80, 0x81}, true},
 		{"method", []byte{0, 1, 1, 8}, false},
+		{"szarray-method", []byte{0, 1, 1, 0x1d, 8}, false},
 		{"generic-method", []byte{0x10, 1, 0, 1}, false},
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -247,6 +253,8 @@ func TestSignatureNullTypeHandles(t *testing.T) {
 		{6, 0x20, 0, 8},
 		{6, 0x1f, 0, 8},
 		{6, 0x0f, 0x12, 0},
+		{6, 0x1d, 0x12, 0},
+		{6, 0x1d, 0x20, 0, 8},
 	} {
 		t.Run(fmt.Sprintf("%x", data), func(t *testing.T) {
 			_, err := m.FieldSignature(data)
@@ -300,7 +308,7 @@ func TestSignatureTypeHandleBounds(t *testing.T) {
 							if kind == winmd.ElementType_CMOD_OPT || kind == winmd.ElementType_CMOD_REQD {
 								typ = append(typ, byte(winmd.ElementType_I4))
 							}
-							for _, context := range []string{"field", "return", "parameter"} {
+							for _, context := range []string{"field", "return", "parameter", "szarray-field", "szarray-return", "szarray-parameter"} {
 								t.Run(context, func(t *testing.T) {
 									var err error
 									switch context {
@@ -310,6 +318,12 @@ func TestSignatureTypeHandleBounds(t *testing.T) {
 										_, err = m.MethodDefSignature(append([]byte{0, 0}, typ...))
 									case "parameter":
 										_, err = m.MethodDefSignature(append([]byte{0, 1, 1}, typ...))
+									case "szarray-field":
+										_, err = m.FieldSignature(append([]byte{6, 0x1d}, typ...))
+									case "szarray-return":
+										_, err = m.MethodDefSignature(append([]byte{0, 0, 0x1d}, typ...))
+									case "szarray-parameter":
+										_, err = m.MethodDefSignature(append([]byte{0, 1, 1, 0x1d}, typ...))
 									}
 									if handle.valid {
 										if err != nil {
@@ -365,6 +379,17 @@ func TestSignatureCustomModifierOrder(t *testing.T) {
 		check(t, sig.Type.Mod)
 		check(t, sig.Type.Value.(winmd.SigType).Mod)
 	})
+	t.Run("szarray-element", func(t *testing.T) {
+		data := append([]byte{6}, prefix...)
+		data = append(data, 0x1d)
+		data = append(data, prefix...)
+		sig, err := m.FieldSignature(append(data, 8))
+		if err != nil {
+			t.Fatal(err)
+		}
+		check(t, sig.Type.Mod)
+		check(t, sig.Type.Value.(winmd.SigType).Mod)
+	})
 	t.Run("return-and-parameter", func(t *testing.T) {
 		data := append([]byte{0, 1}, prefix...)
 		data = append(data, 1)
@@ -379,6 +404,48 @@ func TestSignatureCustomModifierOrder(t *testing.T) {
 			t.Fatalf("by-reference parameter representation changed: %+v", sig.Param[0])
 		}
 	})
+}
+
+func TestSignatureSZArray(t *testing.T) {
+	t.Parallel()
+	var m winmd.Metadata
+	i4 := winmd.SigType{Kind: winmd.ElementType_I4}
+	for _, test := range []struct {
+		name    string
+		element []byte
+		want    winmd.SigType
+	}{
+		{"primitive", []byte{8}, i4},
+		{"class", []byte{0x12, 5}, winmd.SigType{Kind: winmd.ElementType_CLASS,
+			Value: winmd.CodedIndex[winmd.TypeDefOrRefOrSpec]{Tag: winmd.TypeDefOrRefOrSpec_TypeRef, Index: 0}}},
+		{"value-type", []byte{0x11, 4}, winmd.SigType{Kind: winmd.ElementType_VALUETYPE,
+			Value: winmd.CodedIndex[winmd.TypeDefOrRefOrSpec]{Tag: winmd.TypeDefOrRefOrSpec_TypeDef, Index: 0}}},
+		{"jagged", []byte{0x1d, 8}, winmd.SigType{Kind: winmd.ElementType_SZARRAY, Value: i4}},
+		{"pointer", []byte{0x0f, 1}, winmd.SigType{Kind: winmd.ElementType_PTR, Value: winmd.SigType{Kind: winmd.ElementType_VOID}}},
+		{"multidimensional", []byte{0x14, 8, 2, 0, 0}, winmd.SigType{Kind: winmd.ElementType_ARRAY,
+			Value: winmd.SigArray{Type: i4, Rank: 2, Sizes: []uint32{}, LowerBounds: []int32{}}}},
+		{"type-parameter", []byte{0x13, 0}, winmd.SigType{Kind: winmd.ElementType_VAR, Value: uint32(0)}},
+		{"method-parameter", []byte{0x1e, 1}, winmd.SigType{Kind: winmd.ElementType_MVAR, Value: uint32(1)}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			want := winmd.SigType{Kind: winmd.ElementType_SZARRAY, Value: test.want}
+			field, err := m.FieldSignature(append([]byte{6, 0x1d}, test.element...))
+			if err != nil || !reflect.DeepEqual(field.Type, want) {
+				t.Fatalf("field type = %+v, %v; want %+v", field.Type, err, want)
+			}
+			// Return and parameter types must remain distinct vectors too.
+			data := append([]byte{0, 1, 0x1d}, test.element...)
+			data = append(data, 0x1d)
+			data = append(data, test.element...)
+			method, err := m.MethodDefSignature(data)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !reflect.DeepEqual(method.RetType.Type, want) || len(method.Param) != 1 || !reflect.DeepEqual(method.Param[0].Type, want) {
+				t.Fatalf("method types = %+v; want SZARRAY return and parameter %+v", method, want)
+			}
+		})
+	}
 }
 
 func TestSignatureArrayShapes(t *testing.T) {
@@ -489,9 +556,13 @@ func TestSignatureTypeContexts(t *testing.T) {
 		{"nested-void-pointer", []byte{6, 0x0f, 0x0f, 1}, false, false},
 		{"nested-array", []byte{6, 0x14, 0x14, 8, 1, 0, 0, 1, 0, 0}, false, false},
 		{"void-pointer-array", []byte{6, 0x14, 0x0f, 1, 1, 0, 0}, false, false},
+		{"szarray-field", []byte{6, 0x1d, 8}, false, false},
+		{"szarray-pointer", []byte{6, 0x0f, 0x1d, 8}, false, false},
 		{"typed-reference-parameter", []byte{0, 1, 1, 0x16}, true, false},
 		{"byref-parameter", []byte{0, 1, 1, 0x10, 8}, true, false},
 		{"byref-pointer-return", []byte{0, 0, 0x10, 0x0f, 1}, true, false},
+		{"byref-szarray-parameter", []byte{0, 1, 1, 0x10, 0x1d, 8}, true, false},
+		{"byref-szarray-return", []byte{0, 0, 0x10, 0x1d, 8}, true, false},
 		{"void-field", []byte{6, 1}, false, true},
 		{"byref-field", []byte{6, 0x10, 8}, false, true},
 		{"typed-reference-field", []byte{6, 0x16}, false, true},
@@ -504,6 +575,11 @@ func TestSignatureTypeContexts(t *testing.T) {
 		{"array-of-void", []byte{6, 0x14, 1, 1, 0, 0}, false, true},
 		{"array-of-byref", []byte{6, 0x14, 0x10, 8, 1, 0, 0}, false, true},
 		{"array-of-typed-reference", []byte{6, 0x14, 0x16, 1, 0, 0}, false, true},
+		{"szarray-of-void", []byte{6, 0x1d, 1}, false, true},
+		{"szarray-of-byref", []byte{6, 0x1d, 0x10, 8}, false, true},
+		{"szarray-of-typed-reference", []byte{6, 0x1d, 0x16}, false, true},
+		{"modified-szarray-of-void", []byte{6, 0x1d, 0x20, 5, 1}, false, true},
+		{"szarray-with-shape", []byte{6, 0x1d, 8, 1, 0, 0}, false, true},
 		{"modifier-after-byref", []byte{0, 1, 1, 0x10, 0x20, 5, 8}, true, true},
 		{"modifier-on-array-element", []byte{6, 0x14, 0x20, 5, 8, 1, 0, 0}, false, true},
 	} {

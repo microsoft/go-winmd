@@ -260,7 +260,7 @@ type sigReader struct {
 const maxSignatureDepth = 64
 
 // sigTypeOptions permits prefixes and special types in specific signature
-// contexts (FieldSig, Param, RetType, and pointer targets).
+// contexts (FieldSig, Param, RetType, pointer targets, and vector elements).
 type sigTypeOptions uint8
 
 const (
@@ -476,8 +476,13 @@ func (r *sigReader) decodeType(allow sigTypeOptions, depth int) (v SigType) {
 		v.Kind = ElementType_VOID
 
 	case ElementType_GENERICINST:
-		// See https://github.com/microsoft/go-winmd/issues/19
-		r.err = errors.New("generic types are not yet supported")
+		v.Kind = b
+		v.Value = r.genericInst(depth)
+
+	case ElementType_VAR, ElementType_MVAR:
+		v.Kind = b
+		// Generic parameter numbers are zero-based, unlike metadata row indexes.
+		v.Value = r.compressedUint32()
 
 	case ElementType_CLASS,
 		ElementType_VALUETYPE:
@@ -487,6 +492,10 @@ func (r *sigReader) decodeType(allow sigTypeOptions, depth int) (v SigType) {
 	case ElementType_PTR:
 		v.Kind = b
 		v.Value = r.decodeType(sigTypeAllowCustomMod|sigTypeAllowVoid, depth+1)
+
+	case ElementType_SZARRAY:
+		v.Kind = b
+		v.Value = r.decodeType(sigTypeAllowCustomMod, depth+1)
 
 	case ElementType_ARRAY:
 		v.Kind = b
@@ -512,6 +521,50 @@ func (r *sigReader) decodeType(allow sigTypeOptions, depth int) (v SigType) {
 
 	default:
 		r.err = fmt.Errorf("unsupported element type: %v", b)
+	}
+	return
+}
+
+func (r *sigReader) genericInst(depth int) (inst SigGenericInst) {
+	kind := r.compressedUint32()
+	if r.err != nil {
+		return
+	}
+	if kind != uint32(ElementType_CLASS) && kind != uint32(ElementType_VALUETYPE) {
+		r.err = fmt.Errorf("generic instantiation must specify CLASS or VALUETYPE, got %#x", kind)
+		return
+	}
+	inst.Class = kind == uint32(ElementType_CLASS)
+	inst.Index = r.typeHandle()
+	if r.err != nil {
+		return
+	}
+	count := r.compressedUint32()
+	if r.err != nil {
+		return
+	}
+	if count == 0 {
+		r.err = errors.New("generic instantiation must have at least one type argument")
+		return
+	}
+	// Every argument consumes at least one byte. Reject impossible counts
+	// before allocating, then grow only as valid arguments are decoded.
+	if uint64(count) > uint64(len(r.data)) {
+		r.err = io.ErrUnexpectedEOF
+		return
+	}
+	for range count {
+		arg := r.decodeType(0, depth+1)
+		if r.err != nil {
+			return
+		}
+		// Type admits PTR, but generic instantiations do not (§II.9.4).
+		// VOID, BYREF, and TYPEDBYREF are already rejected by decodeType.
+		if arg.Kind == ElementType_PTR {
+			r.err = errors.New("unmanaged pointers cannot be generic type arguments")
+			return
+		}
+		inst.Type = append(inst.Type, arg)
 	}
 	return
 }
