@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"debug/pe"
 	"encoding/binary"
+	"errors"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -209,6 +210,12 @@ func TestWriteMethodNativeEntryPoint(t *testing.T) {
 			if test.wantError != "" {
 				if err == nil || !strings.Contains(err.Error(), test.wantError) {
 					t.Fatalf("error = %v; want %q", err, test.wantError)
+				}
+				if got != "" {
+					t.Fatalf("invalid entry point produced partial output: %q", got)
+				}
+				if test.name == "ordinal" && !errors.Is(err, ErrOrdinalImport) {
+					t.Fatalf("ordinal error = %v; want ErrOrdinalImport", err)
 				}
 			} else if err != nil || got != test.want {
 				t.Fatalf("method = %q, %v; want %q", got, err, test.want)
