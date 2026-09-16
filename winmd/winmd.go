@@ -5,6 +5,7 @@ package winmd
 
 import (
 	"debug/pe"
+	"errors"
 	"fmt"
 	"iter"
 )
@@ -41,14 +42,28 @@ func New(pefile *pe.File) (*Metadata, error) {
 	return newMetadata(pefile)
 }
 
+// FieldSignature decodes an entire field signature blob, rejecting trailing data.
+// Type nesting is limited to 64 levels.
+// Type handle bounds are checked when table metadata is available.
 func (m *Metadata) FieldSignature(bytes SigFieldBlob) (SigField, error) {
 	r := m.sigReader(bytes)
-	return r.fieldSig(), r.err
+	sig := r.fieldSig()
+	if r.err == nil && len(r.data) != 0 {
+		r.err = errors.New("trailing field signature data")
+	}
+	return sig, r.err
 }
 
+// MethodDefSignature decodes an entire method definition signature blob, rejecting trailing data.
+// Type nesting is limited to 64 levels per return type or parameter.
+// Type handle bounds are checked when table metadata is available.
 func (m *Metadata) MethodDefSignature(data SigMethodDefBlob) (SigMethodDef, error) {
 	r := m.sigReader(data)
-	return r.methodDefSig(), r.err
+	sig := r.methodDefSig()
+	if r.err == nil && len(r.data) != 0 {
+		r.err = errors.New("trailing method definition signature data")
+	}
+	return sig, r.err
 }
 
 func (m *Metadata) sigReader(data []byte) sigReader {

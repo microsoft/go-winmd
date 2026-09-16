@@ -257,6 +257,19 @@ type sigReader struct {
 	ecma335Reader
 }
 
+const maxSignatureDepth = 64
+
+// sigTypeOptions permits prefixes and special types in specific signature
+// contexts (FieldSig, Param, RetType, and pointer targets).
+type sigTypeOptions uint8
+
+const (
+	sigTypeAllowCustomMod sigTypeOptions = 1 << iota
+	sigTypeAllowVoid
+	sigTypeAllowByRef
+	sigTypeAllowTypedByRef
+)
+
 func (r *sigReader) fieldSig() (v SigField) {
 	if r.err != nil {
 		return
@@ -271,11 +284,11 @@ func (r *sigReader) fieldSig() (v SigField) {
 		r.err = fmt.Errorf("signature kind is not a field signature: %v", kind)
 		return
 	}
-	if kind&0xF0 != 0 {
-		r.err = fmt.Errorf("unexpected data stored in first byte of field signature: %v", kind)
+	if firstByte&0xF0 != 0 {
+		r.err = fmt.Errorf("unexpected data stored in first byte of field signature: %v", firstByte)
 		return
 	}
-	v.Type = r.decodeType()
+	v.Type = r.decodeType(sigTypeAllowCustomMod, 0)
 	return
 }
 
@@ -289,17 +302,34 @@ func (r *sigReader) methodDefSig() (v SigMethodDef) {
 		return
 	}
 	kind := firstByte & 0xF
-	if kind > uint8(sigKind_VARARG) {
+	if kind != uint8(sigKind_DEFAULT) && kind != uint8(sigKind_VARARG) {
 		r.err = fmt.Errorf("signature kind is not a method def signature: %v", kind)
 		return
 	}
+	if firstByte&0x80 != 0 {
+		r.err = errors.New("reserved bit set in method definition signature header")
+		return
+	}
+	v.VarArgs = kind == uint8(sigKind_VARARG)
 
 	thisiness := firstByte & 0xF0
 	v.HasThis = thisiness&uint8(sigAbbrev_HASTHIS) != 0
 	v.ExplicitThis = thisiness&uint8(sigAbbrev_EXPLICITTHIS) != 0
+	if v.ExplicitThis && !v.HasThis {
+		r.err = errors.New("EXPLICITTHIS requires HASTHIS in method definition signature")
+		return
+	}
 	if thisiness&uint8(sigAbbrev_GENERIC) != 0 {
+		if v.VarArgs {
+			r.err = errors.New("generic methods cannot use the VARARG calling convention")
+			return
+		}
 		v.Generic = r.compressedUint32()
 		if r.err != nil {
+			return
+		}
+		if v.Generic == 0 {
+			r.err = errors.New("generic method definition signature must declare at least one generic parameter")
 			return
 		}
 	}
@@ -325,7 +355,7 @@ func (r *sigReader) param() (v SigParam) {
 	if r.err != nil {
 		return
 	}
-	v.Type = r.decodeType()
+	v.Type = r.decodeType(sigTypeAllowCustomMod|sigTypeAllowByRef|sigTypeAllowTypedByRef, 0)
 	switch v.Type.Kind {
 	case ElementType_BYREF:
 		v.Kind = SigParamKind_ByRef
@@ -341,29 +371,17 @@ func (r *sigReader) retType() (v SigRetType) {
 	if r.err != nil {
 		return
 	}
-	v.Type = r.decodeType()
+	v.Type = r.decodeType(sigTypeAllowCustomMod|sigTypeAllowVoid|sigTypeAllowByRef|sigTypeAllowTypedByRef, 0)
 	switch v.Type.Kind {
 	case ElementType_BYREF:
 		v.Kind = SigRetTypeKind_ByRef
 	case ElementType_TYPEDBYREF:
-		v.Kind = SigRetTypeKind_ByRef
+		v.Kind = SigRetTypeKind_TypedByRef
 	case ElementType_VOID:
 		v.Kind = SigRetTypeKind_Void
 	default:
 		v.Kind = SigRetTypeKind_ByValue
 	}
-	return
-}
-
-func (r *sigReader) customModOpt() (v SigCustomMod) {
-	v.Kind = SigCustomModKind_Opt
-	v.Index = r.typeHandle()
-	return
-}
-
-func (r *sigReader) customModReqd() (v SigCustomMod) {
-	v.Kind = SigCustomModKind_Reqd
-	v.Index = r.typeHandle()
 	return
 }
 
@@ -376,35 +394,85 @@ func (r *sigReader) typeHandle() (v CodedIndex[TypeDefOrRefOrSpec]) {
 	if r.err != nil {
 		return
 	}
+	if value == 0 {
+		r.err = errors.New("signature type handle must not be null")
+		return
+	}
 	// Once we decompress the uint32, we could reverse the encoding steps listed in §II.23.2.8, but
 	// the coded index algorithm has the same result if we define codedTypeDefOrRefOrSpec.
 	v, r.err = parseCoded[TypeDefOrRefOrSpec](value)
-	return
-}
-
-func (r *sigReader) decodeType() (v SigType) {
 	if r.err != nil {
 		return
 	}
-	switch b := ElementType(r.compressedUint32()); b {
-	// Use recursion to collect the full list of mods, like the System.Reflection.Metadata impl.
-	case ElementType_CMOD_OPT:
-		mod := r.customModOpt()
-		v = r.decodeType()
-		v.Mod = append(v.Mod, mod)
-	case ElementType_CMOD_REQD:
-		mod := r.customModReqd()
-		v = r.decodeType()
-		v.Mod = append(v.Mod, mod)
+	if r.layout != nil {
+		// Standalone signatures can be decoded without a metadata layout.
+		// When one is available, validate the target just as for table references.
+		tbl, _ := codedTable(codedTypeDefOrRefOrSpec, uint8(v.Tag.int8))
+		if count := r.layout.tables[tbl].rowCount; uint32(v.Index) >= count {
+			r.err = fmt.Errorf("signature type index %d is beyond the end of table %d (%d rows)", v.Index, tbl, count)
+			return CodedIndex[TypeDefOrRefOrSpec]{}
+		}
+	}
+	return
+}
 
+func (r *sigReader) decodeType(allow sigTypeOptions, depth int) (v SigType) {
+	if r.err != nil {
+		return
+	}
+	if depth >= maxSignatureDepth {
+		r.err = errors.New("signature type nesting limit exceeded")
+		return
+	}
+	var b ElementType
+	for {
+		code := r.compressedUint32()
+		if r.err != nil {
+			return
+		}
+		if code > 0xff {
+			r.err = fmt.Errorf("unsupported element type: %#x", code)
+			return
+		}
+		b = ElementType(code)
+		if b != ElementType_CMOD_OPT && b != ElementType_CMOD_REQD {
+			break
+		}
+		if allow&sigTypeAllowCustomMod == 0 {
+			r.err = errors.New("custom modifiers are not allowed in this signature context")
+			return
+		}
+		mod := SigCustomMod{Kind: SigCustomModKind_Opt, Index: r.typeHandle()}
+		if r.err != nil {
+			return
+		}
+		if b == ElementType_CMOD_REQD {
+			mod.Kind = SigCustomModKind_Reqd
+		}
+		// Keep the encoded order without recursing through modifier prefixes.
+		v.Mod = append(v.Mod, mod)
+	}
+	switch b {
 	case ElementType_BYREF:
+		if allow&sigTypeAllowByRef == 0 {
+			r.err = errors.New("BYREF is not allowed in this signature context")
+			return
+		}
 		v.Kind = b
-		v.Value = r.decodeType()
+		v.Value = r.decodeType(0, depth+1)
 
 	// TypedByRef and Void have no SigType afterwards.
 	case ElementType_TYPEDBYREF:
+		if allow&sigTypeAllowTypedByRef == 0 {
+			r.err = errors.New("TYPEDBYREF is not allowed in this signature context")
+			return
+		}
 		v.Kind = ElementType_TYPEDBYREF
 	case ElementType_VOID:
+		if allow&sigTypeAllowVoid == 0 {
+			r.err = errors.New("VOID is not allowed in this signature context")
+			return
+		}
 		v.Kind = ElementType_VOID
 
 	case ElementType_GENERICINST:
@@ -418,11 +486,11 @@ func (r *sigReader) decodeType() (v SigType) {
 
 	case ElementType_PTR:
 		v.Kind = b
-		v.Value = r.decodeType()
+		v.Value = r.decodeType(sigTypeAllowCustomMod|sigTypeAllowVoid, depth+1)
 
 	case ElementType_ARRAY:
 		v.Kind = b
-		v.Value = r.array()
+		v.Value = r.array(depth)
 
 	case ElementType_BOOLEAN,
 		ElementType_CHAR,
@@ -448,27 +516,60 @@ func (r *sigReader) decodeType() (v SigType) {
 	return
 }
 
-func (r *sigReader) array() (a SigArray) {
+func (r *sigReader) array(depth int) (a SigArray) {
 	if r.err != nil {
 		return
 	}
-	a.Type = r.decodeType()
+	a.Type = r.decodeType(0, depth+1)
 	a.Rank = r.compressedUint32()
 	if r.err != nil {
 		return
 	}
-	a.Sizes = make([]uint32, r.compressedUint32())
-	for i := range a.Sizes {
-		a.Sizes[i] = r.compressedUint32()
+	if a.Rank == 0 {
+		r.err = errors.New("array rank must be greater than zero")
+		return
 	}
+	count := r.arrayShapeCount(a.Rank)
 	if r.err != nil {
 		return
 	}
-	a.LowerBounds = make([]int32, r.compressedUint32())
+	a.Sizes = make([]uint32, count)
+	for i := range a.Sizes {
+		a.Sizes[i] = r.compressedUint32()
+		if r.err != nil {
+			return
+		}
+	}
+	count = r.arrayShapeCount(a.Rank)
+	if r.err != nil {
+		return
+	}
+	a.LowerBounds = make([]int32, count)
 	for i := range a.LowerBounds {
 		a.LowerBounds[i] = r.compressedInt32()
+		if r.err != nil {
+			return
+		}
 	}
 	return
+}
+
+// arrayShapeCount bounds each dimension count before allocating its slice.
+func (r *sigReader) arrayShapeCount(rank uint32) uint32 {
+	count := r.compressedUint32()
+	if r.err != nil {
+		return 0
+	}
+	if count > rank {
+		r.err = fmt.Errorf("array shape count %d exceeds rank %d", count, rank)
+		return 0
+	}
+	// Each size or lower bound requires at least one byte in the signature.
+	if uint64(count) > uint64(len(r.data)) {
+		r.err = io.ErrUnexpectedEOF
+		return 0
+	}
+	return count
 }
 
 // recordReader reads table record data.
