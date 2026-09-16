@@ -119,14 +119,16 @@ func (tc *typeDefCache) resolve(r *resolvedDef) {
 
 func (tc *typeDefCache) get(namespace, name winmd.String, arch Arch) *resolvedDef {
 	key := tc.canonicalKey(typeNameKey{namespace.Start, name.Start})
-	if defs, ok := tc.resolvedDuplicated[key]; ok {
-		for _, def := range defs {
+	// ArchAll must visit the complete duplicate list in metadata order,
+	// not return whichever variant happened to be resolved first.
+	if arch != ArchAll {
+		for _, def := range tc.resolvedDuplicated[key] {
 			if def.Arch&arch == arch {
 				return def
 			}
 		}
 	}
-	if def, ok := tc.resolved[key]; ok {
+	if def, ok := tc.resolved[key]; ok && (arch == ArchAll || def.Arch&arch == arch) {
 		return def
 	}
 	return nil
