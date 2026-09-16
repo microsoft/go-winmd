@@ -7,6 +7,8 @@ import (
 	"archive/zip"
 	"bytes"
 	"context"
+	"errors"
+	"flag"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -16,11 +18,28 @@ import (
 	"testing"
 )
 
+func TestRunHelp(t *testing.T) {
+	var stdout, stderr strings.Builder
+	err := run(context.Background(), []string{"-help"}, &stdout, &stderr, nil, nugetEndpoints{})
+	if !errors.Is(err, flag.ErrHelp) {
+		t.Fatalf("run() error = %v; want flag.ErrHelp", err)
+	}
+	if got := stderr.String(); !strings.HasPrefix(got, "Usage of getwin32md:\n") {
+		t.Fatalf("stderr = %q; want renamed command usage", got)
+	}
+	if stdout.Len() != 0 {
+		t.Fatalf("stdout = %q; want empty", stdout.String())
+	}
+}
+
 func TestRunDownloadsExplicitVersion(t *testing.T) {
 	packageData := makePackage(t, map[string][]byte{
 		"metadata/Windows.Win32.winmd": []byte("explicit metadata"),
 	})
 	server := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		if got := request.UserAgent(); got != "go-winmd/getwin32md" {
+			t.Errorf("User-Agent = %q; want go-winmd/getwin32md", got)
+		}
 		if request.URL.Path != "/package/1.2.3-preview" {
 			t.Errorf("request path = %q; want explicit package path", request.URL.Path)
 			http.NotFound(response, request)
