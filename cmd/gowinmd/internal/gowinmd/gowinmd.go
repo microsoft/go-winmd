@@ -883,7 +883,10 @@ func (c *Context) resolveTypeRef(refIndex winmd.Index, arch Arch) (*resolvedDef,
 			}
 			key := c.typeDefCache.canonicalKey(typeRefKey(r))
 			if defIndex, ok := c.typeDefCache.unresolved[key]; ok {
-				return c.resolveTypeDef(defIndex)
+				if arch == ArchAll || c.TypeDefSupportedArch(defIndex)&arch == arch {
+					return c.resolveTypeDef(defIndex)
+				}
+				break
 			}
 			defIndices := c.typeDefCache.unresolvedDuplicated[key]
 			if len(defIndices) == 0 {
@@ -897,9 +900,6 @@ func (c *Context) resolveTypeRef(refIndex winmd.Index, arch Arch) (*resolvedDef,
 						return nil, err
 					}
 					c.typeDefCache.addAlias(typeRefKey(r), typeDefKey(first))
-					if len(defIndices) == 1 {
-						return c.resolveTypeDef(defIndices[0])
-					}
 				}
 			}
 			if len(defIndices) != 0 {
@@ -927,9 +927,10 @@ func (c *Context) resolveTypeRef(refIndex winmd.Index, arch Arch) (*resolvedDef,
 			if err != nil {
 				return nil, err
 			}
-			// Look in the parent def for the def matching the ref we're looking for.
+			// Select nested variants by name and architecture, never by the
+			// physical heap offset of an equal string.
 			for _, child := range parentDefIndex.Children {
-				if child.Name.String() == r.Name.String() {
+				if child.Name.String() == r.Name.String() && (arch == ArchAll || child.Arch&arch == arch) {
 					return child, nil
 				}
 			}
