@@ -135,6 +135,9 @@ type MethodOptions struct {
 	Projection Projection
 }
 
+// ErrOrdinalImport reports an entry point that mkwinsyscall cannot bind by name.
+var ErrOrdinalImport = errors.New("mkwinsyscall does not support ordinal import")
+
 // NewContext creates a Context. Reads some tables in their entirety to fill in internal index maps
 // that improve generation performance at the cost of startup time.
 func NewContext(f *winmd.Metadata) (*Context, error) {
@@ -453,6 +456,33 @@ func (c *Context) WriteMethodWithOptions(w io.StringWriter, methodIndex winmd.In
 		goName = escapedUpper(goName)
 	}
 
+	// Validate the native entry point before writing output or resolving types.
+	// Bulk callers can skip unsupported ordinal imports without retaining
+	// dependencies or partially generated declarations for the skipped method.
+	entryPoint := method.Name.String()
+	var moduleName string
+	var lastErr bool
+	if implMap, ok := c.methodDefImplMap[methodIndex]; ok {
+		entryPoint = implMap.ImportName.String()
+		if entryPoint == "" {
+			return fmt.Errorf("missing native entry point for method %s", method.Name)
+		}
+		if strings.HasPrefix(entryPoint, "#") {
+			return fmt.Errorf("%w %q for method %s", ErrOrdinalImport, entryPoint, method.Name)
+		}
+		if implMap.MappingFlags&winmd.PInvokeAttributes_SupportsLastError != 0 {
+			lastErr = true
+		}
+		mr, err := c.Metadata.Tables.ModuleRef.At(implMap.ImportScope)
+		if err != nil {
+			return err
+		}
+		moduleName = mkwinsyscallModuleName(mr.Name.String())
+		if moduleName == "kernel32" {
+			moduleName = ""
+		}
+	}
+
 	w.WriteString("//sys\t")
 	w.WriteString(goName)
 	w.WriteString("(")
@@ -528,32 +558,6 @@ func (c *Context) WriteMethodWithOptions(w io.StringWriter, methodIndex winmd.In
 		}
 	}
 	w.WriteString(")")
-
-	// Find the DllImport pseudo-custom attribute (§II.21.2.1) for the native
-	// entry point, module name, and return semantics.
-	entryPoint := method.Name.String()
-	var moduleName string
-	var lastErr bool
-	if implMap, ok := c.methodDefImplMap[methodIndex]; ok {
-		entryPoint = implMap.ImportName.String()
-		if entryPoint == "" {
-			return fmt.Errorf("missing native entry point for method %s", method.Name)
-		}
-		if strings.HasPrefix(entryPoint, "#") {
-			return fmt.Errorf("mkwinsyscall does not support ordinal import %q for method %s", entryPoint, method.Name)
-		}
-		if implMap.MappingFlags&winmd.PInvokeAttributes_SupportsLastError != 0 {
-			lastErr = true
-		}
-		mr, err := c.Metadata.Tables.ModuleRef.At(implMap.ImportScope)
-		if err != nil {
-			return err
-		}
-		moduleName = mkwinsyscallModuleName(mr.Name.String())
-		if moduleName == "kernel32" {
-			moduleName = ""
-		}
-	}
 
 	// Find and write return value(s), if they exist.
 	if value := sig.RetType.Kind != winmd.SigRetTypeKind_Void; value || lastErr {

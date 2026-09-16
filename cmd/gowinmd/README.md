@@ -112,7 +112,9 @@ The mkwinsyscall target omits that suffix because mkwinsyscall adds it while loa
 ```
 
 Native entry-point aliases use the `ImplMap.ImportName` from metadata, independently of the Go
-function name. Ordinal imports are rejected because mkwinsyscall cannot represent them.
+function name. Explicitly selecting an ordinal import returns an error because mkwinsyscall cannot
+represent it. Bulk generation, including module wildcards, skips ordinal imports with a diagnostic
+and continues generating supported methods.
 
 In `idiomatic` projection, a pointer and its immediately following length are coalesced only when
 `NativeArrayInfoAttribute` or `MemorySizeAttribute` explicitly associates them. This preserves the
