@@ -32,7 +32,7 @@ func (m *Metadata) EnumUnderlyingType(index Index) (ElementType, error) {
 			return 0, err
 		}
 		namespace, name = base.Namespace, base.Name
-		nested = base.Flags&TypeAttributes_VisibilityMask > TypeAttributes_Public
+		nested = base.Flags.Visibility().IsNested()
 	case TypeDefOrRef_TypeRef:
 		base, err := m.Tables.TypeRef.At(def.Extends.Index)
 		if err != nil {
@@ -53,7 +53,7 @@ func (m *Metadata) EnumUnderlyingType(index Index) (ElementType, error) {
 		if err != nil {
 			return 0, err
 		}
-		if field.Flags&FieldAttributes_Static != 0 {
+		if field.Flags.HasAll(FieldFlags_Static) {
 			continue
 		}
 		if underlying != 0 {

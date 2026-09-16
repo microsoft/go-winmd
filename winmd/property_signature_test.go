@@ -282,7 +282,7 @@ func TestPropertySignatureFromMetadata(t *testing.T) {
 	}
 	// One TypeDef owns two properties through a PropertyMap row.
 	tables := metadataTables(0, 1<<2|1<<21|1<<23, []uint32{1, 1, 2}, 0)
-	tables = binary.LittleEndian.AppendUint32(tables, uint32(winmd.TypeAttributes_Public))
+	tables = binary.LittleEndian.AppendUint32(tables, uint32(winmd.TypeVisibility_Public))
 	for _, value := range []uint16{1, 11, 0, 1, 1, 1, 1} { // TypeDef columns, then PropertyMap.
 		tables = binary.LittleEndian.AppendUint16(tables, value)
 	}

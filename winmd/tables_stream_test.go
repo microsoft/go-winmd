@@ -170,8 +170,8 @@ func TestNewNullMethodDefParamLists(t *testing.T) {
 			for _, start := range test.starts {
 				tables = binary.LittleEndian.AppendUint32(tables, 0) // RVA.
 				for _, value := range []uint16{
-					uint16(winmd.MethodImplAttributes_Runtime),
-					uint16(winmd.MethodAttributes_Public | winmd.MethodAttributes_Static),
+					uint16(winmd.MethodCodeType_Runtime),
+					uint16(winmd.MemberAccess_Public) | uint16(winmd.MethodFlags_Static),
 					1, 1, start, // Name, signature, ParamList.
 				} {
 					tables = binary.LittleEndian.AppendUint16(tables, value)

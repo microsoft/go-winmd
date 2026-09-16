@@ -58,14 +58,15 @@ func enumMetadata(t *testing.T, typeDefBase bool, kind winmd.ElementType, value 
 	write(&tables, uint16(0), module, uint16(0), uint16(0), uint16(0))
 	write(&tables, uint16(1<<2), enum, system) // TypeRef scoped to Module 1.
 	write(&tables, uint32(0), addString("<Module>"), uint16(0), uint16(0), uint16(1), uint16(1))
-	write(&tables, uint32(winmd.TypeAttributes_Public), enum, system, uint16(0), uint16(1), uint16(1))
+	write(&tables, uint32(winmd.TypeVisibility_Public), enum, system, uint16(0), uint16(1), uint16(1))
 	extends := uint16(1<<2 | 1) // TypeRef 1.
 	if typeDefBase {
 		extends = 2 << 2 // TypeDef 2.
 	}
-	write(&tables, uint32(winmd.TypeAttributes_Public|winmd.TypeAttributes_Sealed), name, namespace, extends, uint16(1), uint16(1))
-	write(&tables, uint16(winmd.FieldAttributes_Public), backingName, backingSig)
-	write(&tables, uint16(winmd.FieldAttributes_Public|winmd.FieldAttributes_Static|winmd.FieldAttributes_Literal|winmd.FieldAttributes_HasDefault), memberName, memberSig)
+	write(&tables, uint32(winmd.TypeVisibility_Public)|uint32(winmd.TypeFlags_Sealed), name, namespace, extends, uint16(1), uint16(1))
+	fieldAttrs := uint16(winmd.MemberAccess_Public)
+	write(&tables, fieldAttrs, backingName, backingSig)
+	write(&tables, fieldAttrs|uint16(winmd.FieldFlags_Static|winmd.FieldFlags_Literal|winmd.FieldFlags_HasDefault), memberName, memberSig)
 	write(&tables, byte(kind), byte(0), uint16(2<<2), constantValue)
 
 	streams := []struct {

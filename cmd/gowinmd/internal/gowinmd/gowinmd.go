@@ -470,7 +470,7 @@ func (c *Context) WriteMethodWithOptions(w io.StringWriter, methodIndex winmd.In
 		if strings.HasPrefix(entryPoint, "#") {
 			return fmt.Errorf("%w %q for method %s", ErrOrdinalImport, entryPoint, method.Name)
 		}
-		if implMap.MappingFlags&winmd.PInvokeAttributes_SupportsLastError != 0 {
+		if implMap.MappingFlags.HasAll(winmd.PInvokeFlags_SupportsLastError) {
 			lastErr = true
 		}
 		mr, err := c.Metadata.Tables.ModuleRef.At(implMap.ImportScope)
@@ -845,7 +845,7 @@ type resolvedDef struct {
 }
 
 func (r *resolvedDef) IsInterface() bool {
-	return r.def.Flags&winmd.TypeAttributes_ClassSemanticsMask == winmd.TypeAttributes_Interface
+	return r.def.Flags.Semantics() == winmd.TypeSemantics_Interface
 }
 
 func (r *resolvedDef) NeedsPointerWhenUsed() bool {
@@ -1001,7 +1001,7 @@ func (c *Context) resolveTypeDef(defIndex winmd.Index) (*resolvedDef, error) {
 			}
 		}
 		// Nested types can't be resolved at module scope. Don't add it to the module lookup.
-		if def.Flags&winmd.TypeAttributes_VisibilityMask <= winmd.TypeAttributes_Public {
+		if !def.Flags.Visibility().IsNested() {
 			c.typeDefCache.resolve(&r)
 		}
 		c.resolvedDefsByIndex[defIndex] = &r
@@ -1063,7 +1063,7 @@ func systemBaseType(metadata *winmd.Metadata, def *resolvedDef) (string, error) 
 		if err != nil {
 			return "", err
 		}
-		if base.Flags&winmd.TypeAttributes_VisibilityMask > winmd.TypeAttributes_Public {
+		if base.Flags.Visibility().IsNested() {
 			return "", nil
 		}
 		namespace, name = base.Namespace, base.Name
@@ -1105,7 +1105,7 @@ func (c *Context) writeTypeDefEnum(w io.StringWriter, r *resolvedDef, arch Arch)
 		if err != nil {
 			return err
 		}
-		if fd.Flags&winmd.FieldAttributes_Static == 0 {
+		if !fd.Flags.HasAll(winmd.FieldFlags_Static) {
 			continue
 		}
 
