@@ -303,11 +303,13 @@ func writeSelectionsWithProjection(b map[gowinmd.Arch]*strings.Builder, f *winmd
 			}
 
 			var override string
+			var exactMatch bool
 			if filter != nil {
 				// Build the "module.method" key for this method using the ImplMap/ModuleRef lookup.
 				moduleName, key := methodFilterKey(context, j, md)
 				// Match if the exact "module.method" is listed, or "module.*" for all methods in a module.
-				goName, exactMatch := filter[key]
+				var goName string
+				goName, exactMatch = filter[key]
 				_, moduleMatch := filter[moduleName+".*"]
 				if !exactMatch && !moduleMatch {
 					continue
@@ -324,8 +326,25 @@ func writeSelectionsWithProjection(b map[gowinmd.Arch]*strings.Builder, f *winmd
 
 			supportedArches := context.MethodDefSupportedArch(j)
 			for _, arch := range supportedArches.Unique() {
-				w := b[arch]
+				var declaration strings.Builder
+				options := gowinmd.MethodOptions{GoName: override, Projection: projection}
+				if err := context.WriteMethodWithOptions(&declaration, j, md, arch, options); err != nil {
+					if !exactMatch && errors.Is(err, gowinmd.ErrOrdinalImport) {
+						log.Printf("skipping %v.Apis method %v: %v", r.Namespace, md.Name, err)
+						continue
+					}
+					// Include the partial declaration in the error, not in the output.
+					lines := strings.Split(declaration.String(), "\n")
+					if len(lines) > 5 {
+						lines = lines[len(lines)-5:]
+					}
 
+					return fmt.Errorf(
+						"error context: \n---\n%v\n---\nfailed to write sys line for %v.Apis method %v: %w",
+						strings.Join(lines, "\n"), r.Namespace, md.Name, err)
+				}
+
+				w := b[arch]
 				// Write a comment describing this chunk of methods.
 				if !archSeen[arch] {
 					archSeen[arch] = true
@@ -333,20 +352,7 @@ func writeSelectionsWithProjection(b map[gowinmd.Arch]*strings.Builder, f *winmd
 					w.WriteString(r.Namespace.String())
 				}
 				w.WriteString("\n")
-
-				options := gowinmd.MethodOptions{GoName: override, Projection: projection}
-				if err := context.WriteMethodWithOptions(w, j, md, arch, options); err != nil {
-					// Include context in the error for diag purposes.
-					// writeSys may have partially written into b. This is actually convenient for diag.
-					lines := strings.Split(w.String(), "\n")
-					if len(lines) > 5 {
-						lines = lines[len(lines)-5:]
-					}
-
-					return fmt.Errorf(
-						"error context: \n---\n%v\n---\nfailed to write sys line for %v.Apis method %v: %v",
-						strings.Join(lines, "\n"), r.Namespace, md.Name, err)
-				}
+				w.WriteString(declaration.String())
 			}
 		}
 	}
