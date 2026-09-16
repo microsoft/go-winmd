@@ -315,20 +315,25 @@ func (c *Context) sigTypeABITypeLayout(sig *winmd.SigType, arch Arch, visiting m
 		if err != nil {
 			return abiTypeLayout{}, err
 		}
-		count := uint64(1)
-		for dimension := range int(array.Rank) {
+		abiSize, goSize := uint64(element.abiSize), uint64(element.goSize)
+		// Work from the innermost array outward, as Go does. Each intermediate
+		// size is checked before another dimension is multiplied, so the next
+		// uint32-by-uint32 product cannot overflow uint64.
+		for dimension := int(array.Rank) - 1; dimension >= 0; dimension-- {
 			if dimension >= len(array.Sizes) {
 				return abiTypeLayout{}, errors.New("variable-length array fields are not representable in Go")
 			}
-			count *= uint64(array.Sizes[dimension])
-		}
-		if count > math.MaxUint32 || count*uint64(element.abiSize) > math.MaxUint32 {
-			return abiTypeLayout{}, errors.New("array field size overflows uint32")
+			size := uint64(array.Sizes[dimension])
+			abiSize *= size
+			goSize *= size
+			if abiSize > math.MaxUint32 || goSize > math.MaxUint32 {
+				return abiTypeLayout{}, errors.New("array field size overflows uint32")
+			}
 		}
 		return abiTypeLayout{
-			abiSize:  uint32(count) * element.abiSize,
+			abiSize:  uint32(abiSize),
 			abiAlign: element.abiAlign,
-			goSize:   uint32(count) * element.goSize,
+			goSize:   uint32(goSize),
 			goAlign:  element.goAlign,
 		}, nil
 	case winmd.ElementType_OBJECT:
