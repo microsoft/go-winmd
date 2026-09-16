@@ -70,6 +70,21 @@ func (m *Metadata) MethodDefSignature(data SigMethodDefBlob) (SigMethodDef, erro
 	return sig, r.err
 }
 
+// PropertySignature decodes an entire property signature blob, rejecting trailing data.
+// The blob is stored in [Property.Type].
+// Type nesting is limited to 64 levels per property type or index parameter.
+// Type handle bounds are checked when table metadata is available.
+// Generic instantiations and VAR/MVAR parameter numbers are preserved without
+// substitution or validation against a declaring type's or method's constraints.
+func (m *Metadata) PropertySignature(data SigPropertyBlob) (SigProperty, error) {
+	r := m.sigReader(data)
+	sig := r.propertySig()
+	if r.err == nil && len(r.data) != 0 {
+		r.err = errors.New("trailing property signature data")
+	}
+	return sig, r.err
+}
+
 func (m *Metadata) sigReader(data []byte) sigReader {
 	return sigReader{
 		ecma335Reader{
