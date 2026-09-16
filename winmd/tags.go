@@ -169,7 +169,7 @@ var (
 	HasCustomAttribute_InterfaceImpl          = HasCustomAttribute{5}
 	HasCustomAttribute_MemberRef              = HasCustomAttribute{6}
 	HasCustomAttribute_Module                 = HasCustomAttribute{7}
-	HasCustomAttribute_None                   = HasCustomAttribute{8}
+	HasCustomAttribute_DeclSecurity           = HasCustomAttribute{8}
 	HasCustomAttribute_Property               = HasCustomAttribute{9}
 	HasCustomAttribute_Event                  = HasCustomAttribute{10}
 	HasCustomAttribute_StandAloneSig          = HasCustomAttribute{11}

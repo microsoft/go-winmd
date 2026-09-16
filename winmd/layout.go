@@ -7,6 +7,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"io"
 	"math/bits"
 )
 
@@ -26,7 +27,8 @@ type tableInfo struct {
 }
 
 // generateLayout generates the bit-accurate layout for the given heapSizes and tableRowCounts.
-func generateLayout(heapSizes uint8, tableRowCounts [tableMax]uint32) *layout {
+// It checks that all table rows fit within dataSize bytes.
+func generateLayout(heapSizes uint8, tableRowCounts [tableMax]uint32, dataSize int) (*layout, error) {
 	var la layout
 	// String, GUID, and blob index column sizes only depend on the heapSize.
 	la.stringSize, la.guidSize, la.blobSize = heapIndexSize(heapSizes)
@@ -51,12 +53,17 @@ func generateLayout(heapSizes uint8, tableRowCounts [tableMax]uint32) *layout {
 		info := tableInfo{
 			rowCount: rowCount,
 			offset:   offset,
+			width:    t.width(&la),
 		}
-		info.width += t.width(&la)
+		// Check the size before converting to int, which may be 32 bits.
+		size := uint64(info.width) * uint64(rowCount)
+		if size > uint64(dataSize-offset) {
+			return nil, fmt.Errorf("table %d exceeds the tables stream: %w", t, io.ErrUnexpectedEOF)
+		}
 		la.tables[t] = info
-		offset += int(info.width) * int(rowCount)
+		offset += int(size)
 	}
-	return &la
+	return &la, nil
 }
 
 // simpleIndexSize calculates the size of the simple index e.
@@ -132,6 +139,10 @@ func (r *ecma335Reader) uint8() uint8 {
 	if r.err != nil {
 		return 0
 	}
+	if len(r.data) < 1 {
+		r.err = io.ErrUnexpectedEOF
+		return 0
+	}
 	v := r.data[0]
 	r.data = r.data[1:]
 	return v
@@ -139,6 +150,10 @@ func (r *ecma335Reader) uint8() uint8 {
 
 func (r *ecma335Reader) uint16() uint16 {
 	if r.err != nil {
+		return 0
+	}
+	if len(r.data) < 2 {
+		r.err = io.ErrUnexpectedEOF
 		return 0
 	}
 	v := binary.LittleEndian.Uint16(r.data)
@@ -150,16 +165,41 @@ func (r *ecma335Reader) uint32() uint32 {
 	if r.err != nil {
 		return 0
 	}
+	if len(r.data) < 4 {
+		r.err = io.ErrUnexpectedEOF
+		return 0
+	}
 	v := binary.LittleEndian.Uint32(r.data)
 	r.data = r.data[4:]
 	return v
 }
 
 func (r *ecma335Reader) index(tbl table) Index {
+	v := r.listIndex(tbl)
+	if r.err != nil {
+		return 0
+	}
+	if max := r.layout.tables[tbl].rowCount; uint32(v) >= max {
+		r.err = fmt.Errorf("record index %d must be smaller than %d", v, max)
+		return 0
+	}
+	return v
+}
+
+// listIndex also allows the index one past the last row, for empty lists
+// and the end of the preceding row's list.
+func (r *ecma335Reader) listIndex(tbl table) Index {
 	if r.err != nil {
 		return 0
 	}
 	v := r.uint(r.layout.simpleSizes[tbl])
+	return r.listIndexValue(tbl, v)
+}
+
+func (r *ecma335Reader) listIndexValue(tbl table, v uint32) Index {
+	if r.err != nil {
+		return 0
+	}
 	if v == 0 {
 		r.err = errors.New("record index must be greater than 0")
 		return 0
@@ -167,7 +207,7 @@ func (r *ecma335Reader) index(tbl table) Index {
 	// ECMA-335 table indices are 1-based, but we follow Go notation instead.
 	v -= 1
 	if max := r.layout.tables[tbl].rowCount; v > max {
-		r.err = fmt.Errorf("record index %d must be smaller than %d", v, max)
+		r.err = fmt.Errorf("list index %d must be at most %d", v, max)
 		return 0
 	}
 	return Index(v)
@@ -445,24 +485,46 @@ func (r *recordReader) slice(ownTable, targetTable table) Slice {
 		return Slice{}
 	}
 	ownWidth := int(r.layout.tables[ownTable].width)
-
-	var sl Slice
-	// read first end of the slice so r.i+ownWidth
-	// points at the same column of the next row.
-	if ownWidth > len(r.data) {
-		// there is not enough data to read another row from the current table,
-		// so we are peeking from its last row.
-		// the spec says that in this case the slice should span until the
-		// end of the target table.
-		sl.End = Index(r.layout.tables[targetTable].rowCount)
-	} else {
-		baseData := r.data
-		r.data = r.data[ownWidth:]
-		sl.End = r.index(targetTable)
-		r.data = baseData
+	indexSize := r.layout.simpleSizes[targetTable]
+	baseData := r.data
+	start := r.uint(indexSize)
+	if r.err != nil {
+		return Slice{}
 	}
-	sl.Start = r.index(targetTable)
-	if r.err == nil && sl.Start > sl.End {
+	// TypeDef.FieldList and MethodList may be null (§II.22.37).
+	// MethodDef.ParamList may also be null when no parameter rows are owned.
+	nullable := ownTable == tableTypeDef || ownTable == tableMethodDef
+	if nullable && start == 0 {
+		return Slice{}
+	}
+	sl := Slice{
+		Start: r.listIndexValue(targetTable, start),
+		End:   Index(r.layout.tables[targetTable].rowCount),
+	}
+	if r.err != nil {
+		return Slice{}
+	}
+	// Look ahead at the same column in subsequent rows. Null lists own no
+	// entries and do not bound the preceding non-null run; skip them until
+	// the next non-null list or the end of the table.
+	for remaining := baseData; ownWidth < len(remaining); {
+		remaining = remaining[ownWidth:]
+		next := ecma335Reader{data: remaining, layout: r.layout}
+		end := next.uint(indexSize)
+		if next.err != nil {
+			r.err = next.err
+			return Slice{}
+		}
+		if nullable && end == 0 {
+			continue
+		}
+		sl.End = r.listIndexValue(targetTable, end)
+		if r.err != nil {
+			return Slice{}
+		}
+		break
+	}
+	if sl.Start > sl.End {
 		r.err = fmt.Errorf("invalid slice end: value=%d, max=%d", sl.End, sl.Start)
 		return Slice{}
 	}
@@ -478,6 +540,9 @@ func (r *recordReader) string() (v String) {
 		return
 	}
 	idx := r.uint(r.layout.stringSize)
+	if r.err != nil {
+		return
+	}
 	v, r.err = r.heaps.strs.String(idx)
 	return
 }
@@ -487,6 +552,13 @@ func (r *recordReader) blob() (v []byte) {
 		return
 	}
 	idx := r.uint(r.layout.blobSize)
+	if r.err != nil {
+		return
+	}
+	// Zero is a null blob reference, including when the empty heap is omitted.
+	if idx == 0 {
+		return nil
+	}
 	v, r.err = r.heaps.blobs.Bytes(idx)
 	return
 }

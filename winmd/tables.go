@@ -207,7 +207,7 @@ type FieldRVA struct {
 }
 
 // FileAttributes is defined in §II.23.1.6.
-type FileAttributes uint16
+type FileAttributes uint32
 
 const (
 	FileAttributes_ContainsMetaData   FileAttributes = 0x0000

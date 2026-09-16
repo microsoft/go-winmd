@@ -35,6 +35,8 @@ func Open(path string) (*Metadata, error) {
 // New creates a new Metadata from an underlying PE file.
 // The PE file can be closed after calling New, as the
 // returned Metadata doesn't keep any reference to it.
+// A #~ tables stream is required; uncompressed #- streams are not supported.
+// On success, Tables is non-nil, even when all tables are empty.
 func New(pefile *pe.File) (*Metadata, error) {
 	return newMetadata(pefile)
 }
@@ -74,9 +76,8 @@ type CodedIndex[T CodedTag] struct {
 // when reading from the #Strings heap.
 type String struct {
 	// Start is the offset in the #Strings heap where the string starts. This is the parameter that
-	// was passed to StringHeap.String to create this String. The strings heap doesn't contain
-	// duplicate strings, so this value can be used to uniquely identify strings that come from the
-	// same heap.
+	// was passed to StringHeap.String to create this String. Equal strings can be stored at
+	// different offsets, so Start identifies a heap location, not a unique string value.
 	Start uint32
 	data  []byte
 }
