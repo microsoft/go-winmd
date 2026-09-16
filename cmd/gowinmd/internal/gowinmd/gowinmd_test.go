@@ -136,7 +136,7 @@ func TestWriteEnumWithNonstandardBackingField(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				if field.Flags&winmd.FieldAttributes_Static == 0 {
+				if !field.Flags.HasAll(winmd.FieldFlags_Static) {
 					if field.Name.String() != "value__" || len(field.Signature) != 2 {
 						t.Fatal("unexpected fixture backing field")
 					}

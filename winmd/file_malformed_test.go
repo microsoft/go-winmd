@@ -724,7 +724,7 @@ func TestNewFileTableLayout(t *testing.T) {
 			}
 			// A following table verifies the total size of the File table.
 			tables = binary.LittleEndian.AppendUint32(tables, 0x12345678)
-			tables = binary.LittleEndian.AppendUint32(tables, uint32(winmd.ManifestResourceAttributes_Public))
+			tables = binary.LittleEndian.AppendUint32(tables, uint32(winmd.ResourceVisibility_Public))
 			tables = appendIndex(tables, 13)
 			tables = binary.LittleEndian.AppendUint16(tables, 4) // Implementation: File row 1.
 			m, err := winmd.New(metadataPE(t, metadataRoot(

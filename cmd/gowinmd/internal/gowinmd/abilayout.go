@@ -69,7 +69,7 @@ func (c *Context) planStructABI(def *resolvedDef, arch Arch, visiting map[winmd.
 		classSize = classLayout.ClassSize
 	}
 
-	explicit := def.def.Flags&winmd.TypeAttributes_LayoutMask == winmd.TypeAttributes_ExplicitLayout
+	explicit := def.def.Flags.Layout() == winmd.TypeLayout_ExplicitLayout
 	usedExplicitOffsets := make(map[uint32]bool)
 	abiOffset := uint32(0)
 	abiEnd := uint32(0)
@@ -83,7 +83,7 @@ func (c *Context) planStructABI(def *resolvedDef, arch Arch, visiting map[winmd.
 		if err != nil {
 			return abiStructLayout{}, err
 		}
-		if field.Flags&winmd.FieldAttributes_Static != 0 {
+		if field.Flags.HasAll(winmd.FieldFlags_Static) {
 			continue
 		}
 		signature, err := c.Metadata.FieldSignature(field.Signature)
@@ -203,7 +203,7 @@ func (c *Context) discoverABILayoutDependencies() error {
 					if err != nil {
 						return err
 					}
-					if field.Flags&winmd.FieldAttributes_Static != 0 {
+					if field.Flags.HasAll(winmd.FieldFlags_Static) {
 						continue
 					}
 					signature, err := c.Metadata.FieldSignature(field.Signature)
