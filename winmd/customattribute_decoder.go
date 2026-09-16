@@ -10,25 +10,100 @@ import (
 	"strings"
 )
 
+// EnumReference identifies an enum from either a constructor signature or a
+// serialized attribute value. Exactly one of Metadata and SerializedName is set.
+// References and their nested data are read-only and may be shared by decoded
+// arguments, resolver calls, and the decoder's caches.
+type EnumReference struct {
+	// Metadata is set for a TypeDef or TypeRef in a constructor signature.
+	Metadata *EnumReferenceMetadata
+	// SerializedName is the original name from a named or boxed enum value.
+	// It may be assembly-qualified and contain reflection type-name escapes.
+	// No metadata reference is inferred from this string, even if resolved locally.
+	SerializedName string
+}
+
+// EnumReferenceMetadata preserves the identity of a type referenced by metadata.
+// Names are unescaped metadata strings, not a synthesized assembly-qualified name.
+type EnumReferenceMetadata struct {
+	// Handle identifies the TypeDef or TypeRef in the decoder's Metadata.
+	Handle CodedIndex[TypeDefOrRefOrSpec]
+	// Namespace is the namespace of the outermost type.
+	Namespace string
+	// Name is the enum's simple name.
+	Name string
+	// DeclaringTypes contains enclosing simple names, outermost first.
+	DeclaringTypes []string
+	// Assembly is the original AssemblyRef row for an external reference,
+	// or nil for a definition or reference in the current module. Its flags,
+	// culture, public key/token, and other fields are unchanged; heap data is shared.
+	Assembly *AssemblyRef
+}
+
+// name is for local serialized-name lookup and diagnostics, never cache identity.
+func (ref EnumReference) name() string {
+	if ref.Metadata != nil {
+		return ref.Metadata.fullName()
+	}
+	return ref.SerializedName
+}
+
+func (ref *EnumReferenceMetadata) fullName() string {
+	var name strings.Builder
+	if ref.Namespace != "" {
+		name.WriteString(typeNameEscaper.Replace(ref.Namespace))
+		name.WriteByte('.')
+	}
+	for _, declaring := range ref.DeclaringTypes {
+		name.WriteString(typeNameEscaper.Replace(declaring))
+		name.WriteByte('+')
+	}
+	name.WriteString(typeNameEscaper.Replace(ref.Name))
+	return name.String()
+}
+
+// metadataTypeIdentity keeps raw metadata name boundaries separate from the
+// reflection names used to resolve serialized enum references.
+type metadataTypeIdentity struct {
+	namespace string
+	name      string
+	// Metadata identifiers cannot contain NUL, so each enclosing name is
+	// terminated with NUL to preserve nesting boundaries without escaping.
+	declaringTypes string
+}
+
+func (ref *EnumReferenceMetadata) identity() metadataTypeIdentity {
+	var declaringTypes string
+	if len(ref.DeclaringTypes) != 0 {
+		declaringTypes = strings.Join(ref.DeclaringTypes, "\x00") + "\x00"
+	}
+	return metadataTypeIdentity{namespace: ref.Namespace, name: ref.Name, declaringTypes: declaringTypes}
+}
+
 // UnresolvedEnumError reports a custom-attribute enum whose underlying integer
 // type could not be resolved. Use [errors.As] to distinguish this condition from
 // malformed metadata and report or skip the attribute without stopping other work.
 type UnresolvedEnumError struct {
-	Name string // Enum type name, possibly assembly-qualified.
+	Reference EnumReference
 }
 
 func (e *UnresolvedEnumError) Error() string {
-	return fmt.Sprintf("cannot resolve custom attribute enum %q", e.Name)
+	if ref := e.Reference.Metadata; ref != nil && ref.Assembly != nil {
+		return fmt.Sprintf("cannot resolve custom attribute enum %q in assembly %q", ref.fullName(), ref.Assembly.Name)
+	}
+	return fmt.Sprintf("cannot resolve custom attribute enum %q", e.Reference.name())
 }
 
 // CustomAttributeDecoder resolves constructor signatures and enum types before
 // decoding custom-attribute values. It caches metadata lookups for repeated use.
+// Type definitions and references are limited to 64 levels of nesting.
 // A decoder must not be used concurrently, and its metadata and ResolveEnum
 // callback must not be changed after decoding starts.
 type CustomAttributeDecoder struct {
 	// ResolveEnum supplies the underlying integer type of enums not resolved
-	// in the current metadata. Names can be assembly-qualified and use backslash
-	// escapes for special characters in type identifiers. Return an
+	// in the current metadata. The reference contains either raw metadata identity
+	// or the original serialized type name, without assembly-name formatting or
+	// public-key token computation. The reference must not be modified. Return an
 	// *UnresolvedEnumError when an enum's underlying type is unavailable; other
 	// errors are propagated without being classified as unresolved enums.
 	// A nil callback reports unresolved enums with *UnresolvedEnumError.
@@ -36,26 +111,32 @@ type CustomAttributeDecoder struct {
 	// Enum arguments support ElementType_BOOLEAN, ElementType_CHAR, and the
 	// fixed-width integer types ElementType_I1 through ElementType_U8. Native-sized
 	// enum arguments are unsupported because their serialized width is unknown.
-	ResolveEnum func(name string) (ElementType, error)
+	ResolveEnum func(EnumReference) (ElementType, error)
 
-	metadata     *Metadata
-	constructors map[CodedIndex[CustomAttributeType]][]CustomAttributeArgumentType
-	enums        map[string]ElementType
-	typeNames    map[Index]string
-	typesByName  map[string][]Index
-	typesIndexed bool
-	typesError   error
+	metadata        *Metadata
+	constructors    map[CodedIndex[CustomAttributeType]][]CustomAttributeArgumentType
+	enumsByType     map[CodedIndex[TypeDefOrRefOrSpec]]ElementType
+	enumsByName     map[string]ElementType
+	typeReferences  map[CodedIndex[TypeDefOrRefOrSpec]]*EnumReferenceMetadata
+	typeParents     map[Index]Index
+	typesByName     map[string][]Index
+	typesByIdentity map[metadataTypeIdentity][]Index
+	typesIndexed    bool
+	typesError      error
 }
 
 // NewCustomAttributeDecoder creates a reusable decoder for attributes in m.
-// It resolves enums declared in m, including nested enums. Unqualified names
-// and names qualified with m's simple assembly name can be resolved locally;
-// other assembly-qualified names are passed to ResolveEnum.
+// It resolves enums declared in m, including nested enums. Metadata references
+// and serialized names are cached separately, by handle and original name.
+// Unqualified serialized names and names qualified with m's simple assembly name
+// can be resolved locally; other references are passed unchanged to ResolveEnum.
 func NewCustomAttributeDecoder(m *Metadata) *CustomAttributeDecoder {
 	return &CustomAttributeDecoder{
-		metadata:     m,
-		constructors: make(map[CodedIndex[CustomAttributeType]][]CustomAttributeArgumentType),
-		enums:        make(map[string]ElementType),
+		metadata:       m,
+		constructors:   make(map[CodedIndex[CustomAttributeType]][]CustomAttributeArgumentType),
+		enumsByType:    make(map[CodedIndex[TypeDefOrRefOrSpec]]ElementType),
+		enumsByName:    make(map[string]ElementType),
+		typeReferences: make(map[CodedIndex[TypeDefOrRefOrSpec]]*EnumReferenceMetadata),
 	}
 }
 
@@ -193,22 +274,21 @@ func (d *CustomAttributeDecoder) signatureType(r *customAttributeReader, depth i
 		if r.err != nil {
 			break
 		}
-		name, err := d.typeName(handle, 0)
+		ref, err := d.typeReference(handle, 0)
 		if err != nil {
 			r.err = err
 			break
 		}
 		if typ.Kind == ElementType_CLASS {
-			unqualified, _, _ := splitTypeName(name)
-			if unqualified != "System.Type" {
-				r.err = fmt.Errorf("unsupported custom attribute class %q", name)
+			if ref.Namespace != "System" || ref.Name != "Type" || len(ref.DeclaringTypes) != 0 {
+				r.err = fmt.Errorf("unsupported custom attribute class %q", ref.fullName())
 				break
 			}
 			typ.Kind = ElementType_TYPE
 		} else {
 			typ.Kind = ElementType_ENUM
-			typ.EnumName = name
-			typ.EnumUnderlyingType, r.err = d.resolveEnum(name)
+			typ.Enum = EnumReference{Metadata: ref}
+			typ.EnumUnderlyingType, r.err = d.resolveEnum(typ.Enum)
 		}
 	default:
 		if r.err == nil {
@@ -239,144 +319,209 @@ func (d *CustomAttributeDecoder) buildTypeIndex() error {
 		}
 		parents[nested.NestedClass] = nested.EnclosingClass
 	}
-	d.typeNames = make(map[Index]string)
+	d.typeParents = parents
+	type typeNameInfo struct {
+		name     string
+		identity metadataTypeIdentity
+		depth    int
+	}
+	typeNames := make(map[Index]typeNameInfo)
 	d.typesByName = make(map[string][]Index)
-	var nameOf func(Index, int) (string, error)
-	nameOf = func(index Index, depth int) (string, error) {
-		if name, ok := d.typeNames[index]; ok {
-			return name, nil
-		}
+	d.typesByIdentity = make(map[metadataTypeIdentity][]Index)
+	var nameOf func(Index, int) (typeNameInfo, error)
+	nameOf = func(index Index, depth int) (typeNameInfo, error) {
 		if depth >= maxCustomAttributeDepth {
-			return "", errors.New("cyclic or excessively nested TypeDef")
+			return typeNameInfo{}, errors.New("cyclic or excessively nested TypeDef")
+		}
+		if info, ok := typeNames[index]; ok {
+			if info.depth > maxCustomAttributeDepth-depth {
+				return typeNameInfo{}, errors.New("cyclic or excessively nested TypeDef")
+			}
+			return info, nil
 		}
 		typ, err := d.metadata.Tables.TypeDef.At(index)
 		if err != nil {
-			return "", err
+			return typeNameInfo{}, err
 		}
-		name := typeNameEscaper.Replace(typ.Name.String())
+		namespace, name := typ.Namespace.String(), typ.Name.String()
+		info := typeNameInfo{
+			name:     typeNameEscaper.Replace(name),
+			identity: metadataTypeIdentity{namespace: namespace, name: name},
+			depth:    1,
+		}
 		if parent, ok := parents[index]; ok {
-			parentName, err := nameOf(parent, depth+1)
+			parentInfo, err := nameOf(parent, depth+1)
 			if err != nil {
-				return "", err
+				return typeNameInfo{}, err
 			}
-			name = parentName + "+" + name
-		} else if namespace := typ.Namespace.String(); namespace != "" {
-			name = typeNameEscaper.Replace(namespace) + "." + name
+			info.name = parentInfo.name + "+" + info.name
+			info.identity.namespace = parentInfo.identity.namespace
+			info.identity.declaringTypes = parentInfo.identity.declaringTypes + parentInfo.identity.name + "\x00"
+			info.depth = parentInfo.depth + 1
+		} else if namespace != "" {
+			info.name = typeNameEscaper.Replace(namespace) + "." + info.name
 		}
-		d.typeNames[index] = name
-		return name, nil
+		typeNames[index] = info
+		return info, nil
 	}
 	for index := range d.metadata.Tables.TypeDef.Indices() {
-		name, err := nameOf(index, 0)
+		info, err := nameOf(index, 0)
 		if err != nil {
 			return err
 		}
-		d.typesByName[name] = append(d.typesByName[name], index)
+		d.typesByName[info.name] = append(d.typesByName[info.name], index)
+		d.typesByIdentity[info.identity] = append(d.typesByIdentity[info.identity], index)
 	}
 	return nil
 }
 
-func (d *CustomAttributeDecoder) typeName(index CodedIndex[TypeDefOrRefOrSpec], depth int) (string, error) {
+func (d *CustomAttributeDecoder) typeReference(index CodedIndex[TypeDefOrRefOrSpec], depth int) (*EnumReferenceMetadata, error) {
 	if depth >= maxCustomAttributeDepth {
-		return "", errors.New("cyclic or excessively nested TypeRef")
+		return nil, errors.New("cyclic or excessively nested type reference")
 	}
+	if ref, ok := d.typeReferences[index]; ok {
+		if len(ref.DeclaringTypes) >= maxCustomAttributeDepth-depth {
+			return nil, errors.New("cyclic or excessively nested type reference")
+		}
+		return ref, nil
+	}
+	ref := &EnumReferenceMetadata{Handle: index}
+	var parent *EnumReferenceMetadata
 	switch index.Tag {
 	case TypeDefOrRefOrSpec_TypeDef:
 		if err := d.indexTypes(); err != nil {
-			return "", err
+			return nil, err
 		}
-		name, ok := d.typeNames[index.Index]
-		if !ok {
-			return "", errors.New("custom attribute TypeDef is out of range")
-		}
-		return name, nil
-	case TypeDefOrRefOrSpec_TypeRef:
-		ref, err := d.metadata.Tables.TypeRef.At(index.Index)
+		def, err := d.metadata.Tables.TypeDef.At(index.Index)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
-		name := typeNameEscaper.Replace(ref.Name.String())
-		if ref.ResolutionScope.Tag == ResolutionScope_TypeRef {
-			parent, err := d.typeName(CodedIndex[TypeDefOrRefOrSpec]{Tag: TypeDefOrRefOrSpec_TypeRef, Index: ref.ResolutionScope.Index}, depth+1)
+		ref.Namespace, ref.Name = def.Namespace.String(), def.Name.String()
+		if enclosing, ok := d.typeParents[index.Index]; ok {
+			parent, err = d.typeReference(CodedIndex[TypeDefOrRefOrSpec]{Tag: TypeDefOrRefOrSpec_TypeDef, Index: enclosing}, depth+1)
 			if err != nil {
-				return "", err
+				return nil, err
 			}
-			parentName, assembly, qualified := splitTypeName(parent)
-			name = parentName + "+" + name
-			if qualified {
-				name += "," + assembly
-			}
-			return name, nil
 		}
-		if namespace := ref.Namespace.String(); namespace != "" {
-			name = typeNameEscaper.Replace(namespace) + "." + name
+	case TypeDefOrRefOrSpec_TypeRef:
+		typ, err := d.metadata.Tables.TypeRef.At(index.Index)
+		if err != nil {
+			return nil, err
 		}
-		switch ref.ResolutionScope.Tag {
+		ref.Namespace, ref.Name = typ.Namespace.String(), typ.Name.String()
+		switch typ.ResolutionScope.Tag {
+		case ResolutionScope_TypeRef:
+			parent, err = d.typeReference(CodedIndex[TypeDefOrRefOrSpec]{Tag: TypeDefOrRefOrSpec_TypeRef, Index: typ.ResolutionScope.Index}, depth+1)
 		case ResolutionScope_Module:
-			if _, err := d.metadata.Tables.Module.At(ref.ResolutionScope.Index); err != nil {
-				return "", err
-			}
-			return name, nil
+			_, err = d.metadata.Tables.Module.At(typ.ResolutionScope.Index)
 		case ResolutionScope_AssemblyRef:
-			assembly, err := d.metadata.Tables.AssemblyRef.At(ref.ResolutionScope.Index)
-			if err != nil {
-				return "", err
-			}
-			return fmt.Sprintf("%s, %s, Version=%d.%d.%d.%d", name, assembly.Name, assembly.MajorVersion,
-				assembly.MinorVersion, assembly.BuildNumber, assembly.RevisionNumber), nil
+			var assembly AssemblyRef
+			assembly, err = d.metadata.Tables.AssemblyRef.At(typ.ResolutionScope.Index)
+			ref.Assembly = &assembly
 		default:
-			return "", fmt.Errorf("unsupported resolution scope for custom attribute type %q", name)
+			return nil, fmt.Errorf("unsupported resolution scope for custom attribute type %q", ref.Name)
+		}
+		if err != nil {
+			return nil, err
 		}
 	default:
-		return "", errors.New("unsupported custom attribute TypeSpec or null type")
+		return nil, errors.New("unsupported custom attribute TypeSpec or null type")
 	}
+	if parent != nil {
+		ref.Namespace = parent.Namespace
+		ref.Assembly = parent.Assembly
+		ref.DeclaringTypes = make([]string, len(parent.DeclaringTypes)+1)
+		copy(ref.DeclaringTypes, parent.DeclaringTypes)
+		ref.DeclaringTypes[len(parent.DeclaringTypes)] = parent.Name
+	}
+	d.typeReferences[index] = ref
+	return ref, nil
 }
 
-func (d *CustomAttributeDecoder) resolveEnum(name string) (ElementType, error) {
-	if typ, ok := d.enums[name]; ok {
-		return typ, nil
-	}
-	localName, assemblyName, qualified := splitTypeName(name)
-	local := !qualified
-	if qualified && !strings.Contains(assemblyName, ",") && d.metadata.Tables.Assembly.Len() == 1 {
-		assembly, err := d.metadata.Tables.Assembly.At(0)
-		if err != nil {
-			return 0, err
+func (d *CustomAttributeDecoder) resolveEnum(ref EnumReference) (ElementType, error) {
+	var underlying ElementType
+	var err error
+	if typ := ref.Metadata; typ != nil {
+		if cached, ok := d.enumsByType[typ.Handle]; ok {
+			return cached, nil
 		}
-		local = strings.EqualFold(strings.TrimSpace(assemblyName), assembly.Name.String())
-	}
-	if local {
-		if err := d.indexTypes(); err != nil {
-			return 0, err
+		switch typ.Handle.Tag {
+		case TypeDefOrRefOrSpec_TypeDef:
+			underlying, err = d.metadata.EnumUnderlyingType(typ.Handle.Index)
+		case TypeDefOrRefOrSpec_TypeRef:
+			if typ.Assembly == nil {
+				underlying, err = d.resolveLocalMetadataEnum(typ)
+			}
+		default:
+			return 0, errors.New("invalid custom attribute enum metadata reference")
 		}
-		var underlying ElementType
-		for _, index := range d.typesByName[localName] {
-			typ, err := d.metadata.EnumUnderlyingType(index)
+	} else {
+		if cached, ok := d.enumsByName[ref.SerializedName]; ok {
+			return cached, nil
+		}
+		localName, assemblyName, qualified := splitTypeName(ref.SerializedName)
+		local := !qualified
+		if qualified && !strings.Contains(assemblyName, ",") && d.metadata.Tables.Assembly.Len() == 1 {
+			assembly, err := d.metadata.Tables.Assembly.At(0)
 			if err != nil {
 				return 0, err
 			}
-			if underlying != 0 && underlying != typ {
-				return 0, fmt.Errorf("ambiguous underlying type for enum %q", name)
-			}
-			underlying = typ
+			local = strings.EqualFold(strings.TrimSpace(assemblyName), assembly.Name.String())
 		}
-		if underlying != 0 {
-			d.enums[name] = underlying
-			return underlying, nil
+		if local {
+			underlying, err = d.resolveLocalEnum(localName)
 		}
 	}
-	if d.ResolveEnum == nil {
-		return 0, &UnresolvedEnumError{Name: name}
-	}
-	typ, err := d.ResolveEnum(name)
 	if err != nil {
 		return 0, err
 	}
-	if !isCustomAttributeEnumType(typ) {
-		return 0, fmt.Errorf("unsupported underlying type %v for enum %q", typ, name)
+	if underlying == 0 {
+		if d.ResolveEnum == nil {
+			return 0, &UnresolvedEnumError{Reference: ref}
+		}
+		underlying, err = d.ResolveEnum(ref)
+		if err != nil {
+			return 0, err
+		}
 	}
-	d.enums[name] = typ
-	return typ, nil
+	if !isCustomAttributeEnumType(underlying) {
+		return 0, fmt.Errorf("unsupported underlying type %v for enum %q", underlying, ref.name())
+	}
+	if ref.Metadata != nil {
+		d.enumsByType[ref.Metadata.Handle] = underlying
+	} else {
+		d.enumsByName[ref.SerializedName] = underlying
+	}
+	return underlying, nil
+}
+
+func (d *CustomAttributeDecoder) resolveLocalEnum(name string) (ElementType, error) {
+	if err := d.indexTypes(); err != nil {
+		return 0, err
+	}
+	return d.enumTypeFromDefinitions(d.typesByName[name], name)
+}
+
+func (d *CustomAttributeDecoder) resolveLocalMetadataEnum(ref *EnumReferenceMetadata) (ElementType, error) {
+	if err := d.indexTypes(); err != nil {
+		return 0, err
+	}
+	return d.enumTypeFromDefinitions(d.typesByIdentity[ref.identity()], ref.fullName())
+}
+
+func (d *CustomAttributeDecoder) enumTypeFromDefinitions(indices []Index, name string) (ElementType, error) {
+	var underlying ElementType
+	for _, index := range indices {
+		typ, err := d.metadata.EnumUnderlyingType(index)
+		if err != nil {
+			return 0, err
+		}
+		if underlying != 0 && underlying != typ {
+			return 0, fmt.Errorf("ambiguous underlying type for enum %q", name)
+		}
+		underlying = typ
+	}
+	return underlying, nil
 }
 
 // typeNameEscaper converts literal metadata identifiers into serialized type-name
