@@ -23,7 +23,7 @@ type generatorTestOptions struct {
 	tailCount        byte
 	duplicateNames   bool
 	invalidUnusedRef bool
-	nestedVisibility winmd.TypeAttributes
+	nestedVisibility winmd.TypeVisibility
 	extraTypeDefs    []qualifiedTypeName
 	extraTypeRefs    []qualifiedTypeName
 }
@@ -76,12 +76,13 @@ func generatorTestMetadata(t *testing.T, opts generatorTestOptions) *winmd.Metad
 		write(uint16(4), addString(extra.Name), addString(extra.Namespace))
 	}
 	write(uint32(0), moduleTypeName, uint16(0), uint16(0), uint16(1), uint16(1))
-	write(uint32(winmd.TypeAttributes_Public|winmd.TypeAttributes_SequentialLayout|winmd.TypeAttributes_Sealed), name, namespace, uint16(5), uint16(1), uint16(1))
+	publicType := uint32(winmd.TypeVisibility_Public) | uint32(winmd.TypeLayout_SequentialLayout) | uint32(winmd.TypeFlags_Sealed)
+	write(publicType, name, namespace, uint16(5), uint16(1), uint16(1))
 	for _, extra := range opts.extraTypeDefs {
-		write(uint32(winmd.TypeAttributes_Public|winmd.TypeAttributes_SequentialLayout|winmd.TypeAttributes_Sealed), addString(extra.Name), addString(extra.Namespace), uint16(5), uint16(3), uint16(1))
+		write(publicType, addString(extra.Name), addString(extra.Namespace), uint16(5), uint16(3), uint16(1))
 	}
 	if opts.nestedVisibility != 0 {
-		write(uint32(opts.nestedVisibility|winmd.TypeAttributes_Sealed), hiddenName, uint16(0), uint16(5), uint16(3), uint16(1))
+		write(uint32(opts.nestedVisibility)|uint32(winmd.TypeFlags_Sealed), hiddenName, uint16(0), uint16(5), uint16(3), uint16(1))
 	}
 	write(uint16(6), lengthName, uint16(1)) // Length: U4.
 	write(uint16(6), tailName, uint16(4))   // Tail: U1[tailCount].
@@ -173,7 +174,7 @@ func TestResolveTypeRefDuplicateHeapStrings(t *testing.T) {
 	for _, duplicate := range []bool{false, true} {
 		t.Run(fmt.Sprintf("duplicate-%v", duplicate), func(t *testing.T) {
 			c, err := NewContext(generatorTestMetadata(t, generatorTestOptions{
-				tailCount: 1, duplicateNames: duplicate, nestedVisibility: winmd.TypeAttributes_NestedPublic,
+				tailCount: 1, duplicateNames: duplicate, nestedVisibility: winmd.TypeVisibility_NestedPublic,
 			}))
 			if err != nil {
 				t.Fatal(err)
@@ -233,12 +234,12 @@ func TestUnresolvableTypeRefDuplicateNames(t *testing.T) {
 
 func TestNestedTypeVisibilityLookup(t *testing.T) {
 	t.Parallel()
-	for _, visibility := range []winmd.TypeAttributes{
-		winmd.TypeAttributes_NestedPublic, winmd.TypeAttributes_NestedPrivate,
-		winmd.TypeAttributes_NestedFamily, winmd.TypeAttributes_NestedAssembly,
-		winmd.TypeAttributes_NestedFamANDAssem, winmd.TypeAttributes_NestedFamORAssem,
+	for _, visibility := range []winmd.TypeVisibility{
+		winmd.TypeVisibility_NestedPublic, winmd.TypeVisibility_NestedPrivate,
+		winmd.TypeVisibility_NestedFamily, winmd.TypeVisibility_NestedAssembly,
+		winmd.TypeVisibility_NestedFamANDAssem, winmd.TypeVisibility_NestedFamORAssem,
 	} {
-		t.Run(fmt.Sprintf("%#x", visibility), func(t *testing.T) {
+		t.Run(fmt.Sprintf("%#x", uint32(visibility)), func(t *testing.T) {
 			c, err := NewContext(generatorTestMetadata(t, generatorTestOptions{
 				tailCount: 1, duplicateNames: true, nestedVisibility: visibility,
 			}))

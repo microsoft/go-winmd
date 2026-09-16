@@ -32,7 +32,7 @@ func TestEnumUnderlyingType(t *testing.T) {
 		t.Run(typ.String(), func(t *testing.T) {
 			for _, name := range []string{"value__", "MyValue"} {
 				m := enumTestMetadata(
-					Field{Name: customAttributeTestString("Member"), Flags: FieldAttributes_Static | FieldAttributes_Literal},
+					Field{Name: customAttributeTestString("Member"), Flags: FieldAttributes(FieldFlags_Static | FieldFlags_Literal)},
 					Field{Name: customAttributeTestString(name), Signature: []byte{sigKind_FIELD, byte(typ)}},
 				)
 				if got, err := m.EnumUnderlyingType(0); got != typ || err != nil {
@@ -99,7 +99,7 @@ func TestEnumUnderlyingTypeInstanceFields(t *testing.T) {
 	backing := Field{Name: str("value__"), Signature: []byte{6, byte(ElementType_I4)}}
 	for _, fields := range [][]Field{
 		nil,
-		{{Name: str("Member"), Flags: FieldAttributes_Static | FieldAttributes_Literal}},
+		{{Name: str("Member"), Flags: FieldAttributes(FieldFlags_Static | FieldFlags_Literal)}},
 		{backing, {Name: str("Other"), Signature: backing.Signature}},
 	} {
 		if got, err := enumTestMetadata(fields...).EnumUnderlyingType(0); got != 0 || err == nil {
@@ -146,7 +146,7 @@ func TestEnumUnderlyingTypeInvalidBase(t *testing.T) {
 	def, _ := m.Tables.TypeDef.At(0)
 	base, _ := m.Tables.TypeDef.At(1)
 	def.Extends = CodedIndex[TypeDefOrRef]{Tag: TypeDefOrRef_TypeDef, Index: 1}
-	base.Flags = TypeAttributes_NestedPublic
+	base.Flags = TypeAttributes(TypeVisibility_NestedPublic)
 	m.Tables.TypeDef = customAttributeTestTable(def, base)
 	if got, err := m.EnumUnderlyingType(0); got != 0 || err == nil {
 		t.Fatalf("nested base: got (%v, %v); want (zero, error)", got, err)
