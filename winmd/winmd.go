@@ -45,6 +45,8 @@ func New(pefile *pe.File) (*Metadata, error) {
 // FieldSignature decodes an entire field signature blob, rejecting trailing data.
 // Type nesting is limited to 64 levels.
 // Type handle bounds are checked when table metadata is available.
+// Generic instantiations and VAR/MVAR parameter numbers are preserved without
+// substitution or validation against a declaring type's or method's constraints.
 func (m *Metadata) FieldSignature(bytes SigFieldBlob) (SigField, error) {
 	r := m.sigReader(bytes)
 	sig := r.fieldSig()
@@ -57,6 +59,8 @@ func (m *Metadata) FieldSignature(bytes SigFieldBlob) (SigField, error) {
 // MethodDefSignature decodes an entire method definition signature blob, rejecting trailing data.
 // Type nesting is limited to 64 levels per return type or parameter.
 // Type handle bounds are checked when table metadata is available.
+// Generic instantiations and VAR/MVAR parameter numbers are preserved without
+// substitution or validation against a declaring type's or method's constraints.
 func (m *Metadata) MethodDefSignature(data SigMethodDefBlob) (SigMethodDef, error) {
 	r := m.sigReader(data)
 	sig := r.methodDefSig()

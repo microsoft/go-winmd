@@ -111,9 +111,18 @@ type SigRetType struct {
 
 // SigType is defined in §II.23.2.12.
 type SigType struct {
-	Kind  ElementType
-	Mod   []SigCustomMod
-	Value any // optional
+	Kind ElementType
+	Mod  []SigCustomMod
+	// Value holds a CodedIndex[TypeDefOrRefOrSpec] for CLASS and VALUETYPE,
+	// a SigType for PTR, BYREF, and SZARRAY, a SigArray for ARRAY, a SigGenericInst
+	// for GENERICINST, or a zero-based uint32 parameter number for VAR and MVAR.
+	// Other supported kinds have a nil Value.
+	//
+	// For SZARRAY, Value is the element's SigType, not a SigArray. Modifiers
+	// following SZARRAY are stored in that element's Mod; this SigType's Mod
+	// holds modifiers preceding SZARRAY. The array has rank 1 and lower bound 0,
+	// but its length is not encoded in the signature.
+	Value any
 }
 
 // SigArray is a SigType with an ArrayShape, where ArrayShape is defined in §II.23.2.13.
@@ -133,10 +142,15 @@ type SigTypeSpec struct {
 // SigMethodSpec is defined in §II.23.2.15
 type SigMethodSpec []SigType
 
+// SigGenericInst describes a generic type instantiation (§II.23.2.12).
+// Its arguments may be closed types or contain VAR/MVAR generic parameters.
 type SigGenericInst struct {
+	// Class is true for CLASS and false for VALUETYPE.
 	Class bool
+	// Index identifies the generic type being instantiated.
 	Index CodedIndex[TypeDefOrRefOrSpec]
-	Type  []SigType
+	// Type contains the generic arguments in their encoded order.
+	Type []SigType
 }
 
 // ElementType is defined in §II.23.1.16.
