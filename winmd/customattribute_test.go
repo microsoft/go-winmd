@@ -78,7 +78,7 @@ func TestDecodeCustomAttributeFixedArguments(t *testing.T) {
 		{"long-string", attributeType(ElementType_STRING), attributeString(strings.Repeat("a", 0x4000)), strings.Repeat("a", 0x4000)},
 		{"system-type", attributeType(ElementType_TYPE), attributeString("Example.Type, Assembly"), "Example.Type, Assembly"},
 		{"null-type", attributeType(ElementType_TYPE), []byte{0xFF}, nil},
-		{"enum", CustomAttributeArgumentType{Kind: ElementType_ENUM, EnumName: "Example.Mode", EnumUnderlyingType: ElementType_I2}, []byte{0xFE, 0xFF}, int16(-2)},
+		{"enum", CustomAttributeArgumentType{Kind: ElementType_ENUM, Enum: EnumReference{SerializedName: "Example.Mode"}, EnumUnderlyingType: ElementType_I2}, []byte{0xFE, 0xFF}, int16(-2)},
 		{"array", attributeArray(ElementType_I2), []byte{2, 0, 0, 0, 1, 0, 0xFE, 0xFF}, []CustomAttributeArgument{
 			{Type: attributeType(ElementType_I2), Value: int16(1)},
 			{Type: attributeType(ElementType_I2), Value: int16(-2)},
@@ -171,10 +171,10 @@ func TestDecodeCustomAttributeNamedArguments(t *testing.T) {
 		namedAttribute(ElementType_FIELD, append([]byte{byte(ElementType_SZARRAY)}, enumType...), "Modes", []byte{2, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0}),
 	)
 	var calls int
-	resolveEnum := func(name string) (ElementType, error) {
+	resolveEnum := func(ref EnumReference) (ElementType, error) {
 		calls++
-		if name != enumName {
-			t.Fatalf("enum name = %q; want %q", name, enumName)
+		if ref.Metadata != nil || ref.SerializedName != enumName {
+			t.Fatalf("enum reference = %+v; want serialized name %q", ref, enumName)
 		}
 		return ElementType_U4, nil
 	}
@@ -185,7 +185,7 @@ func TestDecodeCustomAttributeNamedArguments(t *testing.T) {
 	if calls != 1 {
 		t.Fatalf("enum resolved %d times; want 1", calls)
 	}
-	resolvedEnum := CustomAttributeArgumentType{Kind: ElementType_ENUM, EnumName: enumName, EnumUnderlyingType: ElementType_U4}
+	resolvedEnum := CustomAttributeArgumentType{Kind: ElementType_ENUM, Enum: EnumReference{SerializedName: enumName}, EnumUnderlyingType: ElementType_U4}
 	want := CustomAttributeValue{
 		FixedArguments: []CustomAttributeArgument{{Type: attributeType(ElementType_I2), Value: int16(7)}},
 		NamedArguments: []CustomAttributeNamedArgument{
@@ -251,9 +251,11 @@ func TestDecodeCustomAttributeErrors(t *testing.T) {
 		{"invalid-utf8-name", []byte{1, 0, 1, 0, 0x53, 0x06, 1, 0xFF, 0, 0}, nil},
 		{"Boolean", attributeBlob([]byte{2}), []CustomAttributeArgumentType{attributeType(ElementType_BOOLEAN)}},
 		{"utf8", attributeBlob([]byte{1, 0xFF}), []CustomAttributeArgumentType{attributeType(ElementType_STRING)}},
-		{"unresolved-enum", attributeBlob([]byte{1, 0, 0, 0}), []CustomAttributeArgumentType{{Kind: ElementType_ENUM, EnumName: "Example.E"}}},
+		{"unresolved-enum", attributeBlob([]byte{1, 0, 0, 0}), []CustomAttributeArgumentType{{Kind: ElementType_ENUM, Enum: EnumReference{SerializedName: "Example.E"}}}},
 		{"enum-name", attributeBlob([]byte{1}), []CustomAttributeArgumentType{{Kind: ElementType_ENUM, EnumUnderlyingType: ElementType_U1}}},
-		{"enum-width", attributeBlob([]byte{1}), []CustomAttributeArgumentType{{Kind: ElementType_ENUM, EnumName: "Example.E", EnumUnderlyingType: ElementType_R4}}},
+		{"enum-width", attributeBlob([]byte{1}), []CustomAttributeArgumentType{{Kind: ElementType_ENUM, Enum: EnumReference{SerializedName: "Example.E"}, EnumUnderlyingType: ElementType_R4}}},
+		{"ambiguous-enum-reference", attributeBlob([]byte{1}), []CustomAttributeArgumentType{{Kind: ElementType_ENUM, Enum: EnumReference{Metadata: &MetadataEnumReference{Name: "E"}, SerializedName: "Example.E"}, EnumUnderlyingType: ElementType_U1}}},
+		{"unnamed-metadata-enum", attributeBlob([]byte{1}), []CustomAttributeArgumentType{{Kind: ElementType_ENUM, Enum: EnumReference{Metadata: &MetadataEnumReference{}}, EnumUnderlyingType: ElementType_U1}}},
 		{"invalid-fixed-type", attributeBlob(nil), []CustomAttributeArgumentType{attributeType(ElementType_PTR)}},
 		{"array-element-type", attributeBlob(nil), []CustomAttributeArgumentType{attributeType(ElementType_SZARRAY)}},
 		{"array-count", attributeBlob([]byte{0, 0, 0, 0x80}), []CustomAttributeArgumentType{attributeArray(ElementType_U1)}},
@@ -286,14 +288,14 @@ func TestDecodeCustomAttributeUnresolvedEnum(t *testing.T) {
 		data  []byte
 		types []CustomAttributeArgumentType
 	}{
-		{"fixed", attributeBlob([]byte{1, 0}), []CustomAttributeArgumentType{{Kind: ElementType_ENUM, EnumName: enumName}}},
+		{"fixed", attributeBlob([]byte{1, 0}), []CustomAttributeArgumentType{{Kind: ElementType_ENUM, Enum: EnumReference{SerializedName: enumName}}}},
 		{"named", attributeBlob(nil, namedAttribute(ElementType_FIELD, enumType, "Mode", []byte{1, 0})), nil},
 		{"boxed", attributeBlob(append(bytes.Clone(enumType), 1, 0)), []CustomAttributeArgumentType{attributeType(ElementType_BOXED_OBJECT)}},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			value, err := decodeCustomAttributeValue(test.data, test.types, nil)
 			var unresolved *UnresolvedEnumError
-			if !errors.As(err, &unresolved) || unresolved.Name != enumName || !reflect.DeepEqual(value, CustomAttributeValue{}) {
+			if !errors.As(err, &unresolved) || unresolved.Reference.Metadata != nil || unresolved.Reference.SerializedName != enumName || !reflect.DeepEqual(value, CustomAttributeValue{}) {
 				t.Fatalf("unresolved enum = (%#v, %v); want (zero, UnresolvedEnumError for %q)", value, err, enumName)
 			}
 		})
@@ -301,21 +303,21 @@ func TestDecodeCustomAttributeUnresolvedEnum(t *testing.T) {
 }
 
 func TestDecodeCustomAttributeEnumResolver(t *testing.T) {
-	typ := CustomAttributeArgumentType{Kind: ElementType_ENUM, EnumName: "Example.Mode"}
+	typ := CustomAttributeArgumentType{Kind: ElementType_ENUM, Enum: EnumReference{SerializedName: "Example.Mode"}}
 	data := attributeBlob([]byte{0xFF, 0xFF})
 	wantErr := errors.New("unresolved external enum")
-	if _, err := decodeCustomAttributeValue(data, []CustomAttributeArgumentType{typ}, func(string) (ElementType, error) {
+	if _, err := decodeCustomAttributeValue(data, []CustomAttributeArgumentType{typ}, func(EnumReference) (ElementType, error) {
 		return 0, wantErr
 	}); !errors.Is(err, wantErr) {
 		t.Errorf("resolver error = %v; want %v", err, wantErr)
 	}
 	var unresolved *UnresolvedEnumError
-	if _, err := decodeCustomAttributeValue(data, []CustomAttributeArgumentType{typ}, func(string) (ElementType, error) {
+	if _, err := decodeCustomAttributeValue(data, []CustomAttributeArgumentType{typ}, func(EnumReference) (ElementType, error) {
 		return ElementType_STRING, nil
 	}); err == nil || errors.As(err, &unresolved) {
 		t.Fatalf("invalid resolved enum underlying type: got %v; want an invalid-type error", err)
 	}
-	value, err := decodeCustomAttributeValue(data, []CustomAttributeArgumentType{typ}, func(string) (ElementType, error) {
+	value, err := decodeCustomAttributeValue(data, []CustomAttributeArgumentType{typ}, func(EnumReference) (ElementType, error) {
 		return ElementType_I2, nil
 	})
 	if err != nil || value.FixedArguments[0].Value != int16(-1) || typ.EnumUnderlyingType != 0 {
@@ -346,11 +348,16 @@ func TestCustomAttributeDecoderMetadata(t *testing.T) {
 		t.Fatal(err)
 	}
 	d := NewCustomAttributeDecoder(m)
-	calls := make(map[string]int)
-	d.ResolveEnum = func(name string) (ElementType, error) {
-		calls[name]++
-		unqualified, _, _ := strings.Cut(name, ",")
-		switch unqualified {
+	calls := make(map[CodedIndex[TypeDefOrRefOrSpec]]int)
+	names := make(map[string]bool)
+	d.ResolveEnum = func(ref EnumReference) (ElementType, error) {
+		if ref.Metadata == nil || ref.SerializedName != "" || ref.Metadata.Assembly == nil {
+			t.Fatalf("external enum lacks raw metadata: %+v", ref)
+		}
+		calls[ref.Metadata.Handle]++
+		name := ref.Metadata.Namespace + "." + ref.Metadata.Name
+		names[name] = true
+		switch name {
 		case "System.AttributeTargets", "System.Runtime.InteropServices.CallingConvention":
 			return ElementType_I4, nil
 		default:
@@ -370,12 +377,12 @@ func TestCustomAttributeDecoderMetadata(t *testing.T) {
 		fixed += len(value.FixedArguments)
 		named += len(value.NamedArguments)
 	}
-	if fixed == 0 || named == 0 || len(calls) != 2 {
+	if fixed == 0 || named == 0 || len(names) != 2 {
 		t.Fatalf("fixed=%d, named=%d, external enums=%v", fixed, named, calls)
 	}
-	for name, count := range calls {
+	for handle, count := range calls {
 		if count != 1 {
-			t.Errorf("resolved %s %d times; want 1", name, count)
+			t.Errorf("resolved %v %d times; want 1", handle, count)
 		}
 	}
 }
@@ -386,7 +393,7 @@ func FuzzDecodeCustomAttribute(f *testing.F) {
 	f.Add(attributeBlob([]byte{1, 0, 0, 0, byte(ElementType_STRING), 0xFF}))
 	f.Fuzz(func(t *testing.T, data []byte) {
 		for _, types := range [][]CustomAttributeArgumentType{nil, {attributeType(ElementType_I2)}, {attributeArray(ElementType_BOXED_OBJECT)}} {
-			value, err := decodeCustomAttributeValue(data, types, func(string) (ElementType, error) { return ElementType_I4, nil })
+			value, err := decodeCustomAttributeValue(data, types, func(EnumReference) (ElementType, error) { return ElementType_I4, nil })
 			if err != nil && !reflect.DeepEqual(value, CustomAttributeValue{}) {
 				t.Fatal("decoder returned a partial result on error")
 			}

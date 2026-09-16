@@ -18,8 +18,8 @@ import (
 // ElementType_VALUETYPE must first be resolved to these serialization types.
 type CustomAttributeArgumentType struct {
 	Kind ElementType
-	// EnumName and EnumUnderlyingType describe an enum and its underlying integer type.
-	EnumName           string
+	// Enum and EnumUnderlyingType describe an enum and its underlying integer type.
+	Enum               EnumReference
 	EnumUnderlyingType ElementType
 	// Element describes an SZARRAY's element type. Directly nested arrays are
 	// not supported by the custom-attribute format, but object arrays can contain
@@ -58,10 +58,10 @@ type CustomAttributeValue struct {
 // declaration order: their types and count are not encoded in the value blob.
 // CustomAttributeDecoder resolves them from metadata constructor signatures.
 //
-// resolveEnum supplies the underlying integer type of enums named in the blob
+// resolveEnum supplies the underlying integer type of enum references in the blob
 // or in fixedTypes. It may be nil if all fixed enums specify EnumUnderlyingType
-// and no serialized argument type requires enum resolution. Enum names may be
-// assembly-qualified. Strings and System.Type names use SerString, not the
+// and no serialized argument type requires enum resolution. Serialized enum names
+// are passed unchanged. Strings and System.Type names use SerString, not the
 // UTF-16 encoding used by Constant. Array counts are four-byte little-endian
 // integers, with 0xffffffff representing null.
 //
@@ -70,7 +70,7 @@ type CustomAttributeValue struct {
 // trailing bytes are rejected. Errors return a zero CustomAttributeValue;
 // truncation errors wrap io.ErrUnexpectedEOF. Type and value nesting is limited
 // to 64 levels. The decoder does not check member accessibility or assignability.
-func decodeCustomAttributeValue(data []byte, fixedTypes []CustomAttributeArgumentType, resolveEnum func(string) (ElementType, error)) (CustomAttributeValue, error) {
+func decodeCustomAttributeValue(data []byte, fixedTypes []CustomAttributeArgumentType, resolveEnum func(EnumReference) (ElementType, error)) (CustomAttributeValue, error) {
 	r := customAttributeReader{data: data, resolveEnum: resolveEnum}
 	if len(data) == 0 && len(fixedTypes) == 0 {
 		return CustomAttributeValue{}, nil
@@ -124,7 +124,7 @@ const maxCustomAttributeDepth = 64
 type customAttributeReader struct {
 	data        []byte
 	err         error
-	resolveEnum func(string) (ElementType, error)
+	resolveEnum func(EnumReference) (ElementType, error)
 	enums       map[string]ElementType
 }
 
@@ -218,32 +218,39 @@ func (r *customAttributeReader) normalizeType(typ CustomAttributeArgumentType, d
 		ElementType_R4, ElementType_R8, ElementType_STRING,
 		ElementType_TYPE, ElementType_BOXED_OBJECT:
 	case ElementType_ENUM:
-		if typ.EnumName == "" {
-			r.err = errors.New("missing custom attribute enum name")
+		ref := typ.Enum
+		if ref.Metadata == nil && ref.SerializedName == "" || ref.Metadata != nil && (ref.Metadata.Name == "" || ref.SerializedName != "") {
+			r.err = errors.New("invalid custom attribute enum reference")
 			break
 		}
 		if typ.EnumUnderlyingType == 0 {
-			typ.EnumUnderlyingType = r.enums[typ.EnumName]
+			if ref.Metadata == nil {
+				typ.EnumUnderlyingType = r.enums[ref.SerializedName]
+			}
 			if typ.EnumUnderlyingType == 0 {
 				if r.resolveEnum == nil {
-					r.err = &UnresolvedEnumError{Name: typ.EnumName}
+					r.err = &UnresolvedEnumError{Reference: ref}
 					break
 				}
-				typ.EnumUnderlyingType, r.err = r.resolveEnum(typ.EnumName)
+				typ.EnumUnderlyingType, r.err = r.resolveEnum(ref)
 				if r.err != nil {
-					r.err = fmt.Errorf("resolve enum %q: %w", typ.EnumName, r.err)
+					r.err = fmt.Errorf("resolve enum %q: %w", ref.name(), r.err)
 					break
 				}
 			}
 		}
 		if !isCustomAttributeEnumType(typ.EnumUnderlyingType) {
-			r.err = fmt.Errorf("unsupported underlying type %v for enum %q", typ.EnumUnderlyingType, typ.EnumName)
+			r.err = fmt.Errorf("unsupported underlying type %v for enum %q", typ.EnumUnderlyingType, ref.name())
 			break
 		}
-		if r.enums == nil {
-			r.enums = make(map[string]ElementType)
+		// Metadata enums are already resolved by handle. Never let a fixed
+		// metadata argument populate the cache for serialized enum names.
+		if ref.Metadata == nil {
+			if r.enums == nil {
+				r.enums = make(map[string]ElementType)
+			}
+			r.enums[ref.SerializedName] = typ.EnumUnderlyingType
 		}
-		r.enums[typ.EnumName] = typ.EnumUnderlyingType
 	case ElementType_SZARRAY:
 		if typ.Element == nil || typ.Element.Kind == ElementType_SZARRAY {
 			r.err = errors.New("invalid custom attribute array element type")
@@ -268,7 +275,7 @@ func (r *customAttributeReader) argumentType(depth int) CustomAttributeArgumentT
 	typ := CustomAttributeArgumentType{Kind: ElementType(r.byte())}
 	switch typ.Kind {
 	case ElementType_ENUM:
-		typ.EnumName = r.name()
+		typ.Enum = EnumReference{SerializedName: r.name()}
 	case ElementType_SZARRAY:
 		element := r.argumentType(depth + 1)
 		typ.Element = &element
