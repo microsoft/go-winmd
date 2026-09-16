@@ -174,7 +174,7 @@ func (t table) width(la *layout) uint8 {
 	case tableFieldRVA:
 		return 4 + la.simpleSizes[tableField]
 	case tableFile:
-		return 2 + la.stringSize + la.blobSize
+		return 4 + la.stringSize + la.blobSize
 	case tableGenericParam:
 		return 2 + 2 + la.codedSizes[codedTypeOrMethodDef] + la.stringSize
 	case tableGenericParamConstraint:
@@ -369,7 +369,7 @@ func decodeFieldRVA(r recordReader) (FieldRVA, error) {
 
 func decodeFile(r recordReader) (File, error) {
 	var rec File
-	rec.Flags = FileAttributes(r.uint16())
+	rec.Flags = FileAttributes(r.uint32())
 	rec.Name = r.string()
 	rec.HashValue = r.blob()
 	return rec, r.err
