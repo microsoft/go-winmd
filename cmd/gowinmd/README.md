@@ -96,6 +96,8 @@ architecture-specific output.
 WinMD layouts that require overlapping non-union fields, reduced alignment that Go cannot express
 for typed fields, variable-length inline arrays, or unresolved external by-value field types are
 rejected with an error instead of being emitted with an incorrect ABI.
+Nested fields in ABI-checked structs retain their own inline struct boundary, including alignment
+and tail padding, rather than having their members flattened into the enclosing struct.
 
 Module references in directives use their WinMD names, which commonly include `.dll`:
 
@@ -109,9 +111,14 @@ The mkwinsyscall target omits that suffix because mkwinsyscall adds it while loa
 //sys BCryptGetProperty(hObject BCRYPT_HANDLE, pszProperty *uint16, pbOutput []byte, pcbResult *uint32, dwFlags uint32) (ntstatus error) = bcrypt.BCryptGetProperty
 ```
 
+Native entry-point aliases use the `ImplMap.ImportName` from metadata, independently of the Go
+function name. Ordinal imports are rejected because mkwinsyscall cannot represent them.
+
 In `idiomatic` projection, a pointer and its immediately following length are coalesced only when
 `NativeArrayInfoAttribute` or `MemorySizeAttribute` explicitly associates them. This preserves the
 native argument order while letting mkwinsyscall expand a slice back to pointer and length arguments.
+Byte-count associations are coalesced only for known one-byte element types (`uint8`, `int8`, and
+`bool`); other pointers keep their explicit byte-count parameter because slice lengths count elements.
 Input, output, optional, and nullable buffers all use this convention. An empty or nil slice passes
 a nil pointer and zero length. APIs that require a non-nil pointer for zero-length input still need a
 handwritten wrapper and can use `-projection raw` as the escape hatch.
