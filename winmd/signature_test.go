@@ -308,7 +308,7 @@ func TestSignatureTypeHandleBounds(t *testing.T) {
 							if kind == winmd.ElementType_CMOD_OPT || kind == winmd.ElementType_CMOD_REQD {
 								typ = append(typ, byte(winmd.ElementType_I4))
 							}
-							for _, context := range []string{"field", "return", "parameter", "szarray-field", "szarray-return", "szarray-parameter"} {
+							for _, context := range []string{"field", "return", "parameter", "szarray-field", "szarray-return", "szarray-parameter", "property", "property-index"} {
 								t.Run(context, func(t *testing.T) {
 									var err error
 									switch context {
@@ -324,6 +324,10 @@ func TestSignatureTypeHandleBounds(t *testing.T) {
 										_, err = m.MethodDefSignature(append([]byte{0, 0, 0x1d}, typ...))
 									case "szarray-parameter":
 										_, err = m.MethodDefSignature(append([]byte{0, 1, 1, 0x1d}, typ...))
+									case "property":
+										_, err = m.PropertySignature(append([]byte{8, 0}, typ...))
+									case "property-index":
+										_, err = m.PropertySignature(append([]byte{8, 1, 8}, typ...))
 									}
 									if handle.valid {
 										if err != nil {

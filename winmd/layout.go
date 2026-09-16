@@ -260,7 +260,7 @@ type sigReader struct {
 const maxSignatureDepth = 64
 
 // sigTypeOptions permits prefixes and special types in specific signature
-// contexts (FieldSig, Param, RetType, pointer targets, and vector elements).
+// contexts (FieldSig, PropertySig, Param, RetType, pointer targets, and vector elements).
 type sigTypeOptions uint8
 
 const (
@@ -347,6 +347,49 @@ func (r *sigReader) methodDefSig() (v SigMethodDef) {
 		if r.err != nil {
 			return
 		}
+	}
+	return
+}
+
+func (r *sigReader) propertySig() (v SigProperty) {
+	if r.err != nil {
+		return
+	}
+	firstByte := r.uint8()
+	if r.err != nil {
+		return
+	}
+	kind := firstByte & 0xF
+	if kind != uint8(sigKind_PROPERTY) {
+		r.err = fmt.Errorf("signature kind is not a property signature: %v", kind)
+		return
+	}
+	if firstByte&^uint8(sigKind_PROPERTY|sigAbbrev_HASTHIS) != 0 {
+		r.err = fmt.Errorf("unexpected data stored in first byte of property signature: %v", firstByte)
+		return
+	}
+	v.HasThis = firstByte&uint8(sigAbbrev_HASTHIS) != 0
+	paramCount := r.compressedUint32()
+	if r.err != nil {
+		return
+	}
+	// PropertySig uses CustomMod* Type, not RetType, for the property type.
+	v.Type = r.decodeType(sigTypeAllowCustomMod, 0)
+	if r.err != nil {
+		return
+	}
+	// Each index parameter consumes at least one byte. Reject impossible
+	// counts before allocating, then append only successfully decoded entries.
+	if uint64(paramCount) > uint64(len(r.data)) {
+		r.err = io.ErrUnexpectedEOF
+		return
+	}
+	for range paramCount {
+		param := r.param()
+		if r.err != nil {
+			return
+		}
+		v.Param = append(v.Param, param)
 	}
 	return
 }
