@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-// Command getwinmd downloads Windows.Win32.winmd from NuGet.
+// Command getwin32md downloads Windows.Win32.winmd from NuGet.
 package main
 
 import (
@@ -48,7 +48,7 @@ type nugetEndpoints struct {
 }
 
 func run(ctx context.Context, args []string, stdout, stderr io.Writer, client *http.Client, endpoints nugetEndpoints) error {
-	flags := flag.NewFlagSet("getwinmd", flag.ContinueOnError)
+	flags := flag.NewFlagSet("getwin32md", flag.ContinueOnError)
 	flags.SetOutput(stderr)
 	version := flags.String("version", "", "NuGet package version (latest if omitted)")
 	output := flags.String("output", metadataFileName, "output WinMD file")
@@ -143,7 +143,7 @@ func get(ctx context.Context, client *http.Client, address string) (*http.Respon
 	if err != nil {
 		return nil, err
 	}
-	request.Header.Set("User-Agent", "go-winmd/getwinmd")
+	request.Header.Set("User-Agent", "go-winmd/getwin32md")
 	response, err := client.Do(request)
 	if err != nil {
 		return nil, err

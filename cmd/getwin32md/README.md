@@ -1,13 +1,13 @@
-# getwinmd
+# getwin32md
 
-`getwinmd` downloads `Windows.Win32.winmd` from the
+`getwin32md` downloads `Windows.Win32.winmd` from the
 [`Microsoft.Windows.SDK.Win32Metadata`](https://www.nuget.org/packages/Microsoft.Windows.SDK.Win32Metadata)
 NuGet package.
 
 ## Usage
 
 ```text
-getwinmd [-version <NuGet version>] [-output <path>]
+getwin32md [-version <NuGet version>] [-output <path>]
 ```
 
 - `-version` selects an exact NuGet package version. When omitted, the latest version in NuGet's
@@ -18,13 +18,13 @@ getwinmd [-version <NuGet version>] [-output <path>]
 Download the latest metadata:
 
 ```sh
-go run github.com/microsoft/go-winmd/cmd/getwinmd@latest
+go run github.com/microsoft/go-winmd/cmd/getwin32md@latest
 ```
 
 Download a specific version:
 
 ```sh
-go run github.com/microsoft/go-winmd/cmd/getwinmd@latest \
+go run github.com/microsoft/go-winmd/cmd/getwin32md@latest \
   -version 71.0.20-preview \
   -output Windows.Win32.winmd
 ```
