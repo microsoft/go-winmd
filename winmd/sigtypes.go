@@ -4,9 +4,14 @@
 package winmd
 
 type (
-	SigMethodDefBlob []byte
-	SigFieldBlob     []byte
-	SigPropertyBlob  []byte
+	SigMethodDefBlob        []byte
+	SigMethodRefBlob        []byte
+	SigStandAloneMethodBlob []byte
+	SigFieldBlob            []byte
+	SigPropertyBlob         []byte
+	SigLocalVarsBlob        []byte
+	SigTypeSpecBlob         []byte
+	SigMethodSpecBlob       []byte
 )
 
 // SigMethodDef is defined in §II.23.2.1.
@@ -22,10 +27,32 @@ type SigMethodDef struct {
 // SigMethodRef is defined in §II.23.2.2.
 type SigMethodRef struct {
 	SigMethodDef
+	// VariableParam contains the optional arguments after SENTINEL.
+	// The embedded Param contains only the fixed arguments.
 	VariableParam []SigParam
 }
 
-// StandAloneMethodSig is defined in §II.23.2.3 but is not supported.
+// SigCallingConvention identifies the calling kind in a method signature.
+// It does not include HASTHIS, EXPLICITTHIS, or GENERIC header bits.
+type SigCallingConvention uint8
+
+const (
+	SigCallingConvention_Default  SigCallingConvention = 0
+	SigCallingConvention_Cdecl    SigCallingConvention = 1
+	SigCallingConvention_Stdcall  SigCallingConvention = 2
+	SigCallingConvention_Thiscall SigCallingConvention = 3
+	SigCallingConvention_Fastcall SigCallingConvention = 4
+	SigCallingConvention_Vararg   SigCallingConvention = 5
+)
+
+// SigStandAloneMethod describes a call-site signature (§II.23.2.3), including
+// its managed or unmanaged calling convention. It also represents FNPTR types.
+type SigStandAloneMethod struct {
+	SigMethodRef
+	// CallingConvention distinguishes the calling kinds. The embedded VarArgs
+	// is true only for managed VARARG; Cdecl can also have VariableParam entries.
+	CallingConvention SigCallingConvention
+}
 
 // SigField is defined in §II.23.2.4.
 type SigField struct {
@@ -53,6 +80,7 @@ type SigConstraint struct {
 }
 
 type SigLocalVarMod struct {
+	// Exactly one of Mod and Constraint.Pinned is set.
 	Mod        *SigCustomMod
 	Constraint SigConstraint
 }
@@ -67,8 +95,12 @@ const (
 
 type SigLocalVar struct {
 	Kind SigLocalVarKind
-	Mod  []SigLocalVarMod // empty if Kind is TypedByRef
-	Type SigType          // empty if Kind is TypedByRef
+	// Mod preserves custom modifiers and PINNED constraints in encoded order.
+	// It is empty for TypedByRef locals.
+	Mod []SigLocalVarMod
+	// Type preserves the BYREF wrapper, if present. For TypedByRef, Type.Kind
+	// is ElementType_TYPEDBYREF. Leading local modifiers are in Mod, not Type.Mod.
+	Type SigType
 }
 
 type SigCustomModKind uint8
@@ -127,7 +159,8 @@ type SigType struct {
 	Mod  []SigCustomMod
 	// Value holds a CodedIndex[TypeDefOrRefOrSpec] for CLASS and VALUETYPE,
 	// a SigType for PTR, BYREF, and SZARRAY, a SigArray for ARRAY, a SigGenericInst
-	// for GENERICINST, or a zero-based uint32 parameter number for VAR and MVAR.
+	// for GENERICINST, a SigStandAloneMethod for FNPTR, or a zero-based uint32
+	// parameter number for VAR and MVAR.
 	// Other supported kinds have a nil Value.
 	//
 	// For SZARRAY, Value is the element's SigType, not a SigArray. Modifiers
@@ -147,7 +180,9 @@ type SigArray struct {
 
 // SigTypeSpec is defined in §II.23.2.14.
 type SigTypeSpec struct {
-	Kind  ElementType
+	Kind ElementType
+	// Value uses the same representations as SigType.Value. A type specification
+	// has no leading custom modifiers; nested types retain their own modifiers.
 	Value any
 }
 
@@ -237,4 +272,7 @@ const (
 
 	// SigKind_PROPERTY is a property signature. Defined in §II.23.2.5.
 	sigKind_PROPERTY = 0x8
+
+	// sigKind_METHODSPEC introduces generic method arguments (§II.23.2.15).
+	sigKind_METHODSPEC = 0xA
 )
