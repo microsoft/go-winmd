@@ -5,7 +5,9 @@ package winmd
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
+	"strings"
 	"testing"
 )
 
@@ -231,8 +233,16 @@ func TestTableAtCodedIndexNullability(t *testing.T) {
 					}
 					tables := newTables(data, &heaps{strs: StringHeap{0}}, layout)
 					wantErr := null && !test.nullable
-					if err := test.read(tables); (err != nil) != wantErr {
+					err = test.read(tables)
+					if (err != nil) != wantErr {
 						t.Fatalf("At() error = %v; want error %v", err, wantErr)
+					}
+					if wantErr {
+						var decodeErr *DecodeError
+						table, column, _ := strings.Cut(test.name, ".")
+						if !errors.As(err, &decodeErr) || decodeErr.Table != table || decodeErr.Row != 0 || decodeErr.Column != column {
+							t.Fatalf("At() error = %v; want DecodeError for %s[0].%s", err, table, column)
+						}
 					}
 				})
 			}
