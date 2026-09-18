@@ -140,7 +140,7 @@ const (
 type Event struct {
 	EventFlags EventAttributes
 	Name       String
-	EventType  CodedIndex[TypeDefOrRef]
+	EventType  CodedIndex[TypeDefOrRef] // @nullable=true
 }
 
 // ExportedType is defined in §II.22.14.
@@ -351,7 +351,7 @@ type ManifestResource struct {
 	Offset         uint32
 	Flags          ManifestResourceAttributes
 	Name           String
-	Implementation CodedIndex[Implementation]
+	Implementation CodedIndex[Implementation] // @nullable=true
 }
 
 // MemberRef is defined in §II.22.25.
@@ -632,15 +632,15 @@ type TypeDef struct {
 	Flags      TypeAttributes
 	Name       String
 	Namespace  String
-	Extends    CodedIndex[TypeDefOrRef]
-	FieldList  Slice // @ref=Field
-	MethodList Slice // @ref=MethodDef
+	Extends    CodedIndex[TypeDefOrRef] // @nullable=true
+	FieldList  Slice                    // @ref=Field
+	MethodList Slice                    // @ref=MethodDef
 }
 
 // TypeRef is defined in §II.22.38.
 // @table=0x01
 type TypeRef struct {
-	ResolutionScope CodedIndex[ResolutionScope]
+	ResolutionScope CodedIndex[ResolutionScope] // @nullable=true
 	Name            String
 	Namespace       String
 }

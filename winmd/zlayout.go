@@ -292,15 +292,15 @@ func decodeConstant(r recordReader) (Constant, error) {
 	var rec Constant
 	rec.Type = ElementType(r.uint8())
 	rec.Padding = r.uint8()
-	rec.Parent = readCoded[HasConstant](&r.ecma335Reader)
+	rec.Parent = readCoded[HasConstant](&r.ecma335Reader, false)
 	rec.Value = r.blob()
 	return rec, r.err
 }
 
 func decodeCustomAttribute(r recordReader) (CustomAttribute, error) {
 	var rec CustomAttribute
-	rec.Parent = readCoded[HasCustomAttribute](&r.ecma335Reader)
-	rec.Type = readCoded[CustomAttributeType](&r.ecma335Reader)
+	rec.Parent = readCoded[HasCustomAttribute](&r.ecma335Reader, false)
+	rec.Type = readCoded[CustomAttributeType](&r.ecma335Reader, false)
 	rec.Value = r.blob()
 	return rec, r.err
 }
@@ -308,7 +308,7 @@ func decodeCustomAttribute(r recordReader) (CustomAttribute, error) {
 func decodeDeclSecurity(r recordReader) (DeclSecurity, error) {
 	var rec DeclSecurity
 	rec.Action = r.uint16()
-	rec.Parent = readCoded[HasDeclSecurity](&r.ecma335Reader)
+	rec.Parent = readCoded[HasDeclSecurity](&r.ecma335Reader, false)
 	rec.PermissionSet = r.blob()
 	return rec, r.err
 }
@@ -324,7 +324,7 @@ func decodeEvent(r recordReader) (Event, error) {
 	var rec Event
 	rec.EventFlags = EventAttributes(r.uint16())
 	rec.Name = r.string()
-	rec.EventType = readCoded[TypeDefOrRef](&r.ecma335Reader)
+	rec.EventType = readCoded[TypeDefOrRef](&r.ecma335Reader, true)
 	return rec, r.err
 }
 
@@ -334,7 +334,7 @@ func decodeExportedType(r recordReader) (ExportedType, error) {
 	rec.TypeDefID = r.uint32()
 	rec.Name = r.string()
 	rec.Namespace = r.string()
-	rec.Implementation = readCoded[Implementation](&r.ecma335Reader)
+	rec.Implementation = readCoded[Implementation](&r.ecma335Reader, false)
 	return rec, r.err
 }
 
@@ -355,7 +355,7 @@ func decodeFieldLayout(r recordReader) (FieldLayout, error) {
 
 func decodeFieldMarshal(r recordReader) (FieldMarshal, error) {
 	var rec FieldMarshal
-	rec.Parent = readCoded[HasFieldMarshal](&r.ecma335Reader)
+	rec.Parent = readCoded[HasFieldMarshal](&r.ecma335Reader, false)
 	rec.NativeType = r.blob()
 	return rec, r.err
 }
@@ -379,7 +379,7 @@ func decodeGenericParam(r recordReader) (GenericParam, error) {
 	var rec GenericParam
 	rec.Number = r.uint16()
 	rec.Flags = GenericParamAttributes(r.uint16())
-	rec.Owner = readCoded[TypeOrMethodDef](&r.ecma335Reader)
+	rec.Owner = readCoded[TypeOrMethodDef](&r.ecma335Reader, false)
 	rec.Name = r.string()
 	return rec, r.err
 }
@@ -387,14 +387,14 @@ func decodeGenericParam(r recordReader) (GenericParam, error) {
 func decodeGenericParamConstraint(r recordReader) (GenericParamConstraint, error) {
 	var rec GenericParamConstraint
 	rec.Owner = r.index(tableGenericParam)
-	rec.Constraint = readCoded[TypeDefOrRef](&r.ecma335Reader)
+	rec.Constraint = readCoded[TypeDefOrRef](&r.ecma335Reader, false)
 	return rec, r.err
 }
 
 func decodeImplMap(r recordReader) (ImplMap, error) {
 	var rec ImplMap
 	rec.MappingFlags = PInvokeAttributes(r.uint16())
-	rec.MemberForwarded = readCoded[MemberForwarded](&r.ecma335Reader)
+	rec.MemberForwarded = readCoded[MemberForwarded](&r.ecma335Reader, false)
 	rec.ImportName = r.string()
 	rec.ImportScope = r.index(tableModuleRef)
 	return rec, r.err
@@ -403,7 +403,7 @@ func decodeImplMap(r recordReader) (ImplMap, error) {
 func decodeInterfaceImpl(r recordReader) (InterfaceImpl, error) {
 	var rec InterfaceImpl
 	rec.Class = r.index(tableTypeDef)
-	rec.Interface = readCoded[TypeDefOrRef](&r.ecma335Reader)
+	rec.Interface = readCoded[TypeDefOrRef](&r.ecma335Reader, false)
 	return rec, r.err
 }
 
@@ -412,13 +412,13 @@ func decodeManifestResource(r recordReader) (ManifestResource, error) {
 	rec.Offset = r.uint32()
 	rec.Flags = ManifestResourceAttributes(r.uint32())
 	rec.Name = r.string()
-	rec.Implementation = readCoded[Implementation](&r.ecma335Reader)
+	rec.Implementation = readCoded[Implementation](&r.ecma335Reader, true)
 	return rec, r.err
 }
 
 func decodeMemberRef(r recordReader) (MemberRef, error) {
 	var rec MemberRef
-	rec.Class = readCoded[MemberRefParent](&r.ecma335Reader)
+	rec.Class = readCoded[MemberRefParent](&r.ecma335Reader, false)
 	rec.Name = r.string()
 	rec.Signature = r.blob()
 	return rec, r.err
@@ -438,8 +438,8 @@ func decodeMethodDef(r recordReader) (MethodDef, error) {
 func decodeMethodImpl(r recordReader) (MethodImpl, error) {
 	var rec MethodImpl
 	rec.Class = r.index(tableTypeDef)
-	rec.MethodBody = readCoded[MethodDefOrRef](&r.ecma335Reader)
-	rec.MethodDeclaration = readCoded[MethodDefOrRef](&r.ecma335Reader)
+	rec.MethodBody = readCoded[MethodDefOrRef](&r.ecma335Reader, false)
+	rec.MethodDeclaration = readCoded[MethodDefOrRef](&r.ecma335Reader, false)
 	return rec, r.err
 }
 
@@ -447,13 +447,13 @@ func decodeMethodSemantics(r recordReader) (MethodSemantics, error) {
 	var rec MethodSemantics
 	rec.Semantics = MethodSemanticsAttributes(r.uint16())
 	rec.Method = r.index(tableMethodDef)
-	rec.Association = readCoded[HasSemantics](&r.ecma335Reader)
+	rec.Association = readCoded[HasSemantics](&r.ecma335Reader, false)
 	return rec, r.err
 }
 
 func decodeMethodSpec(r recordReader) (MethodSpec, error) {
 	var rec MethodSpec
-	rec.Method = readCoded[MethodDefOrRef](&r.ecma335Reader)
+	rec.Method = readCoded[MethodDefOrRef](&r.ecma335Reader, false)
 	rec.Instantiation = r.blob()
 	return rec, r.err
 }
@@ -515,7 +515,7 @@ func decodeTypeDef(r recordReader) (TypeDef, error) {
 	rec.Flags = TypeAttributes(r.uint32())
 	rec.Name = r.string()
 	rec.Namespace = r.string()
-	rec.Extends = readCoded[TypeDefOrRef](&r.ecma335Reader)
+	rec.Extends = readCoded[TypeDefOrRef](&r.ecma335Reader, true)
 	rec.FieldList = r.slice(tableTypeDef, tableField)
 	rec.MethodList = r.slice(tableTypeDef, tableMethodDef)
 	return rec, r.err
@@ -523,7 +523,7 @@ func decodeTypeDef(r recordReader) (TypeDef, error) {
 
 func decodeTypeRef(r recordReader) (TypeRef, error) {
 	var rec TypeRef
-	rec.ResolutionScope = readCoded[ResolutionScope](&r.ecma335Reader)
+	rec.ResolutionScope = readCoded[ResolutionScope](&r.ecma335Reader, true)
 	rec.Name = r.string()
 	rec.Namespace = r.string()
 	return rec, r.err

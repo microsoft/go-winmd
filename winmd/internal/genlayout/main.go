@@ -7,6 +7,7 @@
 //
 // Tables are non-generic struct definitions annotated with // @table=<code>.
 // Index and Slice fields require // @ref=<table name>, above or after the field.
+// CodedIndex[T] fields reject null unless annotated with // @nullable=true.
 // Supported column types are uint8/uint16/uint32 (including byte, named integer
 // types, and aliases), String, Index, Slice, CodedIndex[T], byte slices, and
 // byte arrays with literal length 16. Coded tag names come from CodedTag's
@@ -198,7 +199,7 @@ func writeTableEncoding(w io.Writer, tables []tableInfo) {
 					fmt.Fprintf(w, "\trec.%s = r.%s()\n", f.name, fn)
 				}
 			case columnTypeCodedIndex:
-				fmt.Fprintf(w, "\trec.%s = readCoded[%s](&r.ecma335Reader)\n", f.name, f.coded)
+				fmt.Fprintf(w, "\trec.%s = readCoded[%s](&r.ecma335Reader, %t)\n", f.name, f.coded, f.nullable)
 			case columnTypeSlice:
 				fmt.Fprintf(w, "\trec.%s = r.slice(%s, %s)\n", f.name, t.tableName, f.tableName)
 			}

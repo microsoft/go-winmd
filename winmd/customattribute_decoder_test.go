@@ -161,7 +161,7 @@ func TestCustomAttributeDecoderInvalidSignatures(t *testing.T) {
 func TestCustomAttributeDecoderInvalidConstructors(t *testing.T) {
 	m := customAttributeTestMetadata([]byte{0x20, 0, 1})
 	for _, index := range []CodedIndex[CustomAttributeType]{
-		{Tag: CustomAttributeType_Null}, {Tag: CustomAttributeType_Reserved0},
+		{Tag: CustomAttributeType_Reserved0},
 		{Tag: CustomAttributeType_MethodDef, Index: 1}, {Tag: CustomAttributeType_MemberRef, Index: 1},
 	} {
 		if _, err := NewCustomAttributeDecoder(m).Decode(CustomAttribute{Type: index}); err == nil {

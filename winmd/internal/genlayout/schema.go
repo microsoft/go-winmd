@@ -49,6 +49,7 @@ type columnInfo struct {
 	columnType columnType
 	tableName  string
 	coded      string
+	nullable   bool
 }
 
 type schema struct {
@@ -207,6 +208,19 @@ func (s *schema) parseTable(spec *ast.TypeSpec) (tableInfo, error) {
 			col.tableName = ref
 		} else if hasRef {
 			return tableInfo{}, s.errorf(field.Pos(), "@ref is only supported on Index and Slice fields")
+		}
+		nullable, hasNullable, err := s.annotation("@nullable", field.Doc, field.Comment)
+		if err != nil {
+			return tableInfo{}, err
+		}
+		if hasNullable {
+			if col.columnType != columnTypeCodedIndex {
+				return tableInfo{}, s.errorf(field.Pos(), "@nullable is only supported on CodedIndex fields")
+			}
+			if nullable != "true" && nullable != "false" {
+				return tableInfo{}, s.errorf(field.Pos(), "invalid @nullable value %q; want true or false", nullable)
+			}
+			col.nullable = nullable == "true"
 		}
 		for _, name := range field.Names {
 			if name.Name == "_" || fields[name.Name] {
