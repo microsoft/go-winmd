@@ -231,7 +231,7 @@ func TestRecordReaderTruncatedIndices(t *testing.T) {
 		{"guid", func(r *recordReader) { r.guid() }},
 		{"index", func(r *recordReader) { r.index(tableTypeDef) }},
 		{"list-index", func(r *recordReader) { r.listIndex(tableTypeDef) }},
-		{"coded", func(r *recordReader) { readCoded[TypeDefOrRef](&r.ecma335Reader) }},
+		{"coded", func(r *recordReader) { readCoded[TypeDefOrRef](&r.ecma335Reader, false) }},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			la := layout{stringSize: 2, blobSize: 2, guidSize: 2}
