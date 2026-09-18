@@ -292,7 +292,22 @@ func (r *sigReader) fieldSig() (v SigField) {
 	return
 }
 
-func (r *sigReader) methodDefSig() (v SigMethodDef) {
+type methodSigOptions uint8
+
+const (
+	methodSigAllowGeneric methodSigOptions = 1 << iota
+	methodSigAllowSentinel
+	methodSigAllowUnmanaged
+)
+
+func (r *sigReader) methodDefSig() SigMethodDef {
+	return r.methodSig(methodSigAllowGeneric, 0).SigMethodDef
+}
+
+// methodSig decodes the common method grammar without resetting type depth.
+// Function-pointer return and parameter types inherit the enclosing depth;
+// sibling types each get an independent budget.
+func (r *sigReader) methodSig(allow methodSigOptions, depth int) (v SigStandAloneMethod) {
 	if r.err != nil {
 		return
 	}
@@ -302,26 +317,27 @@ func (r *sigReader) methodDefSig() (v SigMethodDef) {
 		return
 	}
 	kind := firstByte & 0xF
-	if kind != uint8(sigKind_DEFAULT) && kind != uint8(sigKind_VARARG) {
-		r.err = fmt.Errorf("signature kind is not a method def signature: %v", kind)
+	if kind > sigKind_VARARG || kind != sigKind_DEFAULT && kind != sigKind_VARARG && allow&methodSigAllowUnmanaged == 0 {
+		r.err = fmt.Errorf("unsupported method signature calling convention: %#x", kind)
 		return
 	}
 	if firstByte&0x80 != 0 {
-		r.err = errors.New("reserved bit set in method definition signature header")
+		r.err = errors.New("reserved bit set in method signature header")
 		return
 	}
-	v.VarArgs = kind == uint8(sigKind_VARARG)
+	v.CallingConvention = SigCallingConvention(kind)
+	v.VarArgs = kind == sigKind_VARARG
 
 	thisiness := firstByte & 0xF0
 	v.HasThis = thisiness&uint8(sigAbbrev_HASTHIS) != 0
 	v.ExplicitThis = thisiness&uint8(sigAbbrev_EXPLICITTHIS) != 0
 	if v.ExplicitThis && !v.HasThis {
-		r.err = errors.New("EXPLICITTHIS requires HASTHIS in method definition signature")
+		r.err = errors.New("EXPLICITTHIS requires HASTHIS in method signature")
 		return
 	}
 	if thisiness&uint8(sigAbbrev_GENERIC) != 0 {
-		if v.VarArgs {
-			r.err = errors.New("generic methods cannot use the VARARG calling convention")
+		if allow&methodSigAllowGeneric == 0 || kind != sigKind_DEFAULT {
+			r.err = errors.New("generic parameters are not permitted in this method signature")
 			return
 		}
 		v.Generic = r.compressedUint32()
@@ -329,7 +345,7 @@ func (r *sigReader) methodDefSig() (v SigMethodDef) {
 			return
 		}
 		if v.Generic == 0 {
-			r.err = errors.New("generic method definition signature must declare at least one generic parameter")
+			r.err = errors.New("generic method signature must declare at least one generic parameter")
 			return
 		}
 	}
@@ -338,14 +354,38 @@ func (r *sigReader) methodDefSig() (v SigMethodDef) {
 		return
 	}
 
-	v.RetType = r.retType()
+	v.RetType = r.retType(depth)
 	if r.err != nil {
 		return
 	}
+	// Each parameter requires at least one byte. Never allocate from an
+	// unchecked count, including inside a function-pointer signature.
+	if uint64(paramCount) > uint64(len(r.data)) {
+		r.err = io.ErrUnexpectedEOF
+		return
+	}
+	variable := false
 	for range paramCount {
-		v.Param = append(v.Param, r.param())
+		if len(r.data) != 0 && r.data[0] == sigAbbrev_SENTINEL {
+			if allow&methodSigAllowSentinel == 0 || kind != sigKind_VARARG && kind != sigKind_C {
+				r.err = errors.New("SENTINEL is not permitted in this method signature")
+				return
+			}
+			if variable {
+				r.err = errors.New("multiple SENTINEL markers in method signature")
+				return
+			}
+			r.data = r.data[1:]
+			variable = true
+		}
+		param := r.param(depth)
 		if r.err != nil {
 			return
+		}
+		if variable {
+			v.VariableParam = append(v.VariableParam, param)
+		} else {
+			v.Param = append(v.Param, param)
 		}
 	}
 	return
@@ -385,7 +425,7 @@ func (r *sigReader) propertySig() (v SigProperty) {
 		return
 	}
 	for range paramCount {
-		param := r.param()
+		param := r.param(0)
 		if r.err != nil {
 			return
 		}
@@ -394,11 +434,91 @@ func (r *sigReader) propertySig() (v SigProperty) {
 	return
 }
 
-func (r *sigReader) param() (v SigParam) {
+func (r *sigReader) localVarsSig() (v SigLocalVars) {
+	if header := r.uint8(); r.err != nil {
+		return
+	} else if header != sigKind_LOCAL {
+		r.err = errors.New("invalid local variable signature header")
+		return
+	}
+	count := r.compressedUint32()
 	if r.err != nil {
 		return
 	}
-	v.Type = r.decodeType(sigTypeAllowCustomMod|sigTypeAllowByRef|sigTypeAllowTypedByRef, 0)
+	if count == 0 || count > 0xfffe {
+		r.err = errors.New("local variable count must be between 1 and 65534")
+		return
+	}
+	if uint64(count) > uint64(len(r.data)) {
+		r.err = io.ErrUnexpectedEOF
+		return
+	}
+	for range count {
+		local := r.localVar()
+		if r.err != nil {
+			return
+		}
+		v = append(v, local)
+	}
+	return
+}
+
+func (r *sigReader) localVar() (v SigLocalVar) {
+	for r.err == nil {
+		before := r.data
+		kind := r.compressedUint32()
+		if r.err != nil {
+			return
+		}
+		switch kind {
+		case uint32(ElementType_CMOD_OPT), uint32(ElementType_CMOD_REQD):
+			mod := SigCustomMod{Kind: SigCustomModKind_Opt, Index: r.typeHandle()}
+			if r.err != nil {
+				return
+			}
+			if kind == uint32(ElementType_CMOD_REQD) {
+				mod.Kind = SigCustomModKind_Reqd
+			}
+			v.Mod = append(v.Mod, SigLocalVarMod{Mod: &mod})
+		case uint32(ElementType_PINNED):
+			v.Mod = append(v.Mod, SigLocalVarMod{Constraint: SigConstraint{Pinned: true}})
+		case uint32(ElementType_TYPEDBYREF):
+			if len(v.Mod) != 0 {
+				r.err = errors.New("TYPEDBYREF locals cannot have modifiers or constraints")
+				return
+			}
+			v.Kind = SigLocalVarKind_TypedByRef
+			v.Type.Kind = ElementType_TYPEDBYREF
+			return
+		default:
+			// Let the shared type decoder consume the complete type, including
+			// a BYREF wrapper. Local prefixes are already preserved in Mod.
+			r.data = before
+			v.Type = r.decodeType(sigTypeAllowByRef, 0)
+			if v.Type.Kind == ElementType_BYREF {
+				v.Kind = SigLocalVarKind_ByRef
+			}
+			return
+		}
+	}
+	return
+}
+
+func (r *sigReader) methodSpecSig() SigMethodSpec {
+	if header := r.uint8(); r.err != nil {
+		return nil
+	} else if header != sigKind_METHODSPEC {
+		r.err = errors.New("invalid method specification signature header")
+		return nil
+	}
+	return r.genericArguments(0)
+}
+
+func (r *sigReader) param(depth int) (v SigParam) {
+	if r.err != nil {
+		return
+	}
+	v.Type = r.decodeType(sigTypeAllowCustomMod|sigTypeAllowByRef|sigTypeAllowTypedByRef, depth)
 	switch v.Type.Kind {
 	case ElementType_BYREF:
 		v.Kind = SigParamKind_ByRef
@@ -410,11 +530,11 @@ func (r *sigReader) param() (v SigParam) {
 	return
 }
 
-func (r *sigReader) retType() (v SigRetType) {
+func (r *sigReader) retType(depth int) (v SigRetType) {
 	if r.err != nil {
 		return
 	}
-	v.Type = r.decodeType(sigTypeAllowCustomMod|sigTypeAllowVoid|sigTypeAllowByRef|sigTypeAllowTypedByRef, 0)
+	v.Type = r.decodeType(sigTypeAllowCustomMod|sigTypeAllowVoid|sigTypeAllowByRef|sigTypeAllowTypedByRef, depth)
 	switch v.Type.Kind {
 	case ElementType_BYREF:
 		v.Kind = SigRetTypeKind_ByRef
@@ -536,6 +656,10 @@ func (r *sigReader) decodeType(allow sigTypeOptions, depth int) (v SigType) {
 		v.Kind = b
 		v.Value = r.decodeType(sigTypeAllowCustomMod|sigTypeAllowVoid, depth+1)
 
+	case ElementType_FNPTR:
+		v.Kind = b
+		v.Value = r.methodSig(methodSigAllowGeneric|methodSigAllowSentinel|methodSigAllowUnmanaged, depth+1)
+
 	case ElementType_SZARRAY:
 		v.Kind = b
 		v.Value = r.decodeType(sigTypeAllowCustomMod, depth+1)
@@ -582,6 +706,12 @@ func (r *sigReader) genericInst(depth int) (inst SigGenericInst) {
 	if r.err != nil {
 		return
 	}
+	inst.Type = r.genericArguments(depth + 1)
+	return
+}
+
+// genericArguments is shared by type and method instantiations.
+func (r *sigReader) genericArguments(depth int) (arguments []SigType) {
 	count := r.compressedUint32()
 	if r.err != nil {
 		return
@@ -597,17 +727,17 @@ func (r *sigReader) genericInst(depth int) (inst SigGenericInst) {
 		return
 	}
 	for range count {
-		arg := r.decodeType(0, depth+1)
+		arg := r.decodeType(0, depth)
 		if r.err != nil {
 			return
 		}
-		// Type admits PTR, but generic instantiations do not (§II.9.4).
+		// Type admits pointers, but generic instantiations do not (§II.9.4).
 		// VOID, BYREF, and TYPEDBYREF are already rejected by decodeType.
-		if arg.Kind == ElementType_PTR {
+		if arg.Kind == ElementType_PTR || arg.Kind == ElementType_FNPTR {
 			r.err = errors.New("unmanaged pointers cannot be generic type arguments")
 			return
 		}
-		inst.Type = append(inst.Type, arg)
+		arguments = append(arguments, arg)
 	}
 	return
 }

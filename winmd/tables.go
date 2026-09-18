@@ -477,7 +477,7 @@ type MethodSemantics struct {
 // @table=0x2B
 type MethodSpec struct {
 	Method        CodedIndex[MethodDefOrRef]
-	Instantiation []byte
+	Instantiation SigMethodSpecBlob
 }
 
 // Module is defined in §II.22.30.
@@ -648,5 +648,5 @@ type TypeRef struct {
 // TypeSpec is defined in §II.22.39.
 // @table=0x1B
 type TypeSpec struct {
-	Signature []byte
+	Signature SigTypeSpecBlob
 }
