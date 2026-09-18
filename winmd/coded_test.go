@@ -9,6 +9,27 @@ import (
 	"testing"
 )
 
+// Every tag family and the retained null sentinels must be usable in constants.
+const (
+	_ = TypeDefOrRef_TypeDef
+	_ = HasConstant_Field
+	_ = HasFieldMarshal_Field
+	_ = HasDeclSecurity_TypeDef
+	_ = MemberRefParent_TypeDef
+	_ = HasSemantics_Event
+	_ = MethodDefOrRef_MethodDef
+	_ = MemberForwarded_Field
+	_ = Implementation_File
+	_ = CustomAttributeType_MethodDef
+	_ = ResolutionScope_Module
+	_ = TypeOrMethodDef_TypeDef
+	_ = HasCustomAttribute_MethodDef
+	_ = TypeDefOrRefOrSpec_TypeDef
+	_ = TypeDefOrRef_Null
+	_ = Implementation_Null
+	_ = ResolutionScope_Null
+)
+
 func TestParseCodedRows(t *testing.T) {
 	t.Parallel()
 	testParseCodedRows[TypeDefOrRef](t, true)
