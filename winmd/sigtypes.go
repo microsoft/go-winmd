@@ -22,7 +22,7 @@ type SigMethodDef struct {
 // SigMethodRef is defined in §II.23.2.2.
 type SigMethodRef struct {
 	SigMethodDef
-	VariableParam []Param
+	VariableParam []SigParam
 }
 
 // StandAloneMethodSig is defined in §II.23.2.3 but is not supported.
@@ -34,10 +34,10 @@ type SigField struct {
 
 // SigProperty is defined in §II.23.2.5.
 type SigProperty struct {
-	// HasThis reports whether the property is an instance property.
-	HasThis bool
 	// SigField holds the property type (the getter's result) and its custom modifiers.
 	SigField
+	// HasThis reports whether the property is an instance property.
+	HasThis bool
 	// Param contains the index parameters in signature order, excluding the
 	// implicit instance and the value supplied to a setter.
 	Param []SigParam
@@ -95,7 +95,11 @@ const (
 // SigParam is defined in §II.23.2.10.
 type SigParam struct {
 	Kind SigParamKind
-	Type SigType // empty if Kind is TypedByRef
+	// Type preserves the signature type and its custom modifiers.
+	// When Kind is ByRef, Type.Kind is ElementType_BYREF and Type.Value holds
+	// the referenced SigType. When Kind is TypedByRef, Type.Kind is
+	// ElementType_TYPEDBYREF and Type.Value is nil.
+	Type SigType
 }
 
 type SigRetTypeKind uint8
@@ -110,7 +114,11 @@ const (
 // SigRetType is defined in §II.23.2.11.
 type SigRetType struct {
 	Kind SigRetTypeKind
-	Type SigType // empty if Kind is TypedByRef or Void
+	// Type preserves the signature type and its custom modifiers.
+	// When Kind is ByRef, Type.Kind is ElementType_BYREF and Type.Value holds
+	// the referenced SigType. For TypedByRef and Void, Type.Kind is
+	// ElementType_TYPEDBYREF or ElementType_VOID, respectively, and Type.Value is nil.
+	Type SigType
 }
 
 // SigType is defined in §II.23.2.12.
