@@ -122,11 +122,11 @@ func TestWriteEnumWithNonstandardBackingField(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			indices := context.typeDefsByName[qualifiedTypeName{Namespace: "Windows.Win32.Foundation.Metadata", Name: "Architecture"}]
-			if len(indices) != 1 {
-				t.Fatalf("found %d Architecture definitions; want 1", len(indices))
+			index, ok := context.typeDefsByName[qualifiedTypeName{Namespace: "Windows.Win32.Foundation.Metadata", Name: "Architecture"}]
+			if !ok || len(context.typeDefNameDuplicates[index]) != 0 {
+				t.Fatal("expected one Architecture definition")
 			}
-			def, err := context.resolveTypeDef(indices[0])
+			def, err := context.resolveTypeDef(index)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -233,10 +233,9 @@ func TestContext_writeType_cycle(t *testing.T) {
 func TestContextSelectTypeDefRejectsAmbiguousMatch(t *testing.T) {
 	key := qualifiedTypeName{Namespace: "Windows.Win32.Test", Name: "AMBIGUOUS"}
 	context := Context{
-		typeDefsByName: map[qualifiedTypeName][]winmd.Index{
-			key: {1, 2},
-		},
-		typeDefSupportedArch: make(map[winmd.Index]Arch),
+		typeDefsByName:        map[qualifiedTypeName]winmd.Index{key: 1},
+		typeDefNameDuplicates: map[winmd.Index][]winmd.Index{1: {1, 2}},
+		typeDefSupportedArch:  make(map[winmd.Index]Arch),
 	}
 	err := context.SelectTypeDef(key.Namespace, key.Name, "")
 	if err == nil || !strings.Contains(err.Error(), "ambiguous WinMD type") {
@@ -258,11 +257,11 @@ func TestAuthenticatedCipherModeInfoABILayout(t *testing.T) {
 	if err := context.SelectTypeDef(namespace, name, "AUTHENTICATED_CIPHER_MODE_INFO"); err != nil {
 		t.Fatal(err)
 	}
-	indices := context.typeDefsByName[qualifiedTypeName{Namespace: namespace, Name: name}]
-	if len(indices) != 1 {
-		t.Fatalf("found %d TypeDefs; want 1", len(indices))
+	index, ok := context.typeDefsByName[qualifiedTypeName{Namespace: namespace, Name: name}]
+	if !ok || len(context.typeDefNameDuplicates[index]) != 0 {
+		t.Fatal("expected one TypeDef")
 	}
-	def := context.resolvedDefsByIndex[indices[0]]
+	def := context.resolvedDefsByIndex[index]
 
 	tests := []struct {
 		arch           Arch
@@ -333,9 +332,13 @@ func TestDiscoverABILayoutDependenciesThroughPointerTypedef(t *testing.T) {
 	}
 
 	var foundPWSTR bool
-	for key, indices := range context.typeDefsByName {
+	for key, first := range context.typeDefsByName {
 		if key.Name != "PWSTR" {
 			continue
+		}
+		indices := context.typeDefNameDuplicates[first]
+		if len(indices) == 0 {
+			indices = []winmd.Index{first}
 		}
 		for _, index := range indices {
 			if context.abiLayoutTypeDefs[index] {

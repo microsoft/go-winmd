@@ -547,6 +547,80 @@ func TestCustomAttributeDecoderLocalTypeRefIdentity(t *testing.T) {
 					}
 				}
 			}
+			// Building the serialized-name index must preserve both matching
+			// rows without conflating their distinct raw metadata identities.
+			serialized := test.name1
+			if test.namespace1 != "" {
+				serialized = test.namespace1 + "." + serialized
+			}
+			if _, err := d.resolveLocalEnum(serialized); err == nil || !strings.Contains(err.Error(), "ambiguous") {
+				t.Fatalf("serialized name collision error = %v; want ambiguity", err)
+			}
+			for i, typ := range []ElementType{ElementType_I2, ElementType_I4} {
+				ref, err := d.typeReference(CodedIndex[TypeDefOrRefOrSpec]{Tag: TypeDefOrRefOrSpec_TypeRef, Index: Index(i + 1)}, 0)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if got, err := d.resolveLocalMetadataEnum(ref); err != nil || got != typ {
+					t.Fatalf("raw identity after serialized lookup = %v, %v; want %v", got, err, typ)
+				}
+			}
+		})
+	}
+}
+
+func TestCustomAttributeDecoderNamespaces(t *testing.T) {
+	t.Parallel()
+	for _, root := range []string{"Test", "Different"} {
+		t.Run(root, func(t *testing.T) {
+			m := customAttributeTestMetadata(nil)
+			base, err := m.Tables.TypeRef.At(0)
+			if err != nil {
+				t.Fatal(err)
+			}
+			refs := []TypeRef{base}
+			var defs []TypeDef
+			var fields []Field
+			var constructors []MemberRef
+			namespaces := []string{root, strings.ToLower(root), root, "", "Tést", "", "Tést"}
+			for i, namespace := range namespaces {
+				name := "Mode"
+				if i == 2 || i == 5 || i == 6 {
+					name = "Other"
+				}
+				kind := ElementType_I2
+				if i%2 != 0 {
+					kind = ElementType_I4
+				}
+				refs = append(refs, TypeRef{Namespace: customAttributeTestString(namespace), Name: customAttributeTestString(name), ResolutionScope: CodedIndex[ResolutionScope]{Tag: ResolutionScope_Module}})
+				defs = append(defs, TypeDef{Namespace: customAttributeTestString(namespace), Name: customAttributeTestString(name), Extends: CodedIndex[TypeDefOrRef]{Tag: TypeDefOrRef_TypeRef}, FieldList: Slice{Index(i), Index(i + 1)}})
+				fields = append(fields, Field{Signature: []byte{6, byte(kind)}})
+				constructors = append(constructors, MemberRef{Name: customAttributeTestString(".ctor"), Signature: []byte{0x20, 1, 1, 0x11, byte((i+2)<<2 | 1)}})
+			}
+			m.Tables.TypeRef = customAttributeTestTable(refs...)
+			m.Tables.TypeDef = customAttributeTestTable(defs...)
+			m.Tables.Field = customAttributeTestTable(fields...)
+			m.Tables.MemberRef = customAttributeTestTable(constructors...)
+			m.Tables.NestedClass = Table[NestedClass]{}
+			d := NewCustomAttributeDecoder(m)
+			for range 2 {
+				for i, namespace := range namespaces {
+					payload := []byte{byte(i + 1), 0}
+					var want any = int16(i + 1)
+					if i%2 != 0 {
+						payload = append(payload, 0, 0)
+						want = int32(i + 1)
+					}
+					value, err := d.Decode(CustomAttribute{Type: CodedIndex[CustomAttributeType]{Tag: CustomAttributeType_MemberRef, Index: Index(i)}, Value: customAttributeTestValue(payload)})
+					if err != nil || len(value.FixedArguments) != 1 {
+						t.Fatalf("decode namespace %q = %+v, %v", namespace, value, err)
+					}
+					arg := value.FixedArguments[0]
+					if arg.Value != want || arg.Type.Enum.Metadata == nil || arg.Type.Enum.Metadata.Namespace != namespace {
+						t.Fatalf("namespace %q decoded as %+v; want %v", namespace, arg, want)
+					}
+				}
+			}
 		})
 	}
 }
@@ -652,6 +726,50 @@ func TestCustomAttributeDecoderTypeDefDepthIndex(t *testing.T) {
 	}
 }
 
+func TestCustomAttributeDecoderTypeDefDepthCache(t *testing.T) {
+	for _, levels := range []int{maxCustomAttributeDepth, maxCustomAttributeDepth + 1} {
+		t.Run(fmt.Sprint(levels), func(t *testing.T) {
+			m := customAttributeTestMetadata(nil)
+			defs := make([]TypeDef, levels)
+			var parents []NestedClass
+			for i := range defs {
+				defs[i] = TypeDef{Name: customAttributeTestString(fmt.Sprintf("T%d", i)), Extends: CodedIndex[TypeDefOrRef]{Tag: TypeDefOrRef_TypeRef}, FieldList: Slice{0, 1}}
+				if i > 0 {
+					parents = append(parents, NestedClass{NestedClass: Index(i), EnclosingClass: Index(i - 1)})
+				}
+			}
+			m.Tables.TypeDef = customAttributeTestTable(defs...)
+			m.Tables.NestedClass = customAttributeTestTable(parents...)
+			var constructors []MemberRef
+			for _, row := range []int{levels - 1, levels} {
+				code := uint32(row) << 2
+				constructors = append(constructors, MemberRef{Name: customAttributeTestString(".ctor"), Signature: []byte{0x20, 1, 1, 0x11, 0x80 | byte(code>>8), byte(code)}})
+			}
+			m.Tables.MemberRef = customAttributeTestTable(constructors...)
+			for _, warm := range []bool{false, true} {
+				d := NewCustomAttributeDecoder(m)
+				attr := CustomAttribute{Type: CodedIndex[CustomAttributeType]{Tag: CustomAttributeType_MemberRef}, Value: customAttributeTestValue([]byte{3, 0})}
+				if warm {
+					if _, err := d.Decode(attr); err != nil {
+						t.Fatalf("valid ancestor rejected: %v", err)
+					}
+				}
+				attr.Type.Index = 1
+				for range 2 {
+					value, err := d.Decode(attr)
+					if levels > maxCustomAttributeDepth {
+						if err == nil || !strings.Contains(err.Error(), "excessively nested") || !reflect.DeepEqual(value, CustomAttributeValue{}) {
+							t.Fatalf("warm=%v: excessive TypeDef depth = %+v, %v", warm, value, err)
+						}
+					} else if err != nil || len(value.FixedArguments) != 1 || len(value.FixedArguments[0].Type.Enum.Metadata.DeclaringTypes)+1 != levels {
+						t.Fatalf("warm=%v: valid TypeDef depth = %+v, %v", warm, value, err)
+					}
+				}
+			}
+		})
+	}
+}
+
 func TestCustomAttributeDecoderUnresolvedNamedEnum(t *testing.T) {
 	const enumName = "Missing.Mode"
 	d := NewCustomAttributeDecoder(customAttributeTestMetadata([]byte{0x20, 0, 1}))
@@ -687,6 +805,144 @@ func TestCustomAttributeDecoderNamedEnum(t *testing.T) {
 				t.Fatalf("named enum = %#v", argument)
 			}
 		})
+	}
+}
+
+func TestCustomAttributeDecoderMixedEnumLookups(t *testing.T) {
+	for _, namedFirst := range []bool{false, true} {
+		t.Run(fmt.Sprintf("named-first-%v", namedFirst), func(t *testing.T) {
+			m := customAttributeTestMetadata(nil)
+			m.Tables.MemberRef = customAttributeTestTable(
+				MemberRef{Name: customAttributeTestString(".ctor"), Signature: []byte{0x20, 1, 1, 0x11, 9}},
+				MemberRef{Name: customAttributeTestString(".ctor"), Signature: []byte{0x20, 0, 1}},
+			)
+			enumType := append([]byte{byte(ElementType_ENUM)}, attributeString("Test.Outer+Inner")...)
+			attrs := []CustomAttribute{
+				{Type: CodedIndex[CustomAttributeType]{Tag: CustomAttributeType_MemberRef}, Value: customAttributeTestValue([]byte{3, 0})},
+				{Type: CodedIndex[CustomAttributeType]{Tag: CustomAttributeType_MemberRef, Index: 1}, Value: attributeBlob(nil, namedAttribute(ElementType_FIELD, enumType, "Mode", []byte{7}))},
+			}
+			if namedFirst {
+				attrs[0], attrs[1] = attrs[1], attrs[0]
+			}
+			d := NewCustomAttributeDecoder(m)
+			for range 2 {
+				for _, attr := range attrs {
+					value, err := d.Decode(attr)
+					if err != nil {
+						t.Fatal(err)
+					}
+					if attr.Type.Index == 0 {
+						if len(value.FixedArguments) != 1 || value.FixedArguments[0].Value != int16(3) {
+							t.Fatalf("metadata enum = %+v; want int16(3)", value)
+						}
+					} else if len(value.NamedArguments) != 1 || value.NamedArguments[0].Value != uint8(7) {
+						t.Fatalf("serialized nested enum = %+v; want uint8(7)", value)
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestCustomAttributeDecoderLocalEnumDuplicates(t *testing.T) {
+	for _, underlying := range []ElementType{ElementType_I2, ElementType_I4} {
+		t.Run(underlying.String(), func(t *testing.T) {
+			m := customAttributeTestMetadata([]byte{0x20, 1, 1, 0x11, 9})
+			def, _ := m.Tables.TypeDef.At(1)
+			duplicate := def
+			duplicate.FieldList = Slice{1, 2}
+			m.Tables.TypeDef = customAttributeTestTable(def, duplicate)
+			m.Tables.NestedClass = Table[NestedClass]{}
+			m.Tables.Field = customAttributeTestTable(Field{Signature: []byte{6, byte(ElementType_I2)}}, Field{Signature: []byte{6, byte(underlying)}})
+			d := NewCustomAttributeDecoder(m)
+			for range 2 {
+				value, err := d.Decode(CustomAttribute{Type: CodedIndex[CustomAttributeType]{Tag: CustomAttributeType_MemberRef}, Value: customAttributeTestValue([]byte{3, 0})})
+				if underlying == ElementType_I2 {
+					if err != nil || len(value.FixedArguments) != 1 || value.FixedArguments[0].Value != int16(3) {
+						t.Fatalf("matching duplicate enum = %+v, %v", value, err)
+					}
+				} else if err == nil || !strings.Contains(err.Error(), "ambiguous") || !reflect.DeepEqual(value, CustomAttributeValue{}) {
+					t.Fatalf("conflicting duplicate enum = %+v, %v; want zero and ambiguity", value, err)
+				}
+			}
+		})
+	}
+}
+
+func TestCustomAttributeDecoderSerializedDuplicateGroups(t *testing.T) {
+	for _, conflict := range []bool{false, true} {
+		for _, namedFirst := range []bool{false, true} {
+			t.Run(fmt.Sprintf("conflict-%v/named-first-%v", conflict, namedFirst), func(t *testing.T) {
+				m := customAttributeTestMetadata(nil)
+				base, _ := m.Tables.TypeRef.At(0)
+				str := customAttributeTestString
+				m.Tables.TypeRef = customAttributeTestTable(base,
+					TypeRef{Namespace: str("Test"), Name: str("Sub.Mode"), ResolutionScope: CodedIndex[ResolutionScope]{Tag: ResolutionScope_Module}},
+					TypeRef{Namespace: str("Test.Sub"), Name: str("Mode"), ResolutionScope: CodedIndex[ResolutionScope]{Tag: ResolutionScope_Module}},
+				)
+				var defs []TypeDef
+				var fields []Field
+				for i := range 4 {
+					namespace, name, kind := "Test", "Sub.Mode", ElementType_I2
+					if i == 1 {
+						namespace, name = "Test.Sub", "Mode"
+						if conflict {
+							kind = ElementType_I4
+						}
+					}
+					defs = append(defs, TypeDef{Namespace: str(namespace), Name: str(name), Extends: CodedIndex[TypeDefOrRef]{Tag: TypeDefOrRef_TypeRef}, FieldList: Slice{Index(i), Index(i + 1)}})
+					fields = append(fields, Field{Signature: []byte{6, byte(kind)}})
+				}
+				m.Tables.TypeDef = customAttributeTestTable(defs...)
+				m.Tables.Field = customAttributeTestTable(fields...)
+				m.Tables.NestedClass = Table[NestedClass]{}
+				m.Tables.MemberRef = customAttributeTestTable(
+					MemberRef{Name: str(".ctor"), Signature: []byte{0x20, 1, 1, 0x11, 9}},
+					MemberRef{Name: str(".ctor"), Signature: []byte{0x20, 1, 1, 0x11, 13}},
+					MemberRef{Name: str(".ctor"), Signature: []byte{0x20, 0, 1}},
+				)
+				namedType := append([]byte{byte(ElementType_ENUM)}, attributeString("Test.Sub.Mode")...)
+				attrs := []CustomAttribute{
+					{Type: CodedIndex[CustomAttributeType]{Tag: CustomAttributeType_MemberRef}, Value: customAttributeTestValue([]byte{3, 0})},
+					{Type: CodedIndex[CustomAttributeType]{Tag: CustomAttributeType_MemberRef, Index: 1}, Value: customAttributeTestValue([]byte{4, 0})},
+					{Type: CodedIndex[CustomAttributeType]{Tag: CustomAttributeType_MemberRef, Index: 2}, Value: attributeBlob(nil, namedAttribute(ElementType_FIELD, namedType, "Value", []byte{7, 0}))},
+				}
+				if conflict {
+					attrs[1].Value = customAttributeTestValue([]byte{4, 0, 0, 0})
+				}
+				if namedFirst {
+					attrs[0], attrs[2] = attrs[2], attrs[0]
+				}
+				d := NewCustomAttributeDecoder(m)
+				for range 2 {
+					for _, attr := range attrs {
+						value, err := d.Decode(attr)
+						if attr.Type.Index == 2 && conflict {
+							if err == nil || !strings.Contains(err.Error(), "ambiguous") || !reflect.DeepEqual(value, CustomAttributeValue{}) {
+								t.Fatalf("serialized collision = %+v, %v; want ambiguity", value, err)
+							}
+							continue
+						}
+						if err != nil {
+							t.Fatal(err)
+						}
+						if attr.Type.Index == 2 {
+							if len(value.NamedArguments) != 1 || value.NamedArguments[0].Value != int16(7) {
+								t.Fatalf("matching serialized duplicates = %+v", value)
+							}
+						} else {
+							var want any = int16(3 + attr.Type.Index)
+							if conflict && attr.Type.Index == 1 {
+								want = int32(4)
+							}
+							if len(value.FixedArguments) != 1 || value.FixedArguments[0].Value != want {
+								t.Fatalf("raw identity after merging serialized names = %+v; want %v", value, want)
+							}
+						}
+					}
+				}
+			})
+		}
 	}
 }
 

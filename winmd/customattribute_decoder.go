@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 	"strings"
 )
 
@@ -115,16 +116,20 @@ type CustomAttributeDecoder struct {
 	// enum arguments are unsupported because their serialized width is unknown.
 	ResolveEnum func(EnumReference) (ElementType, error)
 
-	metadata        *Metadata
-	constructors    map[CodedIndex[CustomAttributeType]][]CustomAttributeArgumentType
-	enumsByType     map[CodedIndex[TypeDefOrRefOrSpec]]ElementType
-	enumsByName     map[string]ElementType
-	typeReferences  map[CodedIndex[TypeDefOrRefOrSpec]]*MetadataEnumReference
-	typeParents     map[Index]Index
-	typesByName     map[string][]Index
-	typesByIdentity map[metadataTypeIdentity][]Index
-	typesIndexed    bool
-	typesError      error
+	metadata               *Metadata
+	constructors           map[CodedIndex[CustomAttributeType]][]CustomAttributeArgumentType
+	enumsByType            map[CodedIndex[TypeDefOrRefOrSpec]]ElementType
+	enumsByName            map[string]ElementType
+	typeReferences         map[CodedIndex[TypeDefOrRefOrSpec]]*MetadataEnumReference
+	typeParents            map[Index]Index
+	parentsIndexed         bool
+	parentsError           error
+	typesByName            map[string]Index
+	typesByIdentity        map[metadataTypeIdentity]Index
+	typeNameDuplicates     map[string][]Index
+	typeIdentityDuplicates map[Index][]Index
+	typesIndexed           bool
+	typesError             error
 }
 
 // NewCustomAttributeDecoder creates a reusable decoder for attributes in m.
@@ -314,10 +319,18 @@ func (d *CustomAttributeDecoder) indexTypes() error {
 	return d.typesError
 }
 
-func (d *CustomAttributeDecoder) buildTypeIndex() error {
+func (d *CustomAttributeDecoder) indexTypeParents() error {
+	if d.parentsIndexed {
+		return d.parentsError
+	}
+	d.parentsIndexed = true
+	d.parentsError = d.buildTypeParents()
+	return d.parentsError
+}
+
+func (d *CustomAttributeDecoder) buildTypeParents() error {
 	parents := make(map[Index]Index)
-	for index := range d.metadata.Tables.NestedClass.Indices() {
-		nested, err := d.metadata.Tables.NestedClass.At(index)
+	for nested, err := range d.metadata.Tables.NestedClass.All() {
 		if err != nil {
 			return err
 		}
@@ -327,57 +340,120 @@ func (d *CustomAttributeDecoder) buildTypeIndex() error {
 		parents[nested.NestedClass] = nested.EnclosingClass
 	}
 	d.typeParents = parents
-	type typeNameInfo struct {
-		name     string
+	return nil
+}
+
+func (d *CustomAttributeDecoder) buildTypeIndex() error {
+	if err := d.indexTypeParents(); err != nil {
+		return err
+	}
+	type typeIdentityInfo struct {
 		identity metadataTypeIdentity
 		depth    int
 	}
-	typeNames := make(map[Index]typeNameInfo)
-	d.typesByName = make(map[string][]Index)
-	d.typesByIdentity = make(map[metadataTypeIdentity][]Index)
-	var nameOf func(Index, int) (typeNameInfo, error)
-	nameOf = func(index Index, depth int) (typeNameInfo, error) {
+	// Only ancestors need memoization: most types are never used as parents.
+	ancestors := make(map[Index]typeIdentityInfo)
+	// Share owned namespace strings while building the identity index.
+	namespaces := make(map[string]string)
+	// Keep the first row inline; only repeated identities need an index slice.
+	d.typesByIdentity = make(map[metadataTypeIdentity]Index, d.metadata.Tables.TypeDef.Len())
+	var identityOf func(Index, int) (typeIdentityInfo, error)
+	identityOf = func(index Index, depth int) (typeIdentityInfo, error) {
 		if depth >= maxCustomAttributeDepth {
-			return typeNameInfo{}, errors.New("cyclic or excessively nested TypeDef")
+			return typeIdentityInfo{}, errors.New("cyclic or excessively nested TypeDef")
 		}
-		if info, ok := typeNames[index]; ok {
+		if info, ok := ancestors[index]; ok {
 			if info.depth > maxCustomAttributeDepth-depth {
-				return typeNameInfo{}, errors.New("cyclic or excessively nested TypeDef")
+				return typeIdentityInfo{}, errors.New("cyclic or excessively nested TypeDef")
 			}
 			return info, nil
 		}
 		typ, err := d.metadata.Tables.TypeDef.At(index)
 		if err != nil {
-			return typeNameInfo{}, err
+			return typeIdentityInfo{}, err
 		}
-		namespace, name := typ.Namespace.String(), typ.Name.String()
-		info := typeNameInfo{
-			name:     typeNameEscaper.Replace(name),
+		namespace, ok := namespaces[typ.Namespace.String()]
+		if !ok {
+			namespace = typ.Namespace.String()
+			namespaces[namespace] = namespace
+		}
+		name := typ.Name.String()
+		info := typeIdentityInfo{
 			identity: metadataTypeIdentity{namespace: namespace, name: name},
 			depth:    1,
 		}
-		if parent, ok := parents[index]; ok {
-			parentInfo, err := nameOf(parent, depth+1)
+		if parent, ok := d.typeParents[index]; ok {
+			parentInfo, err := identityOf(parent, depth+1)
 			if err != nil {
-				return typeNameInfo{}, err
+				return typeIdentityInfo{}, err
 			}
-			info.name = parentInfo.name + "+" + info.name
 			info.identity.namespace = parentInfo.identity.namespace
 			info.identity.declaringTypes = parentInfo.identity.declaringTypes + parentInfo.identity.name + "\x00"
 			info.depth = parentInfo.depth + 1
-		} else if namespace != "" {
-			info.name = typeNameEscaper.Replace(namespace) + "." + info.name
 		}
-		typeNames[index] = info
+		if depth != 0 {
+			ancestors[index] = info
+		}
 		return info, nil
 	}
 	for index := range d.metadata.Tables.TypeDef.Indices() {
-		info, err := nameOf(index, 0)
+		info, err := identityOf(index, 0)
 		if err != nil {
 			return err
 		}
-		d.typesByName[info.name] = append(d.typesByName[info.name], index)
-		d.typesByIdentity[info.identity] = append(d.typesByIdentity[info.identity], index)
+		if first, ok := d.typesByIdentity[info.identity]; ok {
+			if d.typeIdentityDuplicates == nil {
+				d.typeIdentityDuplicates = make(map[Index][]Index)
+			}
+			if indices := d.typeIdentityDuplicates[first]; len(indices) != 0 {
+				d.typeIdentityDuplicates[first] = append(indices, index)
+			} else {
+				d.typeIdentityDuplicates[first] = []Index{first, index}
+			}
+		} else {
+			d.typesByIdentity[info.identity] = index
+		}
+	}
+	return nil
+}
+
+func (d *CustomAttributeDecoder) indexTypeNames() error {
+	if err := d.indexTypes(); err != nil {
+		return err
+	}
+	if d.typesByName != nil {
+		return nil
+	}
+	// Serialized names are only needed for named or boxed enum arguments.
+	d.typesByName = make(map[string]Index, len(d.typesByIdentity))
+	for identity, first := range d.typesByIdentity {
+		ref := MetadataEnumReference{Namespace: identity.namespace, Name: identity.name}
+		if identity.declaringTypes != "" {
+			ref.DeclaringTypes = strings.Split(strings.TrimSuffix(identity.declaringTypes, "\x00"), "\x00")
+		}
+		name := ref.fullName()
+		indices := d.typeIdentityDuplicates[first]
+		if existing, ok := d.typesByName[name]; ok {
+			// Distinct raw identities can have the same serialized name. Merge
+			// in row order without changing either identity's index slice.
+			previous := d.typeNameDuplicates[name]
+			if len(previous) == 0 {
+				previous = []Index{existing}
+			}
+			if len(indices) == 0 {
+				indices = []Index{first}
+			}
+			indices = slices.Concat(previous, indices)
+			slices.Sort(indices)
+			first = indices[0]
+		}
+		d.typesByName[name] = first
+		if len(indices) != 0 {
+			if d.typeNameDuplicates == nil {
+				d.typeNameDuplicates = make(map[string][]Index)
+			}
+			d.typeNameDuplicates[name] = indices
+		}
 	}
 	return nil
 }
@@ -396,7 +472,7 @@ func (d *CustomAttributeDecoder) typeReference(index CodedIndex[TypeDefOrRefOrSp
 	var parent *MetadataEnumReference
 	switch index.Tag {
 	case TypeDefOrRefOrSpec_TypeDef:
-		if err := d.indexTypes(); err != nil {
+		if err := d.indexTypeParents(); err != nil {
 			return nil, err
 		}
 		def, err := d.metadata.Tables.TypeDef.At(index.Index)
@@ -503,17 +579,31 @@ func (d *CustomAttributeDecoder) resolveEnum(ref EnumReference) (ElementType, er
 }
 
 func (d *CustomAttributeDecoder) resolveLocalEnum(name string) (ElementType, error) {
-	if err := d.indexTypes(); err != nil {
+	if err := d.indexTypeNames(); err != nil {
 		return 0, err
 	}
-	return d.enumTypeFromDefinitions(d.typesByName[name], name)
+	first, ok := d.typesByName[name]
+	if !ok {
+		return 0, nil
+	}
+	if indices := d.typeNameDuplicates[name]; len(indices) != 0 {
+		return d.enumTypeFromDefinitions(indices, name)
+	}
+	return d.metadata.EnumUnderlyingType(first)
 }
 
 func (d *CustomAttributeDecoder) resolveLocalMetadataEnum(ref *MetadataEnumReference) (ElementType, error) {
 	if err := d.indexTypes(); err != nil {
 		return 0, err
 	}
-	return d.enumTypeFromDefinitions(d.typesByIdentity[ref.identity()], ref.fullName())
+	first, ok := d.typesByIdentity[ref.identity()]
+	if !ok {
+		return 0, nil
+	}
+	if indices := d.typeIdentityDuplicates[first]; len(indices) != 0 {
+		return d.enumTypeFromDefinitions(indices, ref.fullName())
+	}
+	return d.metadata.EnumUnderlyingType(first)
 }
 
 func (d *CustomAttributeDecoder) enumTypeFromDefinitions(indices []Index, name string) (ElementType, error) {
