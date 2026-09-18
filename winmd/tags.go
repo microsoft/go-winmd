@@ -19,6 +19,7 @@ type CodedTag interface {
 		HasCustomAttribute |
 		TypeDefOrRefOrSpec
 	kind() codedKind
+	String() string
 }
 
 type TypeDefOrRef int8

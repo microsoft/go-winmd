@@ -8,6 +8,20 @@ package main
 var standaloneEnums = []string{
 	"AssemblyHashAlgorithm",
 	"ElementType",
+	"TypeDefOrRef",
+	"HasConstant",
+	"HasFieldMarshal",
+	"HasDeclSecurity",
+	"MemberRefParent",
+	"HasSemantics",
+	"MethodDefOrRef",
+	"MemberForwarded",
+	"Implementation",
+	"CustomAttributeType",
+	"ResolutionScope",
+	"TypeOrMethodDef",
+	"HasCustomAttribute",
+	"TypeDefOrRefOrSpec",
 }
 
 type flagRule struct {

@@ -725,3 +725,179 @@ var flagNamesElementType = [...]flagName[ElementType]{
 	{^ElementType(0), ElementType_PROPERTY, "PROPERTY"},
 	{^ElementType(0), ElementType_ENUM, "ENUM"},
 }
+
+// String returns the enum name, or Type(decimal) for an unnamed value.
+func (v TypeDefOrRef) String() string {
+	return formatEnum(v, flagNamesTypeDefOrRef[:], "TypeDefOrRef")
+}
+
+var flagNamesTypeDefOrRef = [...]flagName[TypeDefOrRef]{
+	{^TypeDefOrRef(0), TypeDefOrRef_Null, "Null"},
+	{^TypeDefOrRef(0), TypeDefOrRef_TypeDef, "TypeDef"},
+	{^TypeDefOrRef(0), TypeDefOrRef_TypeRef, "TypeRef"},
+	{^TypeDefOrRef(0), TypeDefOrRef_TypeSpec, "TypeSpec"},
+}
+
+// String returns the enum name, or Type(decimal) for an unnamed value.
+func (v HasConstant) String() string {
+	return formatEnum(v, flagNamesHasConstant[:], "HasConstant")
+}
+
+var flagNamesHasConstant = [...]flagName[HasConstant]{
+	{^HasConstant(0), HasConstant_Field, "Field"},
+	{^HasConstant(0), HasConstant_Param, "Param"},
+	{^HasConstant(0), HasConstant_Property, "Property"},
+}
+
+// String returns the enum name, or Type(decimal) for an unnamed value.
+func (v HasFieldMarshal) String() string {
+	return formatEnum(v, flagNamesHasFieldMarshal[:], "HasFieldMarshal")
+}
+
+var flagNamesHasFieldMarshal = [...]flagName[HasFieldMarshal]{
+	{^HasFieldMarshal(0), HasFieldMarshal_Field, "Field"},
+	{^HasFieldMarshal(0), HasFieldMarshal_Param, "Param"},
+}
+
+// String returns the enum name, or Type(decimal) for an unnamed value.
+func (v HasDeclSecurity) String() string {
+	return formatEnum(v, flagNamesHasDeclSecurity[:], "HasDeclSecurity")
+}
+
+var flagNamesHasDeclSecurity = [...]flagName[HasDeclSecurity]{
+	{^HasDeclSecurity(0), HasDeclSecurity_TypeDef, "TypeDef"},
+	{^HasDeclSecurity(0), HasDeclSecurity_MethodDef, "MethodDef"},
+	{^HasDeclSecurity(0), HasDeclSecurity_Assembly, "Assembly"},
+}
+
+// String returns the enum name, or Type(decimal) for an unnamed value.
+func (v MemberRefParent) String() string {
+	return formatEnum(v, flagNamesMemberRefParent[:], "MemberRefParent")
+}
+
+var flagNamesMemberRefParent = [...]flagName[MemberRefParent]{
+	{^MemberRefParent(0), MemberRefParent_TypeDef, "TypeDef"},
+	{^MemberRefParent(0), MemberRefParent_TypeRef, "TypeRef"},
+	{^MemberRefParent(0), MemberRefParent_ModuleRef, "ModuleRef"},
+	{^MemberRefParent(0), MemberRefParent_MethodDef, "MethodDef"},
+	{^MemberRefParent(0), MemberRefParent_TypeSpec, "TypeSpec"},
+}
+
+// String returns the enum name, or Type(decimal) for an unnamed value.
+func (v HasSemantics) String() string {
+	return formatEnum(v, flagNamesHasSemantics[:], "HasSemantics")
+}
+
+var flagNamesHasSemantics = [...]flagName[HasSemantics]{
+	{^HasSemantics(0), HasSemantics_Event, "Event"},
+	{^HasSemantics(0), HasSemantics_Property, "Property"},
+}
+
+// String returns the enum name, or Type(decimal) for an unnamed value.
+func (v MethodDefOrRef) String() string {
+	return formatEnum(v, flagNamesMethodDefOrRef[:], "MethodDefOrRef")
+}
+
+var flagNamesMethodDefOrRef = [...]flagName[MethodDefOrRef]{
+	{^MethodDefOrRef(0), MethodDefOrRef_MethodDef, "MethodDef"},
+	{^MethodDefOrRef(0), MethodDefOrRef_MemberRef, "MemberRef"},
+}
+
+// String returns the enum name, or Type(decimal) for an unnamed value.
+func (v MemberForwarded) String() string {
+	return formatEnum(v, flagNamesMemberForwarded[:], "MemberForwarded")
+}
+
+var flagNamesMemberForwarded = [...]flagName[MemberForwarded]{
+	{^MemberForwarded(0), MemberForwarded_Field, "Field"},
+	{^MemberForwarded(0), MemberForwarded_MethodDef, "MethodDef"},
+}
+
+// String returns the enum name, or Type(decimal) for an unnamed value.
+func (v Implementation) String() string {
+	return formatEnum(v, flagNamesImplementation[:], "Implementation")
+}
+
+var flagNamesImplementation = [...]flagName[Implementation]{
+	{^Implementation(0), Implementation_Null, "Null"},
+	{^Implementation(0), Implementation_File, "File"},
+	{^Implementation(0), Implementation_AssemblyRef, "AssemblyRef"},
+	{^Implementation(0), Implementation_ExportedType, "ExportedType"},
+}
+
+// String returns the enum name, or Type(decimal) for an unnamed value.
+func (v CustomAttributeType) String() string {
+	return formatEnum(v, flagNamesCustomAttributeType[:], "CustomAttributeType")
+}
+
+var flagNamesCustomAttributeType = [...]flagName[CustomAttributeType]{
+	{^CustomAttributeType(0), CustomAttributeType_Reserved0, "Reserved0"},
+	{^CustomAttributeType(0), CustomAttributeType_Reserved1, "Reserved1"},
+	{^CustomAttributeType(0), CustomAttributeType_MethodDef, "MethodDef"},
+	{^CustomAttributeType(0), CustomAttributeType_MemberRef, "MemberRef"},
+	{^CustomAttributeType(0), CustomAttributeType_Reserved4, "Reserved4"},
+}
+
+// String returns the enum name, or Type(decimal) for an unnamed value.
+func (v ResolutionScope) String() string {
+	return formatEnum(v, flagNamesResolutionScope[:], "ResolutionScope")
+}
+
+var flagNamesResolutionScope = [...]flagName[ResolutionScope]{
+	{^ResolutionScope(0), ResolutionScope_Null, "Null"},
+	{^ResolutionScope(0), ResolutionScope_Module, "Module"},
+	{^ResolutionScope(0), ResolutionScope_ModuleRef, "ModuleRef"},
+	{^ResolutionScope(0), ResolutionScope_AssemblyRef, "AssemblyRef"},
+	{^ResolutionScope(0), ResolutionScope_TypeRef, "TypeRef"},
+}
+
+// String returns the enum name, or Type(decimal) for an unnamed value.
+func (v TypeOrMethodDef) String() string {
+	return formatEnum(v, flagNamesTypeOrMethodDef[:], "TypeOrMethodDef")
+}
+
+var flagNamesTypeOrMethodDef = [...]flagName[TypeOrMethodDef]{
+	{^TypeOrMethodDef(0), TypeOrMethodDef_TypeDef, "TypeDef"},
+	{^TypeOrMethodDef(0), TypeOrMethodDef_MethodDef, "MethodDef"},
+}
+
+// String returns the enum name, or Type(decimal) for an unnamed value.
+func (v HasCustomAttribute) String() string {
+	return formatEnum(v, flagNamesHasCustomAttribute[:], "HasCustomAttribute")
+}
+
+var flagNamesHasCustomAttribute = [...]flagName[HasCustomAttribute]{
+	{^HasCustomAttribute(0), HasCustomAttribute_MethodDef, "MethodDef"},
+	{^HasCustomAttribute(0), HasCustomAttribute_Field, "Field"},
+	{^HasCustomAttribute(0), HasCustomAttribute_TypeRef, "TypeRef"},
+	{^HasCustomAttribute(0), HasCustomAttribute_TypeDef, "TypeDef"},
+	{^HasCustomAttribute(0), HasCustomAttribute_Param, "Param"},
+	{^HasCustomAttribute(0), HasCustomAttribute_InterfaceImpl, "InterfaceImpl"},
+	{^HasCustomAttribute(0), HasCustomAttribute_MemberRef, "MemberRef"},
+	{^HasCustomAttribute(0), HasCustomAttribute_Module, "Module"},
+	{^HasCustomAttribute(0), HasCustomAttribute_DeclSecurity, "DeclSecurity"},
+	{^HasCustomAttribute(0), HasCustomAttribute_Property, "Property"},
+	{^HasCustomAttribute(0), HasCustomAttribute_Event, "Event"},
+	{^HasCustomAttribute(0), HasCustomAttribute_StandAloneSig, "StandAloneSig"},
+	{^HasCustomAttribute(0), HasCustomAttribute_ModuleRef, "ModuleRef"},
+	{^HasCustomAttribute(0), HasCustomAttribute_TypeSpec, "TypeSpec"},
+	{^HasCustomAttribute(0), HasCustomAttribute_Assembly, "Assembly"},
+	{^HasCustomAttribute(0), HasCustomAttribute_AssemblyRef, "AssemblyRef"},
+	{^HasCustomAttribute(0), HasCustomAttribute_File, "File"},
+	{^HasCustomAttribute(0), HasCustomAttribute_ExportedType, "ExportedType"},
+	{^HasCustomAttribute(0), HasCustomAttribute_ManifestResource, "ManifestResource"},
+	{^HasCustomAttribute(0), HasCustomAttribute_GenericParam, "GenericParam"},
+	{^HasCustomAttribute(0), HasCustomAttribute_GenericParamConstraint, "GenericParamConstraint"},
+	{^HasCustomAttribute(0), HasCustomAttribute_MethodSpec, "MethodSpec"},
+}
+
+// String returns the enum name, or Type(decimal) for an unnamed value.
+func (v TypeDefOrRefOrSpec) String() string {
+	return formatEnum(v, flagNamesTypeDefOrRefOrSpec[:], "TypeDefOrRefOrSpec")
+}
+
+var flagNamesTypeDefOrRefOrSpec = [...]flagName[TypeDefOrRefOrSpec]{
+	{^TypeDefOrRefOrSpec(0), TypeDefOrRefOrSpec_TypeDef, "TypeDef"},
+	{^TypeDefOrRefOrSpec(0), TypeDefOrRefOrSpec_TypeRef, "TypeRef"},
+	{^TypeDefOrRefOrSpec(0), TypeDefOrRefOrSpec_TypeSpec, "TypeSpec"},
+}
