@@ -191,6 +191,7 @@ func (t Table[T]) Name() string {
 }
 
 // At returns the record at row.
+// Null coded indices are accepted only in columns that permit them.
 func (t Table[T]) At(row Index) (T, error) {
 	var zero T
 	if uint32(row) >= t.len {

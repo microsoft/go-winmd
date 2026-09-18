@@ -28,6 +28,7 @@ type TypeDefOrRef struct{ int8 }
 func (TypeDefOrRef) kind() codedKind { return codedTypeDefOrRef }
 
 var (
+	// TypeDefOrRef_Null represents a null Extends or EventType, not a table tag.
 	TypeDefOrRef_Null     = TypeDefOrRef{-1}
 	TypeDefOrRef_TypeDef  = TypeDefOrRef{0}
 	TypeDefOrRef_TypeRef  = TypeDefOrRef{1}
@@ -39,7 +40,6 @@ type HasConstant struct{ int8 }
 func (HasConstant) kind() codedKind { return codedHasConstant }
 
 var (
-	HasConstant_Null     = HasConstant{-1}
 	HasConstant_Field    = HasConstant{0}
 	HasConstant_Param    = HasConstant{1}
 	HasConstant_Property = HasConstant{2}
@@ -50,7 +50,6 @@ type HasFieldMarshal struct{ int8 }
 func (HasFieldMarshal) kind() codedKind { return codedHasFieldMarshal }
 
 var (
-	HasFieldMarshal_Null  = HasFieldMarshal{-1}
 	HasFieldMarshal_Field = HasFieldMarshal{0}
 	HasFieldMarshal_Param = HasFieldMarshal{1}
 )
@@ -60,7 +59,6 @@ type HasDeclSecurity struct{ int8 }
 func (HasDeclSecurity) kind() codedKind { return codedHasDeclSecurity }
 
 var (
-	HasDeclSecurity_Null      = HasDeclSecurity{-1}
 	HasDeclSecurity_TypeDef   = HasDeclSecurity{0}
 	HasDeclSecurity_MethodDef = HasDeclSecurity{1}
 	HasDeclSecurity_Assembly  = HasDeclSecurity{2}
@@ -71,7 +69,6 @@ type MemberRefParent struct{ int8 }
 func (MemberRefParent) kind() codedKind { return codedMemberRefParent }
 
 var (
-	MemberRefParent_Null      = MemberRefParent{-1}
 	MemberRefParent_TypeDef   = MemberRefParent{0}
 	MemberRefParent_TypeRef   = MemberRefParent{1}
 	MemberRefParent_ModuleRef = MemberRefParent{2}
@@ -84,7 +81,6 @@ type HasSemantics struct{ int8 }
 func (HasSemantics) kind() codedKind { return codedHasSemantics }
 
 var (
-	HasSemantics_Null     = HasSemantics{-1}
 	HasSemantics_Event    = HasSemantics{0}
 	HasSemantics_Property = HasSemantics{1}
 )
@@ -94,7 +90,6 @@ type MethodDefOrRef struct{ int8 }
 func (MethodDefOrRef) kind() codedKind { return codedMethodDefOrRef }
 
 var (
-	MethodDefOrRef_Null      = MethodDefOrRef{-1}
 	MethodDefOrRef_MethodDef = MethodDefOrRef{0}
 	MethodDefOrRef_MemberRef = MethodDefOrRef{1}
 )
@@ -104,7 +99,6 @@ type MemberForwarded struct{ int8 }
 func (MemberForwarded) kind() codedKind { return codedMemberForwarded }
 
 var (
-	MemberForwarded_Null      = MemberForwarded{-1}
 	MemberForwarded_Field     = MemberForwarded{0}
 	MemberForwarded_MethodDef = MemberForwarded{1}
 )
@@ -114,6 +108,7 @@ type Implementation struct{ int8 }
 func (Implementation) kind() codedKind { return codedImplementation }
 
 var (
+	// Implementation_Null denotes a resource in the current file, not a table tag.
 	Implementation_Null         = Implementation{-1}
 	Implementation_File         = Implementation{0}
 	Implementation_AssemblyRef  = Implementation{1}
@@ -125,7 +120,6 @@ type CustomAttributeType struct{ int8 }
 func (CustomAttributeType) kind() codedKind { return codedCustomAttributeType }
 
 var (
-	CustomAttributeType_Null      = CustomAttributeType{-1}
 	CustomAttributeType_Reserved0 = CustomAttributeType{0}
 	CustomAttributeType_Reserved1 = CustomAttributeType{1}
 	CustomAttributeType_MethodDef = CustomAttributeType{2}
@@ -138,6 +132,7 @@ type ResolutionScope struct{ int8 }
 func (ResolutionScope) kind() codedKind { return codedResolutionScope }
 
 var (
+	// ResolutionScope_Null denotes resolution through ExportedType, not a table tag.
 	ResolutionScope_Null        = ResolutionScope{-1}
 	ResolutionScope_Module      = ResolutionScope{0}
 	ResolutionScope_ModuleRef   = ResolutionScope{1}
@@ -150,7 +145,6 @@ type TypeOrMethodDef struct{ int8 }
 func (TypeOrMethodDef) kind() codedKind { return codedTypeOrMethodDef }
 
 var (
-	TypeOrMethodDef_Null      = TypeOrMethodDef{-1}
 	TypeOrMethodDef_TypeDef   = TypeOrMethodDef{0}
 	TypeOrMethodDef_MethodDef = TypeOrMethodDef{1}
 )
@@ -160,7 +154,6 @@ type HasCustomAttribute struct{ int8 }
 func (HasCustomAttribute) kind() codedKind { return codedHasCustomAttribute }
 
 var (
-	HasCustomAttribute_Null                   = HasCustomAttribute{-1}
 	HasCustomAttribute_MethodDef              = HasCustomAttribute{0}
 	HasCustomAttribute_Field                  = HasCustomAttribute{1}
 	HasCustomAttribute_TypeRef                = HasCustomAttribute{2}
@@ -190,7 +183,6 @@ type TypeDefOrRefOrSpec struct{ int8 }
 func (TypeDefOrRefOrSpec) kind() codedKind { return codedTypeDefOrRefOrSpec }
 
 var (
-	TypeDefOrRefOrSpec_Null     = TypeDefOrRefOrSpec{-1}
 	TypeDefOrRefOrSpec_TypeDef  = TypeDefOrRefOrSpec{0}
 	TypeDefOrRefOrSpec_TypeRef  = TypeDefOrRefOrSpec{1}
 	TypeDefOrRefOrSpec_TypeSpec = TypeDefOrRefOrSpec{2}
