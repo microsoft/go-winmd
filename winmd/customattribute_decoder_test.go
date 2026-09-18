@@ -64,6 +64,30 @@ func customAttributeTestValue(payload []byte) []byte {
 	return append(data, 0, 0)
 }
 
+func TestCustomAttributeDecoderResultOwnership(t *testing.T) {
+	d := NewCustomAttributeDecoder(customAttributeTestMetadata([]byte{0x20, 1, 1, 0x1d, 0x0e}))
+	a := CustomAttribute{
+		Type:  CodedIndex[CustomAttributeType]{Tag: CustomAttributeType_MemberRef},
+		Value: customAttributeTestValue([]byte{1, 0, 0, 0, 2, 'a', 'b'}),
+	}
+	before := bytes.Clone(a.Value)
+	first, err := d.Decode(a)
+	if err != nil {
+		t.Fatal(err)
+	}
+	first.FixedArguments[0].Type.Element.Kind = ElementType_I4
+	first.FixedArguments[0].Value.([]CustomAttributeArgument)[0].Value = "changed"
+	second, err := d.Decode(a)
+	if err != nil || !bytes.Equal(a.Value, before) {
+		t.Fatalf("modifying a result affected the input or cached constructor: %v", err)
+	}
+	clear(a.Value)
+	argument := second.FixedArguments[0]
+	if argument.Type.Element.Kind != ElementType_STRING || argument.Value.([]CustomAttributeArgument)[0].Value != "ab" {
+		t.Fatal("decoded arguments share mutable data with the input or a prior result")
+	}
+}
+
 func customAttributeTestEnum(tag TypeDefOrRefOrSpec, index Index, namespace, name string, underlying ElementType, declaring ...string) CustomAttributeArgumentType {
 	return CustomAttributeArgumentType{
 		Kind: ElementType_ENUM,

@@ -97,8 +97,10 @@ func (e *UnresolvedEnumError) Error() string {
 // CustomAttributeDecoder resolves constructor signatures and enum types before
 // decoding custom-attribute values. It caches metadata lookups for repeated use.
 // Type definitions and references are limited to 64 levels of nesting.
-// A decoder must not be used concurrently, and its metadata and ResolveEnum
-// callback must not be changed after decoding starts.
+// A decoder must not be used concurrently, and its metadata and
+// [CustomAttributeDecoder.ResolveEnum] callback must not be changed after
+// decoding starts. Separate decoders may share the same read-only [Metadata];
+// shared callbacks must support any concurrent calls they receive.
 type CustomAttributeDecoder struct {
 	// ResolveEnum supplies the underlying integer type of enums not resolved
 	// in the current metadata. The reference contains either raw metadata identity
@@ -129,7 +131,8 @@ type CustomAttributeDecoder struct {
 // It resolves enums declared in m, including nested enums. Metadata references
 // and serialized names are cached separately, by handle and original name.
 // Unqualified serialized names and names qualified with m's simple assembly name
-// can be resolved locally; other references are passed unchanged to ResolveEnum.
+// can be resolved locally; other references are passed unchanged to
+// [CustomAttributeDecoder.ResolveEnum].
 func NewCustomAttributeDecoder(m *Metadata) *CustomAttributeDecoder {
 	return &CustomAttributeDecoder{
 		metadata:       m,
@@ -143,11 +146,15 @@ func NewCustomAttributeDecoder(m *Metadata) *CustomAttributeDecoder {
 // Decode reads a's MethodDef or MemberRef constructor signature and decodes its
 // value. Constructor signatures must be non-generic instance constructors with
 // a void return type and valid custom-attribute parameter types. External enums
-// require ResolveEnum; unsupported TypeSpec parameters are reported as errors.
+// require [CustomAttributeDecoder.ResolveEnum]; unsupported TypeSpec parameters
+// are reported as errors.
+// The input is not modified and must remain unchanged during the call. Returned
+// argument and value data is independently owned, except for the read-only
+// [EnumReference] data described in [CustomAttributeValue].
 //
-// An unresolved enum stops decoding and returns a zero CustomAttributeValue.
-// Use [errors.As] to detect *UnresolvedEnumError in the returned error. The
-// original a.Value is unchanged and can be retained for later decoding.
+// Any error returns a zero CustomAttributeValue, not partial arguments.
+// Use [errors.As] to detect *UnresolvedEnumError when an enum cannot be resolved.
+// The original a.Value can be retained for later decoding.
 func (d *CustomAttributeDecoder) Decode(a CustomAttribute) (CustomAttributeValue, error) {
 	if d == nil || d.metadata == nil || d.metadata.Tables == nil {
 		return CustomAttributeValue{}, errors.New("missing custom attribute metadata")
