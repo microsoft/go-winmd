@@ -150,14 +150,14 @@ type Table[T any] struct {
 	name string
 	len  uint32
 
-	decode func(recordReader) (T, error)
+	decode func(recordReader) (T, string, error)
 	width  uint8
 	data   []byte
 	heaps  *heaps
 	layout *layout
 }
 
-func newTable[T any](name string, data []byte, hps *heaps, layout *layout, table table, decode func(recordReader) (T, error)) Table[T] {
+func newTable[T any](name string, data []byte, hps *heaps, layout *layout, table table, decode func(recordReader) (T, string, error)) Table[T] {
 	info := layout.tables[table]
 	return Table[T]{
 		name:   name,
@@ -190,12 +190,45 @@ func (t Table[T]) Name() string {
 	return t.name
 }
 
+// DecodeError describes a failure to read a metadata table row.
+// The underlying error is available through errors.Is and errors.As.
+type DecodeError struct {
+	// Table is the metadata table name. It is empty for a zero-value Table.
+	Table string
+	// Row is the zero-based index passed to Table.At. For list lookahead errors,
+	// this is the row being decoded, not the subsequent row being inspected.
+	Row Index
+	// Column is the Go field name of the first column that failed to decode.
+	// It is empty when no column was read, such as for an out-of-range row.
+	Column string
+	// Err is the underlying decoding or bounds error.
+	Err error
+}
+
+func (e *DecodeError) Error() string {
+	table := e.Table
+	if table == "" {
+		table = "table"
+	}
+	if e.Column != "" {
+		return fmt.Sprintf("%s[%d].%s: %v", table, e.Row, e.Column, e.Err)
+	}
+	return fmt.Sprintf("%s[%d]: %v", table, e.Row, e.Err)
+}
+
+// Unwrap returns the underlying error.
+func (e *DecodeError) Unwrap() error {
+	return e.Err
+}
+
 // At returns the record at row.
 // Null coded indices are accepted only in columns that permit them.
+// On failure, the error is a *DecodeError identifying the table, zero-based row,
+// and column, when applicable.
 func (t Table[T]) At(row Index) (T, error) {
 	var zero T
 	if uint32(row) >= t.len {
-		return zero, fmt.Errorf("row %d is beyond the end of the table", row)
+		return zero, &DecodeError{Table: t.name, Row: row, Err: fmt.Errorf("row %d is beyond the end of the table", row)}
 	}
 	offset := int(t.width) * int(row)
 	r := recordReader{
@@ -205,5 +238,9 @@ func (t Table[T]) At(row Index) (T, error) {
 		},
 		heaps: t.heaps,
 	}
-	return t.decode(r)
+	rec, column, err := t.decode(r)
+	if err != nil {
+		return rec, &DecodeError{Table: t.name, Row: row, Column: column, Err: err}
+	}
+	return rec, nil
 }
