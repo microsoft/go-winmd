@@ -259,6 +259,7 @@ func TestWriteTypeRejectsManagedSignatures(t *testing.T) {
 	}{
 		{"szarray", []byte{0x1d, 8}},
 		{"genericinst", []byte{0x15, 0x12, 5, 1, 8}},
+		{"fnptr", []byte{0x1b, 0, 0, 1}},
 		{"var", []byte{0x13, 0}},
 		{"mvar", []byte{0x1e, 0}},
 	} {
