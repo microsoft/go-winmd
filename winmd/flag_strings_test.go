@@ -250,3 +250,130 @@ func TestElementTypeString(t *testing.T) {
 		}
 	}
 }
+
+func TestCodedTagStrings(t *testing.T) {
+	t.Parallel()
+	checkCodedTagStrings(t, "TypeDefOrRef", map[winmd.TypeDefOrRef]string{
+		winmd.TypeDefOrRef_Null:     "Null",
+		winmd.TypeDefOrRef_TypeDef:  "TypeDef",
+		winmd.TypeDefOrRef_TypeRef:  "TypeRef",
+		winmd.TypeDefOrRef_TypeSpec: "TypeSpec",
+	})
+	checkCodedTagStrings(t, "HasConstant", map[winmd.HasConstant]string{
+		winmd.HasConstant_Field:    "Field",
+		winmd.HasConstant_Param:    "Param",
+		winmd.HasConstant_Property: "Property",
+	})
+	checkCodedTagStrings(t, "HasFieldMarshal", map[winmd.HasFieldMarshal]string{
+		winmd.HasFieldMarshal_Field: "Field",
+		winmd.HasFieldMarshal_Param: "Param",
+	})
+	checkCodedTagStrings(t, "HasDeclSecurity", map[winmd.HasDeclSecurity]string{
+		winmd.HasDeclSecurity_TypeDef:   "TypeDef",
+		winmd.HasDeclSecurity_MethodDef: "MethodDef",
+		winmd.HasDeclSecurity_Assembly:  "Assembly",
+	})
+	checkCodedTagStrings(t, "MemberRefParent", map[winmd.MemberRefParent]string{
+		winmd.MemberRefParent_TypeDef:   "TypeDef",
+		winmd.MemberRefParent_TypeRef:   "TypeRef",
+		winmd.MemberRefParent_ModuleRef: "ModuleRef",
+		winmd.MemberRefParent_MethodDef: "MethodDef",
+		winmd.MemberRefParent_TypeSpec:  "TypeSpec",
+	})
+	checkCodedTagStrings(t, "HasSemantics", map[winmd.HasSemantics]string{
+		winmd.HasSemantics_Event:    "Event",
+		winmd.HasSemantics_Property: "Property",
+	})
+	checkCodedTagStrings(t, "MethodDefOrRef", map[winmd.MethodDefOrRef]string{
+		winmd.MethodDefOrRef_MethodDef: "MethodDef",
+		winmd.MethodDefOrRef_MemberRef: "MemberRef",
+	})
+	checkCodedTagStrings(t, "MemberForwarded", map[winmd.MemberForwarded]string{
+		winmd.MemberForwarded_Field:     "Field",
+		winmd.MemberForwarded_MethodDef: "MethodDef",
+	})
+	checkCodedTagStrings(t, "Implementation", map[winmd.Implementation]string{
+		winmd.Implementation_Null:         "Null",
+		winmd.Implementation_File:         "File",
+		winmd.Implementation_AssemblyRef:  "AssemblyRef",
+		winmd.Implementation_ExportedType: "ExportedType",
+	})
+	checkCodedTagStrings(t, "CustomAttributeType", map[winmd.CustomAttributeType]string{
+		winmd.CustomAttributeType_Reserved0: "Reserved0",
+		winmd.CustomAttributeType_Reserved1: "Reserved1",
+		winmd.CustomAttributeType_MethodDef: "MethodDef",
+		winmd.CustomAttributeType_MemberRef: "MemberRef",
+		winmd.CustomAttributeType_Reserved4: "Reserved4",
+	})
+	checkCodedTagStrings(t, "ResolutionScope", map[winmd.ResolutionScope]string{
+		winmd.ResolutionScope_Null:        "Null",
+		winmd.ResolutionScope_Module:      "Module",
+		winmd.ResolutionScope_ModuleRef:   "ModuleRef",
+		winmd.ResolutionScope_AssemblyRef: "AssemblyRef",
+		winmd.ResolutionScope_TypeRef:     "TypeRef",
+	})
+	checkCodedTagStrings(t, "TypeOrMethodDef", map[winmd.TypeOrMethodDef]string{
+		winmd.TypeOrMethodDef_TypeDef:   "TypeDef",
+		winmd.TypeOrMethodDef_MethodDef: "MethodDef",
+	})
+	checkCodedTagStrings(t, "HasCustomAttribute", map[winmd.HasCustomAttribute]string{
+		winmd.HasCustomAttribute_MethodDef:              "MethodDef",
+		winmd.HasCustomAttribute_Field:                  "Field",
+		winmd.HasCustomAttribute_TypeRef:                "TypeRef",
+		winmd.HasCustomAttribute_TypeDef:                "TypeDef",
+		winmd.HasCustomAttribute_Param:                  "Param",
+		winmd.HasCustomAttribute_InterfaceImpl:          "InterfaceImpl",
+		winmd.HasCustomAttribute_MemberRef:              "MemberRef",
+		winmd.HasCustomAttribute_Module:                 "Module",
+		winmd.HasCustomAttribute_DeclSecurity:           "DeclSecurity",
+		winmd.HasCustomAttribute_Property:               "Property",
+		winmd.HasCustomAttribute_Event:                  "Event",
+		winmd.HasCustomAttribute_StandAloneSig:          "StandAloneSig",
+		winmd.HasCustomAttribute_ModuleRef:              "ModuleRef",
+		winmd.HasCustomAttribute_TypeSpec:               "TypeSpec",
+		winmd.HasCustomAttribute_Assembly:               "Assembly",
+		winmd.HasCustomAttribute_AssemblyRef:            "AssemblyRef",
+		winmd.HasCustomAttribute_File:                   "File",
+		winmd.HasCustomAttribute_ExportedType:           "ExportedType",
+		winmd.HasCustomAttribute_ManifestResource:       "ManifestResource",
+		winmd.HasCustomAttribute_GenericParam:           "GenericParam",
+		winmd.HasCustomAttribute_GenericParamConstraint: "GenericParamConstraint",
+		winmd.HasCustomAttribute_MethodSpec:             "MethodSpec",
+	})
+	checkCodedTagStrings(t, "TypeDefOrRefOrSpec", map[winmd.TypeDefOrRefOrSpec]string{
+		winmd.TypeDefOrRefOrSpec_TypeDef:  "TypeDef",
+		winmd.TypeDefOrRefOrSpec_TypeRef:  "TypeRef",
+		winmd.TypeDefOrRefOrSpec_TypeSpec: "TypeSpec",
+	})
+}
+
+func checkCodedTagStrings[T winmd.CodedTag](t *testing.T, typeName string, names map[T]string) {
+	t.Helper()
+	t.Run(typeName, func(t *testing.T) {
+		// Exercise the entire signed-byte range, including negative unknowns,
+		// null sentinels, reserved values, and positive unnamed values.
+		for value := -128; value <= 127; value++ {
+			tag := T(value)
+			want, ok := names[tag]
+			if !ok {
+				want = fmt.Sprintf("%s(%d)", typeName, value)
+			}
+			if got := tag.String(); got != want {
+				t.Errorf("String(%d) = %q; want %q", value, got, want)
+			}
+			if got := fmt.Sprint(tag); got != want {
+				t.Errorf("fmt.Sprint(%d) = %q; want %q", value, got, want)
+			}
+		}
+	})
+}
+
+func ExampleTypeDefOrRef_String() {
+	fmt.Println(winmd.TypeDefOrRef_TypeRef)
+	fmt.Println(winmd.TypeDefOrRef_Null)
+	fmt.Println(winmd.TypeDefOrRef(3))
+	// Output:
+	// TypeRef
+	// Null
+	// TypeDefOrRef(3)
+}
