@@ -191,6 +191,54 @@ func writeTestMethod(t *testing.T, b *generationMetadataBuilder, options MethodO
 	return output.String(), err
 }
 
+func TestContextConstantParents(t *testing.T) {
+	t.Parallel()
+	b := newGenerationMetadataBuilder(t)
+	b.add(8, uint16(0), uint16(1), b.str("Param"))
+	value := b.blob([]byte{1, 0, 0, 0})
+	b.add(11, byte(winmd.ElementType_I4), byte(0), uint16(1<<2|1), value)
+	if _, err := NewContext(b.metadata()); err != nil {
+		t.Fatalf("non-field constant in a module with no fields: %v", err)
+	}
+	b.add(4, uint16(winmd.MemberAccess_Public), b.str("Field"), b.blob([]byte{6, 8}))
+	b.add(11, byte(winmd.ElementType_I4), byte(0), uint16(1<<2), value)
+	if _, err := NewContext(b.metadata()); err != nil {
+		t.Fatalf("distinct field and parameter constants: %v", err)
+	}
+	b.add(11, byte(winmd.ElementType_I4), byte(0), uint16(1<<2), value)
+	if _, err := NewContext(b.metadata()); err == nil || !strings.Contains(err.Error(), "multiple Constant rows found pointing at Field") {
+		t.Fatalf("duplicate field constant error = %v", err)
+	}
+}
+
+func TestMethodModuleName(t *testing.T) {
+	b := methodGenerationMetadata(t, []byte{0, 0, 1}, "NaTiVe.Extra.DLL", "NativeEntry")
+	flags := uint16(winmd.MemberAccess_Public) | uint16(winmd.MethodFlags_Static|winmd.MethodFlags_PInvokeImpl)
+	b.add(6, uint32(0), uint16(0), flags, b.str("Second"), b.blob([]byte{0, 0, 1}), uint16(1))
+	b.add(28, uint16(winmd.PInvokeCallingConvention_PlatformAPI), uint16(2<<1|1), b.str("Second"), uint16(1))
+	// Leave an invalid module unused so normalization cannot be eager.
+	b.add(26, uint16(0xffff))
+	c, err := NewContext(b.metadata())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for range 2 {
+		for _, index := range []winmd.Index{0, 1} {
+			if got := c.MethodModuleName(index); got != "native.extra.dll" {
+				t.Fatalf("MethodModuleName(%d) = %q", index, got)
+			}
+		}
+		if got := c.MethodModuleName(2); got != "" {
+			t.Fatalf("method without an import has module %q", got)
+		}
+	}
+	// A later method can share the cached module name without allocations.
+	var name string
+	if allocs := testing.AllocsPerRun(100, func() { name = c.MethodModuleName(1) }); allocs != 0 || name != "native.extra.dll" {
+		t.Fatalf("cached module lookup = %q, %g allocations; want none", name, allocs)
+	}
+}
+
 func TestWriteMethodNativeEntryPoint(t *testing.T) {
 	t.Parallel()
 	for _, test := range []struct {

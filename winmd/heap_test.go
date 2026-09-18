@@ -6,9 +6,11 @@ package winmd_test
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"strings"
 	"testing"
+	"unicode/utf8"
 
 	"github.com/microsoft/go-winmd/winmd"
 )
@@ -115,6 +117,59 @@ func TestStringHeapUTF8(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestStringHeapScanBoundaries(t *testing.T) {
+	t.Parallel()
+	for _, length := range []int{0, 1, 7, 8, 9, 15, 16, 17, 31, 32, 33, 63, 64, 65, 255} {
+		for offset := range 16 {
+			for _, suffix := range []string{"", "é", "€", "😀", "\xff", "\xc3", "\xed\xa0\x80"} {
+				t.Run(fmt.Sprintf("length-%d/offset-%d/suffix-%x", length, offset, suffix), func(t *testing.T) {
+					text := strings.Repeat("a", length) + suffix
+					heap := append(bytes.Repeat([]byte{0xff}, offset), text...)
+					heap = append(heap, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff)
+					got, err := winmd.StringHeap(heap).String(uint32(offset))
+					if utf8.ValidString(text) {
+						if err != nil || got.String() != text || got.Start != uint32(offset) {
+							t.Fatalf("String() = %q at %d, %v; want %q", got.String(), got.Start, err, text)
+						}
+					} else if err == nil || !strings.Contains(err.Error(), "invalid UTF-8") || got.String() != "" {
+						t.Fatalf("String() = %q, %v; want invalid UTF-8", got.String(), err)
+					}
+				})
+			}
+		}
+	}
+}
+
+func FuzzStringHeap(f *testing.F) {
+	for _, data := range [][]byte{
+		nil, {0}, []byte("ASCII\x00\xff"), []byte("aé€😀\x00"),
+		[]byte("longer ASCII prefix followed by é\x00"),
+		{0, 0xc0, 0x80, 0}, {0xff, 0, 'a', 0}, {0xed, 0xa0, 0x80, 0},
+	} {
+		for _, start := range []uint32{0, 1, 7, 8, 15, 16, 0x80000000, 0xffffffff} {
+			f.Add(data, start)
+		}
+	}
+	f.Fuzz(func(t *testing.T, data []byte, start uint32) {
+		var want []byte
+		valid := false
+		if uint64(start) < uint64(len(data)) {
+			if end := bytes.IndexByte(data[start:], 0); end != -1 {
+				want = data[start : int(start)+end]
+				valid = utf8.Valid(want)
+			}
+		}
+		got, err := winmd.StringHeap(data).String(start)
+		if valid {
+			if err != nil || got.String() != string(want) || got.Start != start {
+				t.Fatalf("String(%d) = %q at %d, %v; want %q", start, got.String(), got.Start, err, want)
+			}
+		} else if err == nil || got.String() != "" || got.Start != 0 {
+			t.Fatalf("String(%d) = %q at %d, %v; want zero and error", start, got.String(), got.Start, err)
+		}
+	})
 }
 
 func TestGUIDHeapBounds(t *testing.T) {
