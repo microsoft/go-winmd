@@ -30,7 +30,7 @@ type CustomAttributeArgumentType struct {
 // CustomAttributeArgument is a typed fixed, named, boxed, or array argument.
 type CustomAttributeArgument struct {
 	Type CustomAttributeArgumentType
-	// Value uses the primitive Go types returned by DecodeConstant. Strings and
+	// Value uses the primitive Go types returned by [DecodeConstant]. Strings and
 	// System.Type names are strings, or nil for null. Enums use the Go representation
 	// of their underlying type. Arrays are []CustomAttributeArgument, or nil for null;
 	// an empty array is a non-nil empty slice. Boxed values are represented by
@@ -47,7 +47,9 @@ type CustomAttributeNamedArgument struct {
 
 // CustomAttributeValue contains the arguments serialized in a CustomAttribute.
 // Arguments are kept in metadata order; named fields and properties with the
-// same name remain distinct.
+// same name remain distinct. Argument and value data is independent of the
+// input blob and belongs to this result, except for read-only [EnumReference]
+// data, which may be shared with the decoder and other results.
 type CustomAttributeValue struct {
 	FixedArguments []CustomAttributeArgument
 	NamedArguments []CustomAttributeNamedArgument
