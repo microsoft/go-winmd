@@ -11,19 +11,20 @@ import (
 // flagName matches a complete masked field, or an individual bit when mask and
 // value are equal. The generated, checked-in tables define names and output
 // order; they are never modified at runtime.
-type flagName[T ~uint8 | ~uint16 | ~uint32] struct {
+type flagName[T ~int8 | ~uint8 | ~uint16 | ~uint32] struct {
 	mask  T
 	value T
 	name  string
 }
 
-func formatEnum[T ~uint8 | ~uint16 | ~uint32](value T, names []flagName[T], typeName string) string {
+func formatEnum[T ~int8 | ~uint8 | ~uint16 | ~uint32](value T, names []flagName[T], typeName string) string {
 	for _, entry := range names {
 		if value == entry.value {
 			return entry.name
 		}
 	}
-	return typeName + "(" + strconv.FormatUint(uint64(value), 10) + ")"
+	// All supported integer types fit in int64, including uint32.
+	return typeName + "(" + strconv.FormatInt(int64(value), 10) + ")"
 }
 
 func formatFlags[T ~uint8 | ~uint16 | ~uint32](value T, names []flagName[T]) string {

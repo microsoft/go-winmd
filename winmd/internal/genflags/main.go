@@ -1,11 +1,12 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-// genflags generates checked-in flag and enum lookup tables from tables.go and
-// sigtypes.go. It uses explicit mask rules and Go syntax only, without loading
-// or type-checking the winmd package. The schema's constants must be explicitly
-// typed integer literals; other forms are rejected rather than evaluated or
-// guessed. It also generates read-only attribute accessors and bitset helpers.
+// genflags generates checked-in flag and enum lookup tables from tables.go,
+// sigtypes.go, and tags.go. It uses explicit mask rules and Go syntax only, without
+// loading or type-checking the winmd package. The schema's constants must be
+// explicitly typed integer literals, optionally negated for signed enums; other
+// forms are rejected rather than evaluated or guessed. It also generates
+// read-only attribute accessors and bitset helpers.
 package main
 
 import (
@@ -56,13 +57,14 @@ func main() {
 
 type namedConstant struct {
 	name  string
-	value uint64
+	value int64
 }
 
 type flagType struct {
 	name      string
 	width     int
 	enum      bool
+	signed    bool
 	constants []namedConstant
 }
 
@@ -72,7 +74,7 @@ func readConstants() ([]flagType, error) {
 		return fmt.Errorf("%s: %s", fset.Position(pos), fmt.Sprintf(format, args...))
 	}
 	var decls []ast.Decl
-	for _, name := range []string{"tables.go", "sigtypes.go"} {
+	for _, name := range []string{"tables.go", "sigtypes.go", "tags.go"} {
 		file, err := parser.ParseFile(fset, name, nil, parser.SkipObjectResolution)
 		if err != nil {
 			return nil, err
@@ -121,8 +123,11 @@ func readConstants() ([]flagType, error) {
 				return nil, errorf(spec.Pos(), "duplicate flag type %s", name)
 			}
 			var width int
+			var signed bool
 			if base, ok := ast.Unparen(spec.Type).(*ast.Ident); ok && !spec.Assign.IsValid() && spec.TypeParams == nil {
 				switch base.Name {
+				case "int8":
+					width, signed = 8, true
 				case "uint8":
 					width = 8
 				case "uint16":
@@ -132,10 +137,13 @@ func readConstants() ([]flagType, error) {
 				}
 			}
 			if width == 0 {
-				return nil, errorf(spec.Pos(), "%s must be a uint8, uint16, or uint32 type definition", name)
+				return nil, errorf(spec.Pos(), "%s must be an int8, uint8, uint16, or uint32 type definition", name)
+			}
+			if signed && !slices.Contains(standaloneEnums, name) {
+				return nil, errorf(spec.Pos(), "%s: signed types are only supported for standalone enums", name)
 			}
 			byName[name] = len(types)
-			types = append(types, flagType{name: name, width: width, enum: choices[name]})
+			types = append(types, flagType{name: name, width: width, enum: choices[name], signed: signed})
 		}
 	}
 	if len(types) == 0 {
@@ -187,11 +195,24 @@ func readConstants() ([]flagType, error) {
 			if suffix, ok := strings.CutPrefix(name, typeName+"_"); (!raw && (!ok || suffix == "")) || seen[name] {
 				return nil, errorf(spec.Pos(), "invalid or duplicate flag constant %s", name)
 			}
-			literal, ok := ast.Unparen(spec.Values[0]).(*ast.BasicLit)
+			expr := ast.Unparen(spec.Values[0])
+			prefix := ""
+			if unary, ok := expr.(*ast.UnaryExpr); ok && unary.Op == token.SUB {
+				prefix, expr = "-", ast.Unparen(unary.X)
+			}
+			literal, ok := expr.(*ast.BasicLit)
 			if !ok || literal.Kind != token.INT {
 				return nil, errorf(spec.Pos(), "%s must use an integer literal", name)
 			}
-			value, err := strconv.ParseUint(literal.Value, 0, types[index].width)
+			var value int64
+			var err error
+			if types[index].signed {
+				value, err = strconv.ParseInt(prefix+literal.Value, 0, types[index].width)
+			} else {
+				var unsigned uint64
+				unsigned, err = strconv.ParseUint(prefix+literal.Value, 0, types[index].width)
+				value = int64(unsigned)
+			}
 			if err != nil {
 				return nil, errorf(spec.Pos(), "%s: %v", name, err)
 			}
@@ -257,7 +278,7 @@ func tableEntries(typ flagType, types map[string]flagType) ([]entry, error) {
 		typ  flagType
 	}
 	var fields []resolvedField
-	var fieldBits uint64
+	var fieldBits int64
 	for _, field := range rule.fields {
 		var mask namedConstant
 		for _, c := range typ.constants {
@@ -273,7 +294,7 @@ func tableEntries(typ flagType, types map[string]flagType) ([]entry, error) {
 		fields = append(fields, resolvedField{mask, choice})
 	}
 	slices.SortFunc(fields, func(a, b resolvedField) int {
-		return cmp.Compare(bits.TrailingZeros64(a.mask.value), bits.TrailingZeros64(b.mask.value))
+		return cmp.Compare(bits.TrailingZeros64(uint64(a.mask.value)), bits.TrailingZeros64(uint64(b.mask.value)))
 	})
 	var entries []entry
 	for _, field := range fields {
