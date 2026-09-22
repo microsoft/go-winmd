@@ -39,10 +39,10 @@ type typeDefCache struct {
 	unresolvedDuplicated map[typeNameKey][]winmd.Index
 }
 
-func newTypeDefCache() *typeDefCache {
+func newTypeDefCache(capacity uint32) *typeDefCache {
 	return &typeDefCache{
 		resolved:             make(map[typeNameKey]*resolvedDef),
-		unresolved:           make(map[typeNameKey]winmd.Index),
+		unresolved:           make(map[typeNameKey]winmd.Index, capacity),
 		unresolvedDuplicated: make(map[typeNameKey][]winmd.Index),
 		resolvedDuplicated:   make(map[typeNameKey][]*resolvedDef),
 	}
@@ -52,6 +52,8 @@ func newTypeDefCache() *typeDefCache {
 // pass. References are canonicalized on demand; neither TypeRef nor the raw
 // #Strings heap needs an eager scan.
 func (c *Context) indexTypeNames() error {
+	// Own one string per namespace instead of copying it for every type.
+	namespaces := make(map[string]string)
 	for idx := range c.Metadata.Tables.TypeDef.Indices() {
 		def, err := c.Metadata.Tables.TypeDef.At(idx)
 		if err != nil {
@@ -61,16 +63,30 @@ func (c *Context) indexTypeNames() error {
 		if def.Flags.Visibility().IsNested() {
 			continue
 		}
-		name := qualifiedTypeName{Namespace: def.Namespace.String(), Name: def.Name.String()}
-		if indices := c.typeDefsByName[name]; len(indices) != 0 {
-			first, err := c.Metadata.Tables.TypeDef.At(indices[0])
+		namespace, ok := namespaces[def.Namespace.String()]
+		if !ok {
+			namespace = def.Namespace.String()
+			namespaces[namespace] = namespace
+		}
+		name := qualifiedTypeName{Namespace: namespace, Name: def.Name.String()}
+		if firstIndex, ok := c.typeDefsByName[name]; ok {
+			first, err := c.Metadata.Tables.TypeDef.At(firstIndex)
 			if err != nil {
 				return err
 			}
 			c.typeDefCache.addAlias(typeDefKey(def), typeDefKey(first))
+			if c.typeDefNameDuplicates == nil {
+				c.typeDefNameDuplicates = make(map[winmd.Index][]winmd.Index)
+			}
+			if indices := c.typeDefNameDuplicates[firstIndex]; len(indices) != 0 {
+				c.typeDefNameDuplicates[firstIndex] = append(indices, idx)
+			} else {
+				c.typeDefNameDuplicates[firstIndex] = []winmd.Index{firstIndex, idx}
+			}
+		} else {
+			c.typeDefsByName[name] = idx
 		}
 		c.typeDefCache.add(idx, def)
-		c.typeDefsByName[name] = append(c.typeDefsByName[name], idx)
 	}
 	return nil
 }

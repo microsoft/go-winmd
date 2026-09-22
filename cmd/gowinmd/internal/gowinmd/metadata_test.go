@@ -246,7 +246,7 @@ func TestNestedTypeVisibilityLookup(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if len(c.typeDefsByName[qualifiedTypeName{Name: "Hidden"}]) != 0 {
+			if _, ok := c.typeDefsByName[qualifiedTypeName{Name: "Hidden"}]; ok {
 				t.Fatal("nested type indexed as a top-level definition")
 			}
 			if err := c.SelectTypeDef("", "Hidden", ""); err == nil {
@@ -397,6 +397,39 @@ func TestTypeDefCacheCanonicalKeys(t *testing.T) {
 	}
 }
 
+func TestTypeNamespaceLookups(t *testing.T) {
+	t.Parallel()
+	names := []qualifiedTypeName{
+		{Namespace: "Test", Name: "Mode"},
+		{Namespace: "test", Name: "Mode"},
+		{Namespace: "Test", Name: "Other"},
+		{Namespace: "", Name: "Mode"},
+		{Namespace: "Tést", Name: "Mode"},
+		{Namespace: "", Name: "Other"},
+		{Namespace: "Tést", Name: "Other"},
+	}
+	// Definitions and references use independent heap entries, even when
+	// their namespace text is equal or repeats after a different namespace.
+	c, err := NewContext(generatorTestMetadata(t, generatorTestOptions{extraTypeDefs: names, extraTypeRefs: names}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := c.SelectTypeDef("", "<Module>", "Module"); err != nil {
+		t.Fatalf("selecting TypeDef row zero: %v", err)
+	}
+	for range 2 {
+		for i, name := range names {
+			if err := c.SelectTypeDef(name.Namespace, name.Name, ""); err != nil {
+				t.Fatalf("select %+v: %v", name, err)
+			}
+			def, err := c.resolveTypeRef(winmd.Index(i+2), ArchAll)
+			if err != nil || def == nil || def.Namespace.String() != name.Namespace || def.Name.String() != name.Name {
+				t.Fatalf("resolve %+v = %+v, %v", name, def, err)
+			}
+		}
+	}
+}
+
 func TestTypeNameCanonicalizationBoundaries(t *testing.T) {
 	t.Parallel()
 	names := []qualifiedTypeName{
@@ -414,8 +447,8 @@ func TestTypeNameCanonicalizationBoundaries(t *testing.T) {
 	}
 	for i, name := range names {
 		index := winmd.Index(i + 2)
-		if indices := c.typeDefsByName[name]; len(indices) != 1 || indices[0] != index {
-			t.Fatalf("top-level lookup for %+v = %v; want [%d]", name, indices, index)
+		if got, ok := c.typeDefsByName[name]; !ok || got != index {
+			t.Fatalf("top-level lookup for %+v = %d, %v; want %d", name, got, ok, index)
 		}
 		def, err := c.resolveTypeDef(index)
 		if err != nil {

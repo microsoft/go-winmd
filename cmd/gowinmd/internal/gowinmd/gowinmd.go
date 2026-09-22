@@ -74,8 +74,11 @@ type Context struct {
 	Metadata *winmd.Metadata
 
 	typeDefCache typeDefCache
-	// typeDefsByName maps case-sensitive qualified names to module-level TypeDef indices.
-	typeDefsByName map[qualifiedTypeName][]winmd.Index
+	// typeDefsByName maps case-sensitive qualified names to their first module-level TypeDef.
+	typeDefsByName map[qualifiedTypeName]winmd.Index
+	// typeDefNameDuplicates maps the first index of a repeated name to all its
+	// TypeDef indices in metadata order. Unique names need no index slice.
+	typeDefNameDuplicates map[winmd.Index][]winmd.Index
 
 	// resolvedDefsByIndex maps TypeDef Index -> resolved TypeDef information.
 	resolvedDefsByIndex map[winmd.Index]*resolvedDef
@@ -97,6 +100,8 @@ type Context struct {
 
 	// methodDefImplMap maps MethodDef index -> ImplMap with matching MemberForwarded index.
 	methodDefImplMap map[winmd.Index]winmd.ImplMap
+	// moduleNames caches lowercase names of ModuleRefs as they are requested.
+	moduleNames map[winmd.Index]string
 	// fieldConstant maps Field index -> the Constant with the field as its parent.
 	fieldConstant map[winmd.Index]winmd.Constant
 	// typeDefNativeTypedefAttribute maps TypeDef -> CustomAttribute (if NativeTypedefAttribute).
@@ -143,16 +148,16 @@ var ErrOrdinalImport = errors.New("mkwinsyscall does not support ordinal import"
 func NewContext(f *winmd.Metadata) (*Context, error) {
 	l := &Context{
 		Metadata:             f,
-		typeDefCache:         *newTypeDefCache(),
-		typeDefsByName:       make(map[qualifiedTypeName][]winmd.Index),
+		typeDefCache:         *newTypeDefCache(f.Tables.TypeDef.Len()),
+		typeDefsByName:       make(map[qualifiedTypeName]winmd.Index, f.Tables.TypeDef.Len()),
 		resolvedDefsByIndex:  make(map[winmd.Index]*resolvedDef),
 		unresolvableTypeRefs: make(map[qualifiedTypeName]winmd.TypeRef),
 		projectedTypeDefs:    make(map[winmd.Index]bool),
 		requiredTypeDefs:     make(map[winmd.Index]bool),
 		abiLayoutTypeDefs:    make(map[winmd.Index]bool),
 
-		methodDefImplMap:              make(map[winmd.Index]winmd.ImplMap),
-		fieldConstant:                 make(map[winmd.Index]winmd.Constant),
+		methodDefImplMap:              make(map[winmd.Index]winmd.ImplMap, min(f.Tables.ImplMap.Len(), f.Tables.MethodDef.Len())),
+		fieldConstant:                 make(map[winmd.Index]winmd.Constant, min(f.Tables.Constant.Len(), f.Tables.Field.Len())),
 		typeDefNativeTypedefAttribute: make(map[winmd.Index]winmd.CustomAttribute),
 		typeDefSupportedArch:          make(map[winmd.Index]Arch),
 		methodDefSupportedArch:        make(map[winmd.Index]Arch),
@@ -204,6 +209,8 @@ func NewContext(f *winmd.Metadata) (*Context, error) {
 		l.fieldConstant[c.Parent.Index] = c
 	}
 	attributeDecoder := winmd.NewCustomAttributeDecoder(f)
+	// Classify each referenced constructor once, including ignored attributes.
+	attributeNames := make(map[winmd.Index]string)
 	for idx := range f.Tables.CustomAttribute.Indices() {
 		a, err := f.Tables.CustomAttribute.At(idx)
 		if err != nil {
@@ -212,86 +219,90 @@ func NewContext(f *winmd.Metadata) (*Context, error) {
 		if a.Type.Tag != winmd.CustomAttributeType_MemberRef {
 			continue
 		}
-		m, err := f.Tables.MemberRef.At(a.Type.Index)
-		if err != nil {
-			return nil, err
-		}
-		if m.Class.Tag != winmd.MemberRefParent_TypeRef {
-			continue
-		}
-		c, err := f.Tables.TypeRef.At(m.Class.Index)
-		if err != nil {
-			return nil, err
-		}
-		switch c.Namespace.String() {
-		case "Windows.Win32.Foundation.Metadata", "Windows.Win32.Interop": // The former is legacy
-			switch c.Name.String() {
-			case "NativeArrayInfoAttribute", "MemorySizeAttribute":
-				if a.Parent.Tag != winmd.HasCustomAttribute_Param {
-					break
-				}
-				fieldName := "CountParamIndex"
-				if c.Name.String() == "MemorySizeAttribute" {
-					fieldName = "BytesParamIndex"
-				}
-				value, err := attributeDecoder.Decode(a)
+		name, ok := attributeNames[a.Type.Index]
+		if !ok {
+			m, err := f.Tables.MemberRef.At(a.Type.Index)
+			if err != nil {
+				return nil, err
+			}
+			if m.Class.Tag == winmd.MemberRefParent_TypeRef {
+				c, err := f.Tables.TypeRef.At(m.Class.Index)
 				if err != nil {
-					return nil, fmt.Errorf("decode %s on parameter %v: %w", c.Name, a.Parent.Index, err)
+					return nil, err
 				}
-				index, ok, err := int16AttributeField(value, fieldName)
-				if err != nil {
-					return nil, fmt.Errorf("decode %s on parameter %v: %w", c.Name, a.Parent.Index, err)
+				switch c.Namespace.String() {
+				case "Windows.Win32.Foundation.Metadata", "Windows.Win32.Interop": // The former is legacy.
+					name = c.Name.String()
 				}
-				if ok && index >= 0 {
-					l.paramSizeIndex[a.Parent.Index] = paramSizeInfo{
-						index:   uint16(index),
-						inBytes: fieldName == "BytesParamIndex",
-					}
+			}
+			attributeNames[a.Type.Index] = name
+		}
+		switch name {
+		case "NativeArrayInfoAttribute", "MemorySizeAttribute":
+			if a.Parent.Tag != winmd.HasCustomAttribute_Param {
+				break
+			}
+			fieldName := "CountParamIndex"
+			if name == "MemorySizeAttribute" {
+				fieldName = "BytesParamIndex"
+			}
+			value, err := attributeDecoder.Decode(a)
+			if err != nil {
+				return nil, fmt.Errorf("decode %s on parameter %v: %w", name, a.Parent.Index, err)
+			}
+			index, ok, err := int16AttributeField(value, fieldName)
+			if err != nil {
+				return nil, fmt.Errorf("decode %s on parameter %v: %w", name, a.Parent.Index, err)
+			}
+			if ok && index >= 0 {
+				l.paramSizeIndex[a.Parent.Index] = paramSizeInfo{
+					index:   uint16(index),
+					inBytes: fieldName == "BytesParamIndex",
 				}
-			case "NativeTypedefAttribute":
-				if a.Parent.Tag != winmd.HasCustomAttribute_TypeDef {
-					break
-				}
-				if existing, ok := l.typeDefNativeTypedefAttribute[a.Parent.Index]; ok {
+			}
+		case "NativeTypedefAttribute":
+			if a.Parent.Tag != winmd.HasCustomAttribute_TypeDef {
+				break
+			}
+			if existing, ok := l.typeDefNativeTypedefAttribute[a.Parent.Index]; ok {
+				return nil, fmt.Errorf(
+					"multiple NativeTypedefAttribute rows found pointing at TypeDef %v: found %v; already found %v",
+					a.Parent.Index,
+					idx,
+					existing)
+			}
+			l.typeDefNativeTypedefAttribute[a.Parent.Index] = a
+		case "SupportedArchitectureAttribute":
+			if a.Parent.Tag != winmd.HasCustomAttribute_MethodDef && a.Parent.Tag != winmd.HasCustomAttribute_TypeDef {
+				break
+			}
+			value, err := attributeDecoder.Decode(a)
+			if err != nil {
+				return nil, fmt.Errorf("decode %s on %v: %w", name, a.Parent, err)
+			}
+			arch, err := supportedArchitecture(value)
+			if err != nil {
+				return nil, fmt.Errorf("decode %s on %v: %w", name, a.Parent, err)
+			}
+			switch a.Parent.Tag {
+			case winmd.HasCustomAttribute_MethodDef:
+				if existing, ok := l.methodDefSupportedArch[a.Parent.Index]; ok {
 					return nil, fmt.Errorf(
-						"multiple NativeTypedefAttribute rows found pointing at TypeDef %v: found %v; already found %v",
+						"multiple SupportedArchitectureAttribute rows found pointing at MethodDef %v: found %v; already found %v",
 						a.Parent.Index,
 						idx,
 						existing)
 				}
-				l.typeDefNativeTypedefAttribute[a.Parent.Index] = a
-			case "SupportedArchitectureAttribute":
-				if a.Parent.Tag != winmd.HasCustomAttribute_MethodDef && a.Parent.Tag != winmd.HasCustomAttribute_TypeDef {
-					break
+				l.methodDefSupportedArch[a.Parent.Index] = arch
+			case winmd.HasCustomAttribute_TypeDef:
+				if existing, ok := l.typeDefSupportedArch[a.Parent.Index]; ok {
+					return nil, fmt.Errorf(
+						"multiple SupportedArchitectureAttribute rows found pointing at TypeDef %v: found %v; already found %v",
+						a.Parent.Index,
+						idx,
+						existing)
 				}
-				value, err := attributeDecoder.Decode(a)
-				if err != nil {
-					return nil, fmt.Errorf("decode %s on %v: %w", c.Name, a.Parent, err)
-				}
-				arch, err := supportedArchitecture(value)
-				if err != nil {
-					return nil, fmt.Errorf("decode %s on %v: %w", c.Name, a.Parent, err)
-				}
-				switch a.Parent.Tag {
-				case winmd.HasCustomAttribute_MethodDef:
-					if existing, ok := l.methodDefSupportedArch[a.Parent.Index]; ok {
-						return nil, fmt.Errorf(
-							"multiple SupportedArchitectureAttribute rows found pointing at MethodDef %v: found %v; already found %v",
-							a.Parent.Index,
-							idx,
-							existing)
-					}
-					l.methodDefSupportedArch[a.Parent.Index] = arch
-				case winmd.HasCustomAttribute_TypeDef:
-					if existing, ok := l.typeDefSupportedArch[a.Parent.Index]; ok {
-						return nil, fmt.Errorf(
-							"multiple SupportedArchitectureAttribute rows found pointing at TypeDef %v: found %v; already found %v",
-							a.Parent.Index,
-							idx,
-							existing)
-					}
-					l.typeDefSupportedArch[a.Parent.Index] = arch
-				}
+				l.typeDefSupportedArch[a.Parent.Index] = arch
 			}
 		}
 	}
@@ -371,11 +382,19 @@ func (c *Context) MethodModuleName(methodIndex winmd.Index) string {
 	if !ok {
 		return ""
 	}
+	if name, ok := c.moduleNames[implMap.ImportScope]; ok {
+		return name
+	}
 	mr, err := c.Metadata.Tables.ModuleRef.At(implMap.ImportScope)
 	if err != nil {
 		return ""
 	}
-	return strings.ToLower(mr.Name.String())
+	name := strings.ToLower(mr.Name.String())
+	if c.moduleNames == nil {
+		c.moduleNames = make(map[winmd.Index]string)
+	}
+	c.moduleNames[implMap.ImportScope] = name
+	return name
 }
 
 // TypeDefSupportedArch returns the set of architectures that the given type is supported on.
@@ -395,13 +414,17 @@ type qualifiedTypeName struct {
 // SelectTypeDef marks a module-level TypeDef and its architecture variants for emission.
 func (c *Context) SelectTypeDef(namespace, name, goName string) error {
 	key := qualifiedTypeName{Namespace: namespace, Name: name}
-	indices := c.typeDefsByName[key]
+	first, ok := c.typeDefsByName[key]
 	qualifiedName := namespace + "." + name
-	if len(indices) == 0 {
+	if !ok {
 		return fmt.Errorf("unknown WinMD type %q", qualifiedName)
 	}
 	if goName != "" && (!token.IsIdentifier(goName) || goName == "_") {
 		return fmt.Errorf("invalid Go type name %q", goName)
+	}
+	indices := c.typeDefNameDuplicates[first]
+	if len(indices) == 0 {
+		indices = []winmd.Index{first}
 	}
 
 	for i, left := range indices {
@@ -897,13 +920,16 @@ func (c *Context) resolveTypeRef(refIndex winmd.Index, arch Arch) (*resolvedDef,
 				// Only an offset miss needs a textual lookup. Memoize an alias
 				// so subsequent references use the integer-keyed fast path.
 				name := qualifiedTypeName{Namespace: r.Namespace.String(), Name: r.Name.String()}
-				defIndices = c.typeDefsByName[name]
-				if len(defIndices) != 0 {
-					first, err := c.Metadata.Tables.TypeDef.At(defIndices[0])
+				if firstIndex, ok := c.typeDefsByName[name]; ok {
+					first, err := c.Metadata.Tables.TypeDef.At(firstIndex)
 					if err != nil {
 						return nil, err
 					}
 					c.typeDefCache.addAlias(typeRefKey(r), typeDefKey(first))
+					defIndices = c.typeDefNameDuplicates[firstIndex]
+					if len(defIndices) == 0 {
+						defIndices = []winmd.Index{firstIndex}
+					}
 				}
 			}
 			if len(defIndices) != 0 {

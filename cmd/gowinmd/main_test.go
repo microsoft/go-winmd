@@ -4,6 +4,7 @@
 package main
 
 import (
+	"errors"
 	"go/ast"
 	"go/format"
 	"go/parser"
@@ -157,6 +158,84 @@ func TestWriteMethod(t *testing.T) {
 	}
 }
 
+func TestMethodFilterIncludesModule(t *testing.T) {
+	t.Parallel()
+	for _, test := range []struct {
+		name   string
+		filter methodFilter
+		module string
+		want   bool
+	}{
+		{"all", nil, "bcrypt.dll", true},
+		{"all-without-import", nil, "", false},
+		{"empty", methodFilter{}, "bcrypt.dll", false},
+		{"exact", methodFilter{"bcrypt.dll.bcryptgenrandom": "Random"}, "bcrypt.dll", true},
+		{"wildcard", methodFilter{"bcrypt.dll.*": ""}, "bcrypt.dll", true},
+		{"another-module", methodFilter{"advapi32.dll.*": ""}, "bcrypt.dll", false},
+		{"module-prefix", methodFilter{"native.extra.dll.call": ""}, "native.dll", false},
+		{"dotted-method", methodFilter{"native.extra.dll.interface.call": ""}, "native.extra.dll", true},
+		{"no-import", methodFilter{"bcrypt.dll.*": ""}, "", false},
+		{"empty-key", methodFilter{"": "Call"}, "", true},
+		{"empty-module-wildcard", methodFilter{".*": ""}, "", true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			if got := test.filter.includesModule(test.module); got != test.want {
+				t.Fatalf("includesModule(%q) = %v; want %v", test.module, got, test.want)
+			}
+		})
+	}
+}
+
+func TestMethodSelectionSkipsOtherModules(t *testing.T) {
+	t.Parallel()
+	f, err := openTestWinmd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	filter := methodFilter{"bcrypt.dll.bcryptgenrandom": "Random"}
+	want := newArchBuilders()
+	if err := writePrototypes(want, f, filter); err != nil {
+		t.Fatal(err)
+	}
+	// This method's managed name differs from its native ImportName, so
+	// corrupting only the MethodDef name leaves the eager import index valid.
+	var invalid winmd.Index
+	var found bool
+	for index := range f.Tables.MethodDef.Indices() {
+		method, err := f.Tables.MethodDef.At(index)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if method.Name.String() == "RtlGenRandom" {
+			f.Strings[method.Name.Start] = 0xff
+			invalid, found = index, true
+			break
+		}
+	}
+	if !found {
+		t.Fatal("fixture has no RtlGenRandom method")
+	}
+	if _, err := f.Tables.MethodDef.At(invalid); err == nil {
+		t.Fatal("fixture mutation did not invalidate the method row")
+	}
+	got := newArchBuilders()
+	if err := writePrototypes(got, f, filter); err != nil {
+		t.Fatalf("unselected module's method was decoded: %v", err)
+	}
+	for arch, output := range want {
+		if got[arch].String() != output.String() {
+			t.Fatalf("selected output changed for %s", arch)
+		}
+	}
+	for _, filter := range []methodFilter{{"advapi32.dll.rtlgenrandom": ""}, {"advapi32.dll.*": ""}} {
+		err := writePrototypes(newArchBuilders(), f, filter)
+		var decodeErr *winmd.DecodeError
+		if !errors.As(err, &decodeErr) || decodeErr.Table != "MethodDef" || decodeErr.Row != invalid || decodeErr.Column != "Name" {
+			t.Fatalf("selected malformed method error = %v; want MethodDef[%d].Name", err, invalid)
+		}
+	}
+}
+
 func TestWriteProjectedBCryptMethods(t *testing.T) {
 	f, err := openTestWinmd()
 	if err != nil {
@@ -220,6 +299,52 @@ func TestWriteStandaloneType(t *testing.T) {
 	for arch, output := range b {
 		if arch != gowinmd.ArchAll && strings.Contains(output.String(), "type RSAKEY_BLOB struct {") {
 			t.Fatalf("standalone type was also emitted for %s:\n%s", arch, output.String())
+		}
+	}
+}
+
+func TestTypeOnlySelectionDoesNotReadMethods(t *testing.T) {
+	f, err := openTestWinmd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	types := typeFilter{
+		"Windows.Win32.Security.Cryptography.BCRYPT_RSAKEY_BLOB": {
+			Namespace: "Windows.Win32.Security.Cryptography", Name: "BCRYPT_RSAKEY_BLOB",
+		},
+	}
+	want := newArchBuilders()
+	if err := writeSelectionsWithProjection(want, f, methodFilter{}, types, gowinmd.ProjectionRaw); err != nil {
+		t.Fatal(err)
+	}
+	// Replace only this copy's method table. Reading any referenced method
+	// now fails, but the selected type and its dependencies remain readable.
+	metadata, tables := *f, *f.Tables
+	metadata.Tables = &tables
+	tables.MethodDef = winmd.Table[winmd.MethodDef]{}
+	got := newArchBuilders()
+	if err := writeSelectionsWithProjection(got, &metadata, methodFilter{}, types, gowinmd.ProjectionRaw); err != nil {
+		t.Fatalf("type-only selection read methods: %v", err)
+	}
+	for arch, output := range want {
+		if output.String() != got[arch].String() {
+			t.Fatalf("type-only output changed for %s", arch)
+		}
+	}
+	for _, filter := range []methodFilter{{"no-such-module.dll.call": ""}, {"no-such-module.dll.*": ""}} {
+		got := newArchBuilders()
+		if err := writeSelectionsWithProjection(got, &metadata, filter, types, gowinmd.ProjectionRaw); err != nil {
+			t.Fatalf("unmatched module filter read methods: %v", err)
+		}
+		for arch, output := range want {
+			if output.String() != got[arch].String() {
+				t.Fatalf("unmatched module changed type output for %s", arch)
+			}
+		}
+	}
+	for _, filter := range []methodFilter{nil, {"bcrypt.dll.bcryptencrypt": ""}, {"bcrypt.dll.*": ""}} {
+		if err := writeSelectionsWithProjection(newArchBuilders(), &metadata, filter, types, gowinmd.ProjectionRaw); err == nil {
+			t.Fatalf("non-empty or nil filter %v did not read methods", filter)
 		}
 	}
 }

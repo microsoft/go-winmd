@@ -268,6 +268,27 @@ func parseDirective(s string) (ref, goName string) {
 // An empty string value means use the default name. A nil filter means all methods are included.
 type methodFilter map[string]string
 
+// includesModule reports whether any method from module could match the filter.
+func (filter methodFilter) includesModule(module string) bool {
+	if module == "" {
+		// methodFilterKey returns an empty key when a method has no module.
+		_, exact := filter[""]
+		_, wildcard := filter[".*"]
+		return exact || wildcard
+	}
+	if filter == nil {
+		return true
+	}
+	prefix := module + "."
+	for key := range filter {
+		// Use the actual module prefix: both module and method names can contain dots.
+		if strings.HasPrefix(key, prefix) {
+			return true
+		}
+	}
+	return false
+}
+
 func writePrototypes(b map[gowinmd.Arch]*strings.Builder, f *winmd.Metadata, filter methodFilter) error {
 	return writePrototypesWithProjection(b, f, filter, gowinmd.ProjectionRaw)
 }
@@ -289,69 +310,77 @@ func writeSelectionsWithProjection(b map[gowinmd.Arch]*strings.Builder, f *winmd
 		}
 	}
 
-	for r, err := range f.Tables.TypeDef.All() {
-		if err != nil {
-			return err
-		}
-
-		archSeen := make(map[gowinmd.Arch]bool)
-		for j := range r.MethodList.All() {
-			md, err := f.Tables.MethodDef.At(j)
+	// A non-nil empty filter selects only types; nil still selects all methods.
+	if filter == nil || len(filter) != 0 {
+		selectedModules := make(map[string]bool)
+		for r, err := range f.Tables.TypeDef.All() {
 			if err != nil {
 				return err
 			}
 
-			var override string
-			var exactMatch bool
-			if filter != nil {
-				// Build the "module.method" key for this method using the ImplMap/ModuleRef lookup.
-				moduleName, key := methodFilterKey(context, j, md)
-				// Match if the exact "module.method" is listed, or "module.*" for all methods in a module.
-				var goName string
-				goName, exactMatch = filter[key]
-				_, moduleMatch := filter[moduleName+".*"]
-				if !exactMatch && !moduleMatch {
+			archSeen := make(map[gowinmd.Arch]bool)
+			for j := range r.MethodList.All() {
+				// Reject methods from unwanted modules before decoding their rows.
+				moduleName := context.MethodModuleName(j)
+				selected, known := selectedModules[moduleName]
+				if !known {
+					selected = filter.includesModule(moduleName)
+					selectedModules[moduleName] = selected
+				}
+				if !selected {
 					continue
 				}
-				// Pass rename to WriteMethod if specified on the exact match.
-				override = goName
-			} else {
-				// When no filter is applied, skip methods without an ImplMap entry
-				// (e.g. .ctor) since they aren't P/Invoke methods.
-				if context.MethodModuleName(j) == "" {
-					continue
+				md, err := f.Tables.MethodDef.At(j)
+				if err != nil {
+					return err
 				}
-			}
 
-			supportedArches := context.MethodDefSupportedArch(j)
-			for _, arch := range supportedArches.Unique() {
-				var declaration strings.Builder
-				options := gowinmd.MethodOptions{GoName: override, Projection: projection}
-				if err := context.WriteMethodWithOptions(&declaration, j, md, arch, options); err != nil {
-					if !exactMatch && errors.Is(err, gowinmd.ErrOrdinalImport) {
-						log.Printf("skipping %v.Apis method %v: %v", r.Namespace, md.Name, err)
+				var override string
+				var exactMatch bool
+				if filter != nil {
+					// Build the "module.method" key for this method using the ImplMap/ModuleRef lookup.
+					moduleName, key := methodFilterKey(context, j, md)
+					// Match if the exact "module.method" is listed, or "module.*" for all methods in a module.
+					var goName string
+					goName, exactMatch = filter[key]
+					_, moduleMatch := filter[moduleName+".*"]
+					if !exactMatch && !moduleMatch {
 						continue
 					}
-					// Include the partial declaration in the error, not in the output.
-					lines := strings.Split(declaration.String(), "\n")
-					if len(lines) > 5 {
-						lines = lines[len(lines)-5:]
+					// Pass rename to WriteMethod if specified on the exact match.
+					override = goName
+				}
+
+				supportedArches := context.MethodDefSupportedArch(j)
+				for _, arch := range supportedArches.Unique() {
+					var declaration strings.Builder
+					options := gowinmd.MethodOptions{GoName: override, Projection: projection}
+					if err := context.WriteMethodWithOptions(&declaration, j, md, arch, options); err != nil {
+						if !exactMatch && errors.Is(err, gowinmd.ErrOrdinalImport) {
+							log.Printf("skipping %v.Apis method %v: %v", r.Namespace, md.Name, err)
+							continue
+						}
+						// Include the partial declaration in the error, not in the output.
+						lines := strings.Split(declaration.String(), "\n")
+						if len(lines) > 5 {
+							lines = lines[len(lines)-5:]
+						}
+
+						return fmt.Errorf(
+							"error context: \n---\n%v\n---\nfailed to write sys line for %v.Apis method %v: %w",
+							strings.Join(lines, "\n"), r.Namespace, md.Name, err)
 					}
 
-					return fmt.Errorf(
-						"error context: \n---\n%v\n---\nfailed to write sys line for %v.Apis method %v: %w",
-						strings.Join(lines, "\n"), r.Namespace, md.Name, err)
+					w := b[arch]
+					// Write a comment describing this chunk of methods.
+					if !archSeen[arch] {
+						archSeen[arch] = true
+						w.WriteString("\n\n// APIs for ")
+						w.WriteString(r.Namespace.String())
+					}
+					w.WriteString("\n")
+					w.WriteString(declaration.String())
 				}
-
-				w := b[arch]
-				// Write a comment describing this chunk of methods.
-				if !archSeen[arch] {
-					archSeen[arch] = true
-					w.WriteString("\n\n// APIs for ")
-					w.WriteString(r.Namespace.String())
-				}
-				w.WriteString("\n")
-				w.WriteString(declaration.String())
 			}
 		}
 	}
