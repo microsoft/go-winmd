@@ -58,7 +58,7 @@ func (c *Context) indexTypeNames() error {
 			return err
 		}
 		// Nested types cannot be resolved at module scope.
-		if def.Flags&winmd.TypeAttributes_VisibilityMask > winmd.TypeAttributes_Public {
+		if def.Flags.Visibility().IsNested() {
 			continue
 		}
 		name := qualifiedTypeName{Namespace: def.Namespace.String(), Name: def.Name.String()}

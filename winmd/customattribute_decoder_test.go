@@ -47,7 +47,7 @@ func customAttributeTestMetadata(signature []byte) *Metadata {
 			TypeDef{Name: str("Attribute"), Namespace: str("Test"), Extends: CodedIndex[TypeDefOrRef]{Tag: TypeDefOrRef_Null}},
 			TypeDef{Name: str("Mode"), Namespace: str("Test"), Extends: CodedIndex[TypeDefOrRef]{Tag: TypeDefOrRef_TypeRef}, FieldList: Slice{Start: 0, End: 1}},
 			TypeDef{Name: str("Outer"), Namespace: str("Test"), Extends: CodedIndex[TypeDefOrRef]{Tag: TypeDefOrRef_Null}},
-			TypeDef{Name: str("Inner"), Flags: TypeAttributes_NestedPublic, Extends: CodedIndex[TypeDefOrRef]{Tag: TypeDefOrRef_TypeRef}, FieldList: Slice{Start: 1, End: 2}},
+			TypeDef{Name: str("Inner"), Flags: TypeAttributes(TypeVisibility_NestedPublic), Extends: CodedIndex[TypeDefOrRef]{Tag: TypeDefOrRef_TypeRef}, FieldList: Slice{Start: 1, End: 2}},
 			TypeDef{Name: str("NotEnum"), Namespace: str("Test"), Extends: CodedIndex[TypeDefOrRef]{Tag: TypeDefOrRef_Null}},
 		),
 		Field: customAttributeTestTable(
@@ -605,7 +605,7 @@ func TestCustomAttributeDecoderTypeDefDepthIndex(t *testing.T) {
 			for i := range defs {
 				defs[i].Name = customAttributeTestString(fmt.Sprintf("T%d", i))
 				if i > 0 {
-					defs[i].Flags = TypeAttributes_NestedPublic
+					defs[i].Flags = TypeAttributes(TypeVisibility_NestedPublic)
 					parents = append(parents, NestedClass{NestedClass: Index(i), EnclosingClass: Index(i - 1)})
 				}
 			}
@@ -671,7 +671,7 @@ func TestCustomAttributeDecoderMalformedEnum(t *testing.T) {
 		{Name: customAttributeTestString("value__")},
 		{Name: customAttributeTestString("value__"), Signature: []byte{6, byte(ElementType_R4)}},
 		{Name: customAttributeTestString("value__"), Signature: []byte{6, byte(ElementType_I2), 0}},
-		{Name: customAttributeTestString("value__"), Signature: []byte{6, byte(ElementType_I2)}, Flags: FieldAttributes_Static},
+		{Name: customAttributeTestString("value__"), Signature: []byte{6, byte(ElementType_I2)}, Flags: FieldAttributes(FieldFlags_Static)},
 	} {
 		m := customAttributeTestMetadata([]byte{0x20, 1, 1, 0x11, 9})
 		m.Tables.Field = customAttributeTestTable(field)

@@ -150,12 +150,13 @@ func methodGenerationMetadata(t *testing.T, signature []byte, module, entry stri
 	t.Helper()
 	b := newGenerationMetadataBuilder(t)
 	b.add(2, uint32(0), b.str("<Module>"), uint16(0), uint16(0), uint16(1), uint16(1))
-	b.add(6, uint32(0), uint16(0), uint16(winmd.MethodAttributes_Public|winmd.MethodAttributes_Static|winmd.MethodAttributes_PInvokeImpl), b.str("Invoke"), b.blob(signature), uint16(1))
+	attrs := uint16(winmd.MemberAccess_Public) | uint16(winmd.MethodFlags_Static|winmd.MethodFlags_PInvokeImpl)
+	b.add(6, uint32(0), uint16(0), attrs, b.str("Invoke"), b.blob(signature), uint16(1))
 	for i, name := range params {
 		b.add(8, uint16(0), uint16(i+1), b.str(name))
 	}
 	b.add(26, b.str(module))
-	b.add(28, uint16(winmd.PInvokeAttributes_CallConvPlatformapi), uint16(3), b.str(entry), uint16(1))
+	b.add(28, uint16(winmd.PInvokeCallingConvention_PlatformAPI), uint16(3), b.str(entry), uint16(1))
 	return b
 }
 
@@ -438,23 +439,26 @@ func TestNestedStructABIBoundaries(t *testing.T) {
 			b.add(1, uint16(4), b.str("Parent"), b.str("Test"))
 			b.add(1, uint16(11), b.str("Child"), uint16(0))
 			b.add(2, uint32(0), b.str("<Module>"), uint16(0), uint16(0), uint16(1), uint16(1))
-			b.add(2, uint32(winmd.TypeAttributes_Public|winmd.TypeAttributes_SequentialLayout|winmd.TypeAttributes_Sealed), b.str("Parent"), b.str("Test"), uint16(5), uint16(1), uint16(1))
-			layoutFlag := winmd.TypeAttributes_SequentialLayout
+			parentAttrs := uint32(winmd.TypeVisibility_Public) | uint32(winmd.TypeLayout_SequentialLayout) | uint32(winmd.TypeFlags_Sealed)
+			b.add(2, parentAttrs, b.str("Parent"), b.str("Test"), uint16(5), uint16(1), uint16(1))
+			layout := winmd.TypeLayout_SequentialLayout
 			if test.explicit {
-				layoutFlag = winmd.TypeAttributes_ExplicitLayout
+				layout = winmd.TypeLayout_ExplicitLayout
 				b.add(16, uint32(0), uint16(4))
 				b.add(16, uint32(8), uint16(5))
 			}
-			b.add(2, uint32(winmd.TypeAttributes_NestedPublic|layoutFlag|winmd.TypeAttributes_Sealed), b.str("Child"), uint16(0), uint16(5), uint16(4), uint16(1))
+			childAttrs := uint32(winmd.TypeVisibility_NestedPublic) | uint32(layout) | uint32(winmd.TypeFlags_Sealed)
+			b.add(2, childAttrs, b.str("Child"), uint16(0), uint16(5), uint16(4), uint16(1))
 			if test.classSize != 0 {
 				b.add(15, uint16(0), test.classSize, uint16(3))
 			}
-			b.add(4, uint16(winmd.FieldAttributes_Public), b.str("Before"), b.blob([]byte{6, 5}))
-			b.add(4, uint16(winmd.FieldAttributes_Public), b.str("Data"), b.blob([]byte{6, 0x11, 13}))
+			fieldAttrs := uint16(winmd.MemberAccess_Public)
+			b.add(4, fieldAttrs, b.str("Before"), b.blob([]byte{6, 5}))
+			b.add(4, fieldAttrs, b.str("Data"), b.blob([]byte{6, 0x11, 13}))
 			// Reusing a member name across struct boundaries must remain valid Go.
-			b.add(4, uint16(winmd.FieldAttributes_Public), b.str("A"), b.blob([]byte{6, 5}))
-			b.add(4, uint16(winmd.FieldAttributes_Public), b.str("A"), b.blob([]byte{6, 9}))
-			b.add(4, uint16(winmd.FieldAttributes_Public), b.str("B"), b.blob(append([]byte{6}, test.last...)))
+			b.add(4, fieldAttrs, b.str("A"), b.blob([]byte{6, 5}))
+			b.add(4, fieldAttrs, b.str("A"), b.blob([]byte{6, 9}))
+			b.add(4, fieldAttrs, b.str("B"), b.blob(append([]byte{6}, test.last...)))
 			b.add(41, uint16(3), uint16(2))
 			c, err := NewContext(b.metadata())
 			if err != nil {
@@ -504,8 +508,8 @@ func TestUnicodeTypeAndFieldNames(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			b := newGenerationMetadataBuilder(t)
 			b.add(2, uint32(0), b.str("<Module>"), uint16(0), uint16(0), uint16(1), uint16(1))
-			b.add(2, uint32(winmd.TypeAttributes_Public|winmd.TypeAttributes_SequentialLayout), b.str(test.name), b.str("Test"), uint16(0), uint16(1), uint16(1))
-			b.add(4, uint16(winmd.FieldAttributes_Public), b.str(test.name), b.blob([]byte{6, 9}))
+			b.add(2, uint32(winmd.TypeVisibility_Public)|uint32(winmd.TypeLayout_SequentialLayout), b.str(test.name), b.str("Test"), uint16(0), uint16(1), uint16(1))
+			b.add(4, uint16(winmd.MemberAccess_Public), b.str(test.name), b.blob([]byte{6, 9}))
 			c, err := NewContext(b.metadata())
 			if err != nil {
 				t.Fatal(err)

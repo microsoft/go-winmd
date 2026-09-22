@@ -52,15 +52,16 @@ func architectureTestContext(t *testing.T, arches []Arch, offsets string, nested
 	b.add(1, uint16(6), b.str("ValueType"), b.str("System"))
 	b.add(2, uint32(0), b.str("<Module>"), uint16(0), uint16(0), uint16(1), uint16(1))
 	refIndex := winmd.Index(1)
-	flags := winmd.TypeAttributes_Public | winmd.TypeAttributes_SequentialLayout | winmd.TypeAttributes_Sealed
+	const commonFlags = uint32(winmd.TypeLayout_SequentialLayout) | uint32(winmd.TypeFlags_Sealed)
+	flags := commonFlags | uint32(winmd.TypeVisibility_Public)
 	if nested {
 		parentName := b.str("Parent")
 		b.add(1, uint16(4), parentName, namespace)
 		b.add(1, uint16(11), refName, uint16(0))
-		b.add(2, uint32(flags), parentName, namespace, uint16(5), uint16(1), uint16(1))
+		b.add(2, flags, parentName, namespace, uint16(5), uint16(1), uint16(1))
 		b.add(15, uint16(0), uint32(1), uint16(2)) // The fieldless parent has a nonzero size.
 		refIndex = 2
-		flags = winmd.TypeAttributes_NestedPublic | winmd.TypeAttributes_SequentialLayout | winmd.TypeAttributes_Sealed
+		flags = commonFlags | uint32(winmd.TypeVisibility_NestedPublic)
 		namespace = 0
 	} else {
 		b.add(1, uint16(4), refName, refNamespace)
@@ -69,12 +70,12 @@ func architectureTestContext(t *testing.T, arches []Arch, offsets string, nested
 	for i, arch := range arches {
 		row := uint16(len(b.rows[2]) + 1)
 		indices[i] = winmd.Index(row - 1)
-		b.add(2, uint32(flags), names[i], namespace, uint16(5), uint16(i+1), uint16(1))
+		b.add(2, flags, names[i], namespace, uint16(5), uint16(i+1), uint16(1))
 		kind := winmd.ElementType_U4
 		if arch&Arch386 == 0 {
 			kind = winmd.ElementType_U8
 		}
-		b.add(4, uint16(winmd.FieldAttributes_Public), b.str("Value"), b.blob([]byte{6, byte(kind)}))
+		b.add(4, uint16(winmd.MemberAccess_Public), b.str("Value"), b.blob([]byte{6, byte(kind)}))
 		b.typeArchitecture(row, arch)
 		if nested {
 			b.add(41, row, uint16(2))
