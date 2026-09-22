@@ -14,6 +14,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/microsoft/go-winmd/winmd"
 )
@@ -79,8 +80,8 @@ type Context struct {
 	// resolvedDefsByIndex maps TypeDef Index -> resolved TypeDef information.
 	resolvedDefsByIndex map[winmd.Index]*resolvedDef
 	// unresolvableTypeRefs is a set of TypeRefs that were discovered but unable to be resolved
-	// inside the current module.
-	unresolvableTypeRefs map[typeNameKey]winmd.TypeRef
+	// inside the current module. Diagnostic names are compared by text only on this error path.
+	unresolvableTypeRefs map[qualifiedTypeName]winmd.TypeRef
 	// projectedTypeDefs contains native typedefs replaced with their underlying Go pointer type.
 	projectedTypeDefs map[winmd.Index]bool
 	// requiredTypeDefs contains projected typedefs that are also referenced by generated declarations.
@@ -105,13 +106,18 @@ type Context struct {
 	// methodDefSupportedArch maps MethodDef -> the Value of the SupportedArchitectureAttribute on that method.
 	methodDefSupportedArch map[winmd.Index]Arch
 	// paramSizeIndex maps Param -> the zero-based parameter index that supplies its element or byte count.
-	paramSizeIndex map[winmd.Index]uint16
+	paramSizeIndex map[winmd.Index]paramSizeInfo
 	// fieldOffset maps Field -> the Value of the FieldIndexAttribute on that field.
 	fieldOffset map[winmd.Index]uint32
 	// classLayout maps TypeDef -> its explicit packing and class size metadata.
 	classLayout map[winmd.Index]winmd.ClassLayout
 	// nestedTypeDefChildren maps TypeDef -> all of its child (nested) TypeDefs.
 	nestedTypeDefChildren map[winmd.Index][]winmd.Index
+}
+
+type paramSizeInfo struct {
+	index   uint16
+	inBytes bool
 }
 
 // Projection controls whether signatures preserve the literal WinMD ABI types or use
@@ -129,6 +135,9 @@ type MethodOptions struct {
 	Projection Projection
 }
 
+// ErrOrdinalImport reports an entry point that mkwinsyscall cannot bind by name.
+var ErrOrdinalImport = errors.New("mkwinsyscall does not support ordinal import")
+
 // NewContext creates a Context. Reads some tables in their entirety to fill in internal index maps
 // that improve generation performance at the cost of startup time.
 func NewContext(f *winmd.Metadata) (*Context, error) {
@@ -137,7 +146,7 @@ func NewContext(f *winmd.Metadata) (*Context, error) {
 		typeDefCache:         *newTypeDefCache(),
 		typeDefsByName:       make(map[qualifiedTypeName][]winmd.Index),
 		resolvedDefsByIndex:  make(map[winmd.Index]*resolvedDef),
-		unresolvableTypeRefs: make(map[typeNameKey]winmd.TypeRef),
+		unresolvableTypeRefs: make(map[qualifiedTypeName]winmd.TypeRef),
 		projectedTypeDefs:    make(map[winmd.Index]bool),
 		requiredTypeDefs:     make(map[winmd.Index]bool),
 		abiLayoutTypeDefs:    make(map[winmd.Index]bool),
@@ -147,7 +156,7 @@ func NewContext(f *winmd.Metadata) (*Context, error) {
 		typeDefNativeTypedefAttribute: make(map[winmd.Index]winmd.CustomAttribute),
 		typeDefSupportedArch:          make(map[winmd.Index]Arch),
 		methodDefSupportedArch:        make(map[winmd.Index]Arch),
-		paramSizeIndex:                make(map[winmd.Index]uint16),
+		paramSizeIndex:                make(map[winmd.Index]paramSizeInfo),
 		fieldOffset:                   make(map[winmd.Index]uint32),
 		classLayout:                   make(map[winmd.Index]winmd.ClassLayout),
 		nestedTypeDefChildren:         make(map[winmd.Index][]winmd.Index),
@@ -157,18 +166,8 @@ func NewContext(f *winmd.Metadata) (*Context, error) {
 	if f.Tables.Module.Len() != 1 {
 		return nil, fmt.Errorf("expected exactly one module in the file, but found %v", f.Tables.Module.Len())
 	}
-	for idx := range f.Tables.TypeDef.Indices() {
-		r, err := f.Tables.TypeDef.At(idx)
-		if err != nil {
-			return nil, err
-		}
-		// Nested types can't be resolved at module scope. Skip.
-		if r.Flags&winmd.TypeAttributes_NestedPublic != 0 {
-			continue
-		}
-		l.typeDefCache.add(idx, r)
-		key := qualifiedTypeName{Namespace: r.Namespace.String(), Name: r.Name.String()}
-		l.typeDefsByName[key] = append(l.typeDefsByName[key], idx)
+	if err := l.indexTypeNames(); err != nil {
+		return nil, err
 	}
 	for idx := range f.Tables.ImplMap.Indices() {
 		im, err := f.Tables.ImplMap.At(idx)
@@ -244,7 +243,10 @@ func NewContext(f *winmd.Metadata) (*Context, error) {
 					return nil, fmt.Errorf("decode %s on parameter %v: %w", c.Name, a.Parent.Index, err)
 				}
 				if ok && index >= 0 {
-					l.paramSizeIndex[a.Parent.Index] = uint16(index)
+					l.paramSizeIndex[a.Parent.Index] = paramSizeInfo{
+						index:   uint16(index),
+						inBytes: fieldName == "BytesParamIndex",
+					}
 				}
 			case "NativeTypedefAttribute":
 				if a.Parent.Tag != winmd.HasCustomAttribute_TypeDef {
@@ -454,6 +456,33 @@ func (c *Context) WriteMethodWithOptions(w io.StringWriter, methodIndex winmd.In
 		goName = escapedUpper(goName)
 	}
 
+	// Validate the native entry point before writing output or resolving types.
+	// Bulk callers can skip unsupported ordinal imports without retaining
+	// dependencies or partially generated declarations for the skipped method.
+	entryPoint := method.Name.String()
+	var moduleName string
+	var lastErr bool
+	if implMap, ok := c.methodDefImplMap[methodIndex]; ok {
+		entryPoint = implMap.ImportName.String()
+		if entryPoint == "" {
+			return fmt.Errorf("missing native entry point for method %s", method.Name)
+		}
+		if strings.HasPrefix(entryPoint, "#") {
+			return fmt.Errorf("%w %q for method %s", ErrOrdinalImport, entryPoint, method.Name)
+		}
+		if implMap.MappingFlags&winmd.PInvokeAttributes_SupportsLastError != 0 {
+			lastErr = true
+		}
+		mr, err := c.Metadata.Tables.ModuleRef.At(implMap.ImportScope)
+		if err != nil {
+			return err
+		}
+		moduleName = mkwinsyscallModuleName(mr.Name.String())
+		if moduleName == "kernel32" {
+			moduleName = ""
+		}
+	}
+
 	w.WriteString("//sys\t")
 	w.WriteString(goName)
 	w.WriteString("(")
@@ -496,11 +525,11 @@ func (c *Context) WriteMethodWithOptions(w io.StringWriter, methodIndex winmd.In
 	}
 
 	wroteParam := false
+	skipNext := false
 	for i, param := range params {
-		if options.Projection == ProjectionIdiomatic && i > 0 {
-			if sizeIndex, ok := c.paramSizeIndex[paramRows[i-1]]; ok && int(sizeIndex) == i {
-				continue
-			}
+		if skipNext {
+			skipNext = false
+			continue
 		}
 		if wroteParam {
 			w.WriteString(", ")
@@ -510,13 +539,15 @@ func (c *Context) WriteMethodWithOptions(w io.StringWriter, methodIndex winmd.In
 		w.WriteString(" ")
 
 		projectSlice := false
+		var size paramSizeInfo
 		if options.Projection == ProjectionIdiomatic && i+1 < len(params) {
-			sizeIndex, ok := c.paramSizeIndex[paramRows[i]]
-			projectSlice = ok && int(sizeIndex) == i+1
+			var ok bool
+			size, ok = c.paramSizeIndex[paramRows[i]]
+			projectSlice = ok && int(size.index) == i+1
 		}
 		var err error
 		if projectSlice {
-			err = c.writeSliceType(w, &sig.Param[i].Type, arch)
+			skipNext, err = c.writeSliceType(w, &sig.Param[i].Type, arch, size.inBytes)
 		} else if options.Projection == ProjectionIdiomatic {
 			err = c.writeProjectedType(w, &sig.Param[i].Type, arch)
 		} else {
@@ -527,23 +558,6 @@ func (c *Context) WriteMethodWithOptions(w io.StringWriter, methodIndex winmd.In
 		}
 	}
 	w.WriteString(")")
-
-	// Find the DllImport pseudo-custom attribute (§II.21.2.1) for module name and return semantics.
-	var moduleName string
-	var lastErr bool
-	if implMap, ok := c.methodDefImplMap[methodIndex]; ok {
-		if implMap.MappingFlags&winmd.PInvokeAttributes_SupportsLastError != 0 {
-			lastErr = true
-		}
-		mr, err := c.Metadata.Tables.ModuleRef.At(implMap.ImportScope)
-		if err != nil {
-			return err
-		}
-		moduleName = mkwinsyscallModuleName(mr.Name.String())
-		if moduleName == "kernel32" {
-			moduleName = ""
-		}
-	}
 
 	// Find and write return value(s), if they exist.
 	if value := sig.RetType.Kind != winmd.SigRetTypeKind_Void; value || lastErr {
@@ -572,13 +586,13 @@ func (c *Context) WriteMethodWithOptions(w io.StringWriter, methodIndex winmd.In
 	}
 
 	// Write syscall name and module if non-defaults are needed.
-	if goName != method.Name.String() || moduleName != "" {
+	if goName != entryPoint || moduleName != "" {
 		w.WriteString(" = ")
 		if moduleName != "" {
 			w.WriteString(moduleName)
 			w.WriteString(".")
 		}
-		w.WriteString(method.Name.String())
+		w.WriteString(entryPoint)
 	}
 	return nil
 }
@@ -614,22 +628,34 @@ func (c *Context) writeProjectedType(w io.StringWriter, p *winmd.SigType, arch A
 	return nil
 }
 
-func (c *Context) writeSliceType(w io.StringWriter, p *winmd.SigType, arch Arch) error {
+// writeSliceType reports whether the following count parameter was absorbed.
+// mkwinsyscall expands slices using len, which is an element count, not a byte size.
+func (c *Context) writeSliceType(w io.StringWriter, p *winmd.SigType, arch Arch, sizeInBytes bool) (bool, error) {
 	var rendered strings.Builder
 	if err := c.writeProjectedType(&rendered, p, arch); err != nil {
-		return err
+		return false, err
 	}
 	typeName := rendered.String()
+	if sizeInBytes && typeName == "unsafe.Pointer" {
+		w.WriteString(typeName)
+		return false, nil
+	}
 	if !strings.HasPrefix(typeName, "*") {
-		return fmt.Errorf("array metadata applied to non-pointer type %s", typeName)
+		return false, fmt.Errorf("array metadata applied to non-pointer type %s", typeName)
+	}
+	elementType := strings.TrimPrefix(typeName, "*")
+	if sizeInBytes && elementType != "uint8" && elementType != "int8" && elementType != "bool" {
+		// Retain the explicit byte count unless the emitted element is known
+		// to occupy one byte. This also avoids guessing sizes of named types.
+		w.WriteString(typeName)
+		return false, nil
 	}
 	w.WriteString("[]")
-	elementType := strings.TrimPrefix(typeName, "*")
 	if elementType == "uint8" {
 		elementType = "byte"
 	}
 	w.WriteString(elementType)
-	return nil
+	return true, nil
 }
 
 func (c *Context) isTypeNamed(p *winmd.SigType, _ Arch, name string) bool {
@@ -714,7 +740,7 @@ func (c *Context) writeType(w io.StringWriter, p *winmd.SigType, arch Arch) erro
 
 		// If this is not a simple value type, there will be p.Value. Handle all those cases here.
 		default:
-			if p.Kind == winmd.ElementType_PTR {
+			if p.Kind == winmd.ElementType_PTR || p.Kind == winmd.ElementType_BYREF {
 				w.WriteString("*")
 			}
 			switch v := p.Value.(type) {
@@ -746,7 +772,8 @@ func (c *Context) writeType(w io.StringWriter, p *winmd.SigType, arch Arch) erro
 							return err
 						}
 						w.WriteString(ref.Name.String())
-						c.unresolvableTypeRefs[typeRefKey(ref)] = ref
+						key := qualifiedTypeName{Namespace: ref.Namespace.String(), Name: ref.Name.String()}
+						c.unresolvableTypeRefs[key] = ref
 					} else {
 						if def.NeedsPointerWhenUsed() {
 							w.WriteString("*")
@@ -854,11 +881,28 @@ func (c *Context) resolveTypeRef(refIndex winmd.Index, arch Arch) (*resolvedDef,
 			if def := c.typeDefCache.get(r.Namespace, r.Name, arch); def != nil {
 				return def, nil
 			}
-			key := typeRefKey(r)
+			key := c.typeDefCache.canonicalKey(typeRefKey(r))
 			if defIndex, ok := c.typeDefCache.unresolved[key]; ok {
-				return c.resolveTypeDef(defIndex)
+				if arch == ArchAll || c.TypeDefSupportedArch(defIndex)&arch == arch {
+					return c.resolveTypeDef(defIndex)
+				}
+				break
 			}
-			if defIndices, ok := c.typeDefCache.unresolvedDuplicated[key]; ok {
+			defIndices := c.typeDefCache.unresolvedDuplicated[key]
+			if len(defIndices) == 0 {
+				// Only an offset miss needs a textual lookup. Memoize an alias
+				// so subsequent references use the integer-keyed fast path.
+				name := qualifiedTypeName{Namespace: r.Namespace.String(), Name: r.Name.String()}
+				defIndices = c.typeDefsByName[name]
+				if len(defIndices) != 0 {
+					first, err := c.Metadata.Tables.TypeDef.At(defIndices[0])
+					if err != nil {
+						return nil, err
+					}
+					c.typeDefCache.addAlias(typeRefKey(r), typeDefKey(first))
+				}
+			}
+			if len(defIndices) != 0 {
 				var archDef *resolvedDef
 				for _, defIndex := range defIndices {
 					if arch == ArchAll || c.TypeDefSupportedArch(defIndex)&arch == arch {
@@ -883,9 +927,10 @@ func (c *Context) resolveTypeRef(refIndex winmd.Index, arch Arch) (*resolvedDef,
 			if err != nil {
 				return nil, err
 			}
-			// Look in the parent def for the def matching the ref we're looking for.
+			// Select nested variants by name and architecture, never by the
+			// physical heap offset of an equal string.
 			for _, child := range parentDefIndex.Children {
-				if child.Name.Start == r.Name.Start {
+				if child.Name.String() == r.Name.String() && (arch == ArchAll || child.Arch&arch == arch) {
 					return child, nil
 				}
 			}
@@ -950,7 +995,7 @@ func (c *Context) resolveTypeDef(defIndex winmd.Index) (*resolvedDef, error) {
 			}
 		}
 		// Nested types can't be resolved at module scope. Don't add it to the module lookup.
-		if def.Flags&winmd.TypeAttributes_NestedPublic == 0 {
+		if def.Flags&winmd.TypeAttributes_VisibilityMask <= winmd.TypeAttributes_Public {
 			c.typeDefCache.resolve(&r)
 		}
 		c.resolvedDefsByIndex[defIndex] = &r
@@ -1214,14 +1259,24 @@ func (c *Context) writeStructField(w io.StringWriter, fieldIndex winmd.Index, ar
 				return err
 			}
 			if ref.ResolutionScope.Tag == winmd.ResolutionScope_TypeRef {
-				// This is a reference to a nested type. Embed each of its fields. Don't create a
-				// new named type, because in the winmd files we work with, the nested structs don't
-				// have meaningful names. It makes the API clunky if we generate unique names.
+				// Nested types are emitted inline rather than as standalone declarations.
 				def, err := c.resolveTypeRef(v.Index, arch)
 				if err != nil && !errors.Is(err, errTypeDefNotDefinedInCurrentModule) {
 					return err
 				}
 				if def != nil {
+					if c.writingABIType {
+						// Keep the field's struct boundary: flattening would discard
+						// its alignment and implicit tail padding from the ABI plan.
+						w.WriteString("\t" + escapedUpper(fd.Name.String()) + " struct {\n")
+						if err := c.writeStructFields(w, def, arch); err != nil {
+							return err
+						}
+						w.WriteString("\t}\n")
+						return nil
+					}
+					// Preserve the legacy flattened representation for types that
+					// have not opted into architecture-specific ABI layout.
 					return c.writeStructFields(w, def, arch)
 				}
 				// Fall through to write the field as-is if the nested type can't be resolved.
@@ -1330,7 +1385,8 @@ func escapeParam(s string) string {
 // the generated types/fields.
 func escapedUpper(s string) string {
 	if len(s) > 0 {
-		s = strings.ToUpper(string(s[0])) + s[1:]
+		_, size := utf8.DecodeRuneInString(s)
+		s = strings.ToUpper(s[:size]) + s[size:]
 	}
 	return s
 }
