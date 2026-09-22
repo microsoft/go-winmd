@@ -34,8 +34,12 @@ type SigField struct {
 
 // SigProperty is defined in §II.23.2.5.
 type SigProperty struct {
+	// HasThis reports whether the property is an instance property.
 	HasThis bool
+	// SigField holds the property type (the getter's result) and its custom modifiers.
 	SigField
+	// Param contains the index parameters in signature order, excluding the
+	// implicit instance and the value supplied to a setter.
 	Param []SigParam
 }
 
