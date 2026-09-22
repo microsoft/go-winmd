@@ -13,6 +13,43 @@ import (
 	"github.com/microsoft/go-winmd/winmd"
 )
 
+func TestHeapResultOwnership(t *testing.T) {
+	t.Parallel()
+	// These heaps are caller-owned, not read-only heaps from Metadata.
+	stringsHeap := winmd.StringHeap("\x00ab\x00")
+	view, err := stringsHeap.String(1)
+	if err != nil || view.String() != "ab" {
+		t.Fatalf("String() = %q, %v", view.String(), err)
+	}
+	text := view.String()
+	stringsHeap[1] = 'x'
+	if view.String() != "xb" || text != "ab" {
+		t.Fatalf("heap view = %q, string copy = %q; want xb, ab", view.String(), text)
+	}
+
+	blobHeap := winmd.BlobHeap{0, 3, 1, 2, 3}
+	blob, err := blobHeap.Bytes(1)
+	if err != nil || !bytes.Equal(blob, []byte{1, 2, 3}) {
+		t.Fatalf("Bytes() = %v, %v", blob, err)
+	}
+	copyOfBlob := bytes.Clone(blob)
+	blob[0] = 9
+	if blobHeap[2] != 9 || !bytes.Equal(copyOfBlob, []byte{1, 2, 3}) {
+		t.Fatalf("blob view or independent copy changed unexpectedly: heap %v, copy %v", blobHeap, copyOfBlob)
+	}
+
+	guidHeap := winmd.GUIDHeap(bytes.Repeat([]byte{0xab}, 16))
+	guid, err := guidHeap.GUID(0)
+	if err != nil || !bytes.Equal(guid[:], guidHeap) {
+		t.Fatalf("GUID() = %x, %v", guid, err)
+	}
+	guid[0] = 0
+	guidHeap[1] = 0
+	if guidHeap[0] != 0xab || guid[1] != 0xab {
+		t.Fatal("GUID result aliases its heap")
+	}
+}
+
 func TestStringHeapBounds(t *testing.T) {
 	t.Parallel()
 	for _, test := range []struct {

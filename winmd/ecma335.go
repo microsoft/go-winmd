@@ -90,7 +90,8 @@ func DecodeCompressedInt32(data []byte) (result int32, n int, err error) {
 // It returns the UTF-8 bytes and the total number of bytes consumed, including
 // the length prefix or null marker. The result aliases data and its capacity
 // equals its length. A null string returns nil; an empty string returns a
-// non-nil, zero-length slice.
+// non-nil, zero-length slice. The input is not modified. Copy the result before
+// modifying it if the input belongs to read-only metadata.
 //
 // On error, the result is nil and the byte count is zero. Empty or truncated
 // input returns [io.ErrUnexpectedEOF]. Invalid prefixes or UTF-8 return an error.
@@ -120,6 +121,7 @@ func DecodeSerString(data []byte) (result []byte, n int, err error) {
 // the matching fixed-width Go integer type for ElementType_I1 through
 // ElementType_U8, float32 or float64 for ElementType_R4 or ElementType_R8,
 // string for ElementType_STRING, and nil for ElementType_CLASS.
+// The input is not modified, and the result does not alias it.
 //
 // Numeric values are little-endian. A nonzero Boolean byte represents true.
 // Strings are UTF-16LE without a terminator; unpaired surrogates are replaced

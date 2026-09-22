@@ -15,6 +15,32 @@ import (
 	"github.com/microsoft/go-winmd/winmd"
 )
 
+func TestSignatureResultOwnership(t *testing.T) {
+	t.Parallel()
+	var m winmd.Metadata
+	data := []byte{6, 0x20, 5, 0x14, 8, 1, 1, 3, 1, 0}
+	before := bytes.Clone(data)
+	first, err := m.FieldSignature(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := m.FieldSignature(data)
+	if err != nil || !reflect.DeepEqual(first, second) || !bytes.Equal(data, before) {
+		t.Fatalf("repeated decode changed input or output: %v", err)
+	}
+	first.Type.Mod[0].Kind = winmd.SigCustomModKind_Reqd
+	array := first.Type.Value.(winmd.SigArray)
+	array.Sizes[0], array.LowerBounds[0] = 5, -1
+	third, err := m.FieldSignature(data)
+	if err != nil || !reflect.DeepEqual(second, third) || !bytes.Equal(data, before) {
+		t.Fatalf("modifying a result affected input or another decode: %v", err)
+	}
+	clear(data)
+	if second.Type.Mod[0].Kind != winmd.SigCustomModKind_Opt || second.Type.Value.(winmd.SigArray).Sizes[0] != 3 || second.Type.Value.(winmd.SigArray).LowerBounds[0] != 0 {
+		t.Fatal("decoded signature retained the input bytes")
+	}
+}
+
 func TestFieldSignatureHeader(t *testing.T) {
 	t.Parallel()
 	var m winmd.Metadata
