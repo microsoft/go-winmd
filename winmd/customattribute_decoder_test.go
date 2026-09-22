@@ -20,7 +20,7 @@ func customAttributeTestTable[T any](rows ...T) Table[T] {
 	}
 	return Table[T]{
 		len: uint32(len(rows)), width: 1, data: data,
-		decode: func(r recordReader) (T, error) { return rows[r.data[0]], nil },
+		decode: func(r recordReader) (T, string, error) { return rows[r.data[0]], "", nil },
 	}
 }
 

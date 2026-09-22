@@ -9,6 +9,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
+	"strings"
 	"testing"
 )
 
@@ -249,5 +251,160 @@ func TestRecordReaderTruncatedIndices(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func decodeErrorTestTables(t *testing.T) *Tables {
+	t.Helper()
+	counts := [tableMax]uint32{tableModule: 1, tableTypeDef: 2, tableField: 2, tableClassLayout: 1}
+	words := []uint16{
+		0, 1, 1, 0, 0, // Module: Name and Mvid at heap index 1.
+		0, 0, 1, 0, 0, 1, 1, // First TypeDef: empty field and method lists.
+		0, 0, 1, 0, 0, 1, 1, // Second TypeDef: owns both fields.
+		6, 1, 1, // First Field: public, Name and Signature at heap offset 1.
+		6, 1, 1, // Second Field.
+		0, 0, 0, 1, // ClassLayout: default packing/size, Parent is TypeDef row 1.
+	}
+	var data []byte
+	for _, word := range words {
+		data = binary.LittleEndian.AppendUint16(data, word)
+	}
+	la, err := generateLayout(0, counts, len(data))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return newTables(data, &heaps{
+		strs:  StringHeap("\x00Name\x00"),
+		blobs: BlobHeap{0, 2, 6, 8}, // An int32 field signature.
+		guids: GUIDHeap(bytes.Repeat([]byte{1}, 16)),
+	}, la)
+}
+
+func TestTableAtDecodeError(t *testing.T) {
+	t.Parallel()
+	for _, test := range []struct {
+		name    string
+		column  string
+		wantEOF bool
+		mutate  func(*Table[Field])
+	}{
+		{"truncated-flags", "Flags", true, func(t *Table[Field]) { t.data = t.data[:7] }},
+		{"truncated-name", "Name", true, func(t *Table[Field]) { t.data = t.data[:9] }},
+		{"truncated-signature", "Signature", true, func(t *Table[Field]) { t.data = t.data[:11] }},
+		{"invalid-utf8", "Name", false, func(t *Table[Field]) { t.heaps.strs[1] = 0xff }},
+		{"truncated-blob", "Signature", true, func(t *Table[Field]) { t.heaps.blobs = BlobHeap{0, 2, 6} }},
+		{"first-error", "Name", false, func(t *Table[Field]) {
+			binary.LittleEndian.PutUint16(t.data[8:], 99) // Second Field.Name.
+			t.heaps.blobs = BlobHeap{0, 2, 6}             // A later error must not replace it.
+		}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			table := decodeErrorTestTables(t).Field
+			if field, err := table.At(1); err != nil || field.Name.String() != "Name" || !bytes.Equal(field.Signature, []byte{6, 8}) {
+				t.Fatalf("valid field = %+v, %v", field, err)
+			}
+			test.mutate(&table)
+			_, err := table.At(1)
+			var decodeErr *DecodeError
+			if !errors.As(err, &decodeErr) || decodeErr.Table != "Field" || decodeErr.Row != 1 || decodeErr.Column != test.column {
+				t.Fatalf("At() error = %v; want DecodeError for Field[1].%s", err, test.column)
+			}
+			if errors.Is(err, io.ErrUnexpectedEOF) != test.wantEOF {
+				t.Fatalf("At() error = %v; want unexpected EOF %v", err, test.wantEOF)
+			}
+			if decodeErr.Err == nil || !strings.Contains(err.Error(), "Field[1]."+test.column) {
+				t.Fatalf("At() error lost its cause or location: %v", err)
+			}
+		})
+	}
+}
+
+func TestTableAtDecodeErrorReferences(t *testing.T) {
+	t.Parallel()
+	for _, test := range []struct {
+		name   string
+		table  string
+		column string
+		read   func(*Tables) error
+		mutate func(*Tables)
+	}{
+		{"guid", "Module", "Mvid", func(t *Tables) error { return readFirstRow(t.Module) }, func(t *Tables) {
+			binary.LittleEndian.PutUint16(t.Module.data[4:], 2)
+		}},
+		{"simple-index", "ClassLayout", "Parent", func(t *Tables) error { return readFirstRow(t.ClassLayout) }, func(t *Tables) {
+			binary.LittleEndian.PutUint16(t.ClassLayout.data[6:], 3)
+		}},
+		{"coded-index", "TypeDef", "Extends", func(t *Tables) error { return readFirstRow(t.TypeDef) }, func(t *Tables) {
+			binary.LittleEndian.PutUint16(t.TypeDef.data[8:], 3<<2) // TypeDef row 3 is absent.
+		}},
+		{"list-lookahead", "TypeDef", "FieldList", func(t *Tables) error { return readFirstRow(t.TypeDef) }, func(t *Tables) {
+			binary.LittleEndian.PutUint16(t.TypeDef.data[24:], 4) // Invalid next row's FieldList.
+		}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			tables := decodeErrorTestTables(t)
+			if err := test.read(tables); err != nil {
+				t.Fatalf("valid row rejected: %v", err)
+			}
+			test.mutate(tables)
+			err := test.read(tables)
+			var decodeErr *DecodeError
+			if !errors.As(err, &decodeErr) || decodeErr.Table != test.table || decodeErr.Row != 0 || decodeErr.Column != test.column || decodeErr.Err == nil {
+				t.Fatalf("At() error = %v; want DecodeError for %s[0].%s", err, test.table, test.column)
+			}
+		})
+	}
+}
+
+func TestTableAtDecodeErrorBounds(t *testing.T) {
+	t.Parallel()
+	for _, table := range []Table[Field]{decodeErrorTestTables(t).Field, {}} {
+		for _, row := range []Index{Index(table.Len()), ^Index(0)} {
+			_, err := table.At(row)
+			var decodeErr *DecodeError
+			if !errors.As(err, &decodeErr) || decodeErr.Table != table.Name() || decodeErr.Row != row || decodeErr.Column != "" || decodeErr.Err == nil {
+				t.Fatalf("At(%d) error = %v; want row-level DecodeError", row, err)
+			}
+		}
+	}
+}
+
+func TestDecodeError(t *testing.T) {
+	t.Parallel()
+	cause := &fs.PathError{Op: "read", Path: "metadata", Err: io.ErrUnexpectedEOF}
+	for _, test := range []struct {
+		table  string
+		column string
+		prefix string
+	}{
+		{"Field", "Signature", "Field[12].Signature: "},
+		{"Field", "", "Field[12]: "},
+		{"", "", "table[12]: "},
+	} {
+		decodeErr := &DecodeError{Table: test.table, Row: 12, Column: test.column, Err: cause}
+		if got := decodeErr.Error(); got != test.prefix+cause.Error() {
+			t.Fatalf("Error() = %q; want location followed by %q", got, cause.Error())
+		}
+		err := fmt.Errorf("load metadata: %w", decodeErr)
+		var got *DecodeError
+		var gotCause *fs.PathError
+		if !errors.As(err, &got) || got != decodeErr || !errors.As(err, &gotCause) || gotCause != cause || !errors.Is(err, io.ErrUnexpectedEOF) {
+			t.Fatalf("error chain lost context or cause: %v", err)
+		}
+	}
+}
+
+func TestTableAtSuccessfulReadAllocs(t *testing.T) {
+	table := decodeErrorTestTables(t).Field
+	var field Field
+	var err error
+	allocs := testing.AllocsPerRun(100, func() {
+		field, err = table.At(1)
+	})
+	if err != nil || field.Name.String() != "Name" || !bytes.Equal(field.Signature, []byte{6, 8}) {
+		t.Fatalf("valid field = %+v, %v", field, err)
+	}
+	if allocs != 0 {
+		t.Fatalf("successful Table.At allocated %g times; want zero", allocs)
 	}
 }

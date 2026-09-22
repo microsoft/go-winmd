@@ -169,7 +169,7 @@ func writeTableEncoding(w io.Writer, tables []tableInfo) {
 	fmt.Fprintf(w, "// Define table decoding functions\n")
 	fmt.Fprintf(w, "\n")
 	for _, t := range tables {
-		fmt.Fprintf(w, "func decode%s(r recordReader) (%s, error) {\n", t.name, t.name)
+		fmt.Fprintf(w, "func decode%s(r recordReader) (%s, string, error) {\n", t.name, t.name)
 		fmt.Fprintf(w, "\tvar rec %s\n", t.name)
 		for _, f := range t.fields {
 			switch f.columnType {
@@ -203,8 +203,11 @@ func writeTableEncoding(w io.Writer, tables []tableInfo) {
 			case columnTypeSlice:
 				fmt.Fprintf(w, "\trec.%s = r.slice(%s, %s)\n", f.name, t.tableName, f.tableName)
 			}
+			fmt.Fprintf(w, "\tif r.err != nil {\n")
+			fmt.Fprintf(w, "\t\treturn rec, %q, r.err\n", f.name)
+			fmt.Fprintf(w, "\t}\n")
 		}
-		fmt.Fprintf(w, "\treturn rec, r.err\n")
+		fmt.Fprintf(w, "\treturn rec, \"\", nil\n")
 		fmt.Fprintf(w, "}\n")
 		fmt.Fprintf(w, "\n")
 	}
