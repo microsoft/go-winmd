@@ -474,3 +474,56 @@ func TestUnicodeTypeAndFieldNames(t *testing.T) {
 		})
 	}
 }
+
+func TestArrayABIOverflow(t *testing.T) {
+	t.Parallel()
+	compressed := func(value uint32) []byte {
+		if value < 128 {
+			return []byte{byte(value)}
+		}
+		if value < 16384 {
+			return []byte{byte(value>>8) | 0x80, byte(value)}
+		}
+		return []byte{byte(value>>24) | 0xc0, byte(value >> 16), byte(value >> 8), byte(value)}
+	}
+	for _, test := range []struct {
+		name    string
+		kind    byte
+		dims    []uint32
+		want    uint32
+		wantErr bool
+	}{
+		{"small", 5, []uint32{2, 3, 4}, 24, false},
+		{"large-valid", 5, []uint32{0x1fffffff, 8}, 0xfffffff8, false},
+		{"uint32-overflow", 5, []uint32{1 << 22, 1 << 22}, 0, true},
+		{"uint64-overflow", 5, []uint32{1 << 22, 1 << 22, 1 << 20}, 0, true},
+		{"element-size-overflow", 0x0b, []uint32{1 << 28, 4}, 0, true},
+		{"empty-inner", 5, []uint32{1 << 22, 1 << 22, 1 << 20, 0}, 0, false},
+		{"empty-outer", 5, []uint32{0, 3, 4}, 0, false},
+		{"oversized-inner-of-empty-outer", 5, []uint32{0, 1 << 22, 1 << 22}, 0, true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			data := []byte{6, 0x14, test.kind, byte(len(test.dims)), byte(len(test.dims))}
+			for _, dimension := range test.dims {
+				data = append(data, compressed(dimension)...)
+			}
+			data = append(data, 0)
+			var m winmd.Metadata
+			sig, err := m.FieldSignature(data)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, arch := range []Arch{Arch386, ArchAMD64, ArchARM64} {
+				var c Context
+				layout, err := c.sigTypeABITypeLayout(&sig.Type, arch, nil)
+				if test.wantErr {
+					if err == nil || !strings.Contains(err.Error(), "overflows") {
+						t.Fatalf("%s: overflowing dimensions %v returned %+v, %v", arch, test.dims, layout, err)
+					}
+				} else if err != nil || layout.abiSize != test.want || layout.goSize != test.want {
+					t.Fatalf("%s: dimensions %v returned %+v, %v; want size %d", arch, test.dims, layout, err, test.want)
+				}
+			}
+		})
+	}
+}
