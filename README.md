@@ -7,7 +7,7 @@ A Windows Metadata (a.k.a. winmd) parser written in Go and based on the ECMA-335
 ## Commands
 
 - [`gowinmd`](cmd/gowinmd) generates Go declarations from WinMD metadata.
-- [`getwinmd`](cmd/getwinmd) downloads `Windows.Win32.winmd` from the
+- [`getwin32md`](cmd/getwin32md) downloads `Windows.Win32.winmd` from the
   `Microsoft.Windows.SDK.Win32Metadata` NuGet package.
 
 ## Development References
