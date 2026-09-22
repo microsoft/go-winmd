@@ -450,7 +450,7 @@ func (r *sigReader) typeHandle() (v CodedIndex[TypeDefOrRefOrSpec]) {
 	if r.layout != nil {
 		// Standalone signatures can be decoded without a metadata layout.
 		// When one is available, validate the target just as for table references.
-		tbl, _ := codedTable(codedTypeDefOrRefOrSpec, uint8(v.Tag.int8))
+		tbl, _ := codedTable(codedTypeDefOrRefOrSpec, uint8(v.Tag))
 		if count := r.layout.tables[tbl].rowCount; uint32(v.Index) >= count {
 			r.err = fmt.Errorf("signature type index %d is beyond the end of table %d (%d rows)", v.Index, tbl, count)
 			return CodedIndex[TypeDefOrRefOrSpec]{}
