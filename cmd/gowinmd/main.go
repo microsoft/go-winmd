@@ -289,8 +289,7 @@ func writeSelectionsWithProjection(b map[gowinmd.Arch]*strings.Builder, f *winmd
 		}
 	}
 
-	for idx := range f.Tables.TypeDef.Indices() {
-		r, err := f.Tables.TypeDef.At(idx)
+	for r, err := range f.Tables.TypeDef.All() {
 		if err != nil {
 			return err
 		}

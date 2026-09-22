@@ -295,8 +295,7 @@ func NewContext(f *winmd.Metadata) (*Context, error) {
 			}
 		}
 	}
-	for idx := range f.Tables.FieldLayout.Indices() {
-		layout, err := f.Tables.FieldLayout.At(idx)
+	for layout, err := range f.Tables.FieldLayout.All() {
 		if err != nil {
 			return nil, err
 		}
@@ -312,8 +311,7 @@ func NewContext(f *winmd.Metadata) (*Context, error) {
 		}
 		l.classLayout[layout.Parent] = layout
 	}
-	for idx := range f.Tables.NestedClass.Indices() {
-		nest, err := f.Tables.NestedClass.At(idx)
+	for nest, err := range f.Tables.NestedClass.All() {
 		if err != nil {
 			return nil, err
 		}

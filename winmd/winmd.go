@@ -256,7 +256,7 @@ func (s Slice) All() iter.Seq[Index] {
 }
 
 // Table is a record container as defined in §II.22. Copies share the same
-// read-only backing data, and rows are decoded on demand by [Table.At].
+// read-only backing data, and rows are decoded on demand by [Table.At] or [Table.All].
 // The zero value is an empty table.
 type Table[T any] struct {
 	name string
@@ -293,6 +293,32 @@ func (t Table[T]) Indices() iter.Seq[Index] {
 	}
 }
 
+// All returns an iterator over decoded records in row order.
+// Each iteration starts at row zero and decodes records on demand.
+// It stops when yield returns false or after yielding the first error.
+// Records have the ownership and error-result contracts described by [Table.At].
+// Use [Table.Indices] when row indices are needed.
+func (t Table[T]) All() iter.Seq2[T, error] {
+	return func(yield func(T, error) bool) {
+		r := recordReader{
+			ecma335Reader: ecma335Reader{data: t.data, layout: t.layout},
+			heaps:         t.heaps,
+		}
+		decode := t.decode
+		for row := range t.len {
+			record, column, err := decode(r)
+			if err != nil {
+				err = &DecodeError{Table: t.name, Row: Index(row), Column: column, Err: err}
+			}
+			if !yield(record, err) || err != nil {
+				return
+			}
+			// Keep the full remaining table available for list-column lookahead.
+			r.data = r.data[t.width:]
+		}
+	}
+}
+
 // Len returns the number of records in the table.
 func (t Table[T]) Len() uint32 {
 	return t.len
@@ -308,8 +334,8 @@ func (t Table[T]) Name() string {
 type DecodeError struct {
 	// Table is the metadata table name. It is empty for a zero-value Table.
 	Table string
-	// Row is the zero-based index passed to [Table.At]. For list lookahead errors,
-	// this is the row being decoded, not the subsequent row being inspected.
+	// Row is the zero-based index of the row being decoded. For list lookahead
+	// errors, this is the current row, not the subsequent row being inspected.
 	Row Index
 	// Column is the Go field name of the first column that failed to decode.
 	// It is empty when no column was read, such as for an out-of-range row.

@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -406,5 +407,56 @@ func TestTableAtSuccessfulReadAllocs(t *testing.T) {
 	}
 	if allocs != 0 {
 		t.Fatalf("successful Table.At allocated %g times; want zero", allocs)
+	}
+}
+
+func TestTableAllSuccessfulReadAllocs(t *testing.T) {
+	table := decodeErrorTestTables(t).Field
+	var count int
+	var failure error
+	allocs := testing.AllocsPerRun(100, func() {
+		count = 0
+		for _, err := range table.All() {
+			if err != nil {
+				failure = err
+				return
+			}
+			count++
+		}
+	})
+	if failure != nil || count != 2 {
+		t.Fatalf("iteration returned %d rows, %v; want two rows", count, failure)
+	}
+	if allocs != 0 {
+		t.Fatalf("successful Table.All allocated %g times; want zero", allocs)
+	}
+}
+
+func TestTableAllLookahead(t *testing.T) {
+	t.Parallel()
+	table := decodeErrorTestTables(t).TypeDef
+	var lists []Slice
+	for def, err := range table.All() {
+		if err != nil {
+			t.Fatal(err)
+		}
+		lists = append(lists, def.FieldList)
+	}
+	// The next row bounds the first row's field list; the last owns both fields.
+	if want := []Slice{{}, {Start: 0, End: 2}}; !slices.Equal(lists, want) {
+		t.Fatalf("field lists = %v; want %v", lists, want)
+	}
+
+	// An invalid next row's FieldList must be reported on the current row.
+	binary.LittleEndian.PutUint16(table.data[24:], 4)
+	var count int
+	var failure error
+	for _, err := range table.All() {
+		count++
+		failure = err
+	}
+	var decodeErr *DecodeError
+	if count != 1 || !errors.As(failure, &decodeErr) || decodeErr.Table != "TypeDef" || decodeErr.Row != 0 || decodeErr.Column != "FieldList" || decodeErr.Err == nil {
+		t.Fatalf("iteration returned %d rows, %v; want one TypeDef[0].FieldList error", count, failure)
 	}
 }
