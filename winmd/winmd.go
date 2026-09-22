@@ -70,6 +70,37 @@ func (m *Metadata) MethodDefSignature(data SigMethodDefBlob) (SigMethodDef, erro
 	return sig, r.err
 }
 
+// MethodRefSignature decodes an entire method reference signature from
+// MemberRef.Signature, rejecting trailing data. Fixed and optional VARARG
+// parameters are kept separately in Param and VariableParam.
+// Type nesting, including function-pointer signatures, is limited to 64 levels.
+// Type handle bounds are checked when table metadata is available. Generic
+// parameter numbers are preserved without substitution or constraint checking.
+func (m *Metadata) MethodRefSignature(data SigMethodRefBlob) (SigMethodRef, error) {
+	r := m.sigReader(data)
+	sig := r.methodSig(methodSigAllowGeneric|methodSigAllowSentinel, 0).SigMethodRef
+	if r.err == nil && len(r.data) != 0 {
+		r.err = errors.New("trailing method reference signature data")
+	}
+	return sig, r.err
+}
+
+// StandAloneMethodSignature decodes an entire calli signature from
+// StandAloneSig.Signature, rejecting trailing data. Managed and unmanaged
+// calling conventions are preserved; VARARG and Cdecl may have optional
+// parameters after SENTINEL. Standalone signatures cannot declare generic
+// parameters, but their types may refer to enclosing generic parameters.
+// Type nesting, including function-pointer signatures, is limited to 64 levels.
+// Type handle bounds are checked when table metadata is available.
+func (m *Metadata) StandAloneMethodSignature(data SigStandAloneMethodBlob) (SigStandAloneMethod, error) {
+	r := m.sigReader(data)
+	sig := r.methodSig(methodSigAllowUnmanaged|methodSigAllowSentinel, 0)
+	if r.err == nil && len(r.data) != 0 {
+		r.err = errors.New("trailing standalone method signature data")
+	}
+	return sig, r.err
+}
+
 // PropertySignature decodes an entire property signature blob, rejecting trailing data.
 // The blob is stored in [Property.Type].
 // Type nesting is limited to 64 levels per property type or index parameter.
@@ -81,6 +112,51 @@ func (m *Metadata) PropertySignature(data SigPropertyBlob) (SigProperty, error) 
 	sig := r.propertySig()
 	if r.err == nil && len(r.data) != 0 {
 		r.err = errors.New("trailing property signature data")
+	}
+	return sig, r.err
+}
+
+// LocalVarsSignature decodes an entire local variable signature from
+// StandAloneSig.Signature, rejecting trailing data. It preserves the encoded
+// order of custom modifiers and PINNED constraints. There must be 1 to 65534
+// locals. Type nesting is limited to 64 levels per local, including nested
+// function-pointer signatures. Type handle bounds are checked when table
+// metadata is available; pinning eligibility and generic constraints are not.
+func (m *Metadata) LocalVarsSignature(data SigLocalVarsBlob) (SigLocalVars, error) {
+	r := m.sigReader(data)
+	sig := r.localVarsSig()
+	if r.err == nil && len(r.data) != 0 {
+		r.err = errors.New("trailing local variable signature data")
+	}
+	return sig, r.err
+}
+
+// TypeSpecSignature decodes an entire type specification from TypeSpec.Signature,
+// rejecting trailing data. There is no calling-convention byte. The type can
+// contain open generic parameter references; leading custom modifiers, BYREF,
+// TYPEDBYREF, and VOID are not permitted in this context.
+// Type nesting, including function-pointer signatures, is limited to 64 levels.
+// Type handle bounds are checked when table metadata is available.
+func (m *Metadata) TypeSpecSignature(data SigTypeSpecBlob) (SigTypeSpec, error) {
+	r := m.sigReader(data)
+	typ := r.decodeType(0, 0)
+	if r.err == nil && len(r.data) != 0 {
+		r.err = errors.New("trailing type specification signature data")
+	}
+	return SigTypeSpec{Kind: typ.Kind, Value: typ.Value}, r.err
+}
+
+// MethodSpecSignature decodes an entire generic method instantiation from
+// MethodSpec.Instantiation, rejecting trailing data. At least one type argument
+// is required. Type nesting is limited to 64 levels per argument, and type
+// handle bounds are checked when table metadata is available. Generic parameter
+// numbers are preserved without substitution or checking the target's arity
+// or constraints.
+func (m *Metadata) MethodSpecSignature(data SigMethodSpecBlob) (SigMethodSpec, error) {
+	r := m.sigReader(data)
+	sig := r.methodSpecSig()
+	if r.err == nil && len(r.data) != 0 {
+		r.err = errors.New("trailing method specification signature data")
 	}
 	return sig, r.err
 }
