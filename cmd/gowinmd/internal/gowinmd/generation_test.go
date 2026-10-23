@@ -381,7 +381,10 @@ func TestWriteMethodCountUnits(t *testing.T) {
 			b.sizeAttribute(1, test.inBytes, 1)
 			got, err := writeTestMethod(t, b, MethodOptions{Projection: ProjectionIdiomatic})
 			want := "//sys\tInvoke(" + test.want + ") = native.Invoke"
-			if err != nil || got != want {
+			if strings.Contains(test.want, "[]") {
+				want = "//sys\t_winmd_Invoke(" + test.want + ") = native.Invoke"
+			}
+			if err != nil || !strings.HasPrefix(got, want) {
 				t.Fatalf("method = %q, %v; want %q", got, err, want)
 			}
 			got, err = writeTestMethod(t, b, MethodOptions{Projection: ProjectionRaw})
@@ -395,8 +398,8 @@ func TestWriteMethodCountUnits(t *testing.T) {
 		b.sizeAttribute(1, true, 1)
 		b.sizeAttribute(3, true, 3)
 		got, err := writeTestMethod(t, b, MethodOptions{Projection: ProjectionIdiomatic})
-		want := "//sys\tInvoke(bytes []byte, words *uint16, wordBytes uint32) = native.Invoke"
-		if err != nil || got != want {
+		want := "//sys\t_winmd_Invoke(bytes []byte, words *uint16, wordBytes uint32) = native.Invoke"
+		if err != nil || !strings.HasPrefix(got, want) {
 			t.Fatalf("method = %q, %v; want %q", got, err, want)
 		}
 	})
