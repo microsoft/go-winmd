@@ -258,9 +258,13 @@ func TestWriteProjectedBCryptMethods(t *testing.T) {
 	}
 	got := b[gowinmd.ArchAll].String()
 	wants := []string{
-		"//sys\tBCryptGetProperty(hObject BCRYPT_HANDLE, pszProperty *uint16, pbOutput []byte, pcbResult *uint32, dwFlags uint32) (ntstatus error) = bcrypt.BCryptGetProperty",
-		"//sys\tBCryptSetProperty(hObject BCRYPT_HANDLE, pszProperty *uint16, pbInput []byte, dwFlags uint32) (ntstatus error) = bcrypt.BCryptSetProperty",
-		"//sys\trawEncrypt(hHash BCRYPT_HASH_HANDLE, pbInput []byte, dwFlags uint32) (ntstatus error) = bcrypt.BCryptHashData",
+		"//sys\t_winmd_BCryptGetProperty(hObject BCRYPT_HANDLE, pszProperty *uint16, pbOutput []byte, pcbResult *uint32, dwFlags uint32) (ntstatus error) = bcrypt.BCryptGetProperty",
+		"//sys\t_winmd_BCryptSetProperty(hObject BCRYPT_HANDLE, pszProperty *uint16, pbInput []byte, dwFlags uint32) (ntstatus error) = bcrypt.BCryptSetProperty",
+		"//sys\t_winmd_rawEncrypt(hHash BCRYPT_HASH_HANDLE, pbInput []byte, dwFlags uint32) (ntstatus error) = bcrypt.BCryptHashData",
+		"func BCryptGetProperty(hObject BCRYPT_HANDLE, pszProperty *uint16, pbOutput []byte, pcbResult *uint32, dwFlags uint32) (ntstatus error)",
+		"if uint64(len(pbOutput)) > 1<<32-1",
+		"ntstatus = syscall.EINVAL",
+		"return _winmd_rawEncrypt(hHash, pbInput, dwFlags)",
 	}
 	for _, want := range wants {
 		if !strings.Contains(got, want) {
@@ -273,6 +277,20 @@ func TestWriteProjectedBCryptMethods(t *testing.T) {
 	if !strings.Contains(got, "BCRYPT_BLOCK_PADDING BCRYPT_FLAGS = 0x1") ||
 		!strings.Contains(got, "BCRYPT_PAD_NONE BCRYPT_FLAGS = 0x1") {
 		t.Errorf("projected output did not preserve duplicate constant values:\n%s", got)
+	}
+}
+
+func TestGenerateFileContentCheckedImports(t *testing.T) {
+	content := "func Read(buffer []byte) error { if uint64(len(buffer)) > 1<<32-1 { return syscall.EINVAL }; return nil }\n"
+	got := generateFileContent(content, "p")
+	if !strings.Contains(got, "import \"syscall\"") || strings.Contains(got, "\"unsafe\"") {
+		t.Fatalf("incorrect imports for checked wrapper:\n%s", got)
+	}
+	if _, err := format.Source([]byte(got)); err != nil {
+		t.Fatal(err)
+	}
+	if got := generateFileContent("//sys Read(buffer []byte)", "p"); strings.Contains(got, "\"syscall\"") {
+		t.Fatalf("unchecked prototype added a syscall import:\n%s", got)
 	}
 }
 

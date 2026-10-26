@@ -420,6 +420,9 @@ func generateFileContent(content string, pkg string) string {
 
 	needsUnsafe := strings.Contains(content, "unsafe.Pointer")
 
+	if strings.Contains(content, "syscall.EINVAL") {
+		b.WriteString("\nimport \"syscall\"\n")
+	}
 	if needsUnsafe {
 		b.WriteString("\nimport \"unsafe\"\n")
 		b.WriteString("\nvar _ unsafe.Pointer\n")

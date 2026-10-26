@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-// Package gowinmd generates Windows syscall function prototypes ("//sys ..." comments)
+// Package gowinmd generates Windows syscall function prototypes and checked slice wrappers
 // using given win32metadata information parsed by go-winmd as specified by ECMA-335.
 package gowinmd
 
@@ -131,6 +131,9 @@ type Projection uint8
 
 const (
 	ProjectionRaw Projection = iota
+	// ProjectionIdiomatic checks projected slice lengths before passing them
+	// to narrower native counts. Overflow returns syscall.EINVAL when the
+	// method has an error result, and panics otherwise.
 	ProjectionIdiomatic
 )
 
@@ -465,7 +468,7 @@ func (c *Context) WriteMethod(w io.StringWriter, methodIndex winmd.Index, method
 	return c.WriteMethodWithOptions(w, methodIndex, method, arch, MethodOptions{GoName: goNameOverride})
 }
 
-// WriteMethodWithOptions writes a signature with the requested projection options.
+// WriteMethodWithOptions writes a signature and any required buffer checks.
 func (c *Context) WriteMethodWithOptions(w io.StringWriter, methodIndex winmd.Index, method winmd.MethodDef, arch Arch, options MethodOptions) error {
 	goName := method.Name.String()
 	if options.GoName != "" {
@@ -504,10 +507,6 @@ func (c *Context) WriteMethodWithOptions(w io.StringWriter, methodIndex winmd.In
 		}
 	}
 
-	w.WriteString("//sys\t")
-	w.WriteString(goName)
-	w.WriteString("(")
-
 	sig, err := c.Metadata.MethodDefSignature(method.Signature)
 	if err != nil {
 		return err
@@ -545,69 +544,90 @@ func (c *Context) WriteMethodWithOptions(w io.StringWriter, methodIndex winmd.In
 		paramRows[i] = paramRowIndex
 	}
 
-	wroteParam := false
+	var parameters strings.Builder
+	var arguments, checks []string
+	parameters.WriteString("(")
 	skipNext := false
 	for i, param := range params {
 		if skipNext {
 			skipNext = false
 			continue
 		}
-		if wroteParam {
-			w.WriteString(", ")
+		if len(arguments) != 0 {
+			parameters.WriteString(", ")
 		}
-		wroteParam = true
-		w.WriteString(escapeParam(param.Name.String()))
-		w.WriteString(" ")
+		name := escapeParam(param.Name.String())
+		parameters.WriteString(name)
+		parameters.WriteString(" ")
+		arguments = append(arguments, name)
 
 		projectSlice := false
 		var size paramSizeInfo
+		var limit string
 		if options.Projection == ProjectionIdiomatic && i+1 < len(params) {
 			var ok bool
 			size, ok = c.paramSizeIndex[paramRows[i]]
 			projectSlice = ok && int(size.index) == i+1
+			if projectSlice {
+				limit, projectSlice = sliceCountLimit(&sig.Param[i+1].Type, arch)
+			}
 		}
 		var err error
 		if projectSlice {
-			skipNext, err = c.writeSliceType(w, &sig.Param[i].Type, arch, size.inBytes)
+			skipNext, err = c.writeSliceType(&parameters, &sig.Param[i].Type, arch, size.inBytes)
+			if skipNext && limit != "" {
+				checks = append(checks, "uint64(len("+name+")) > "+limit)
+			}
 		} else if options.Projection == ProjectionIdiomatic {
-			err = c.writeProjectedType(w, &sig.Param[i].Type, arch)
+			err = c.writeProjectedType(&parameters, &sig.Param[i].Type, arch)
 		} else {
-			err = c.writeType(w, &sig.Param[i].Type, arch)
+			err = c.writeType(&parameters, &sig.Param[i].Type, arch)
 		}
 		if err != nil {
 			return fmt.Errorf("failed to interpret type of param %v of method %v: %w", i, method.Name, err)
 		}
 	}
-	w.WriteString(")")
+	parameters.WriteString(")")
 
 	// Find and write return value(s), if they exist.
+	var results strings.Builder
+	var errorResult string
 	if value := sig.RetType.Kind != winmd.SigRetTypeKind_Void; value || lastErr {
-		w.WriteString(" (")
+		results.WriteString(" (")
 		if value {
 			if options.Projection == ProjectionIdiomatic && c.isTypeNamed(&sig.RetType.Type, arch, "NTSTATUS") {
-				w.WriteString("ntstatus error")
+				results.WriteString("ntstatus error")
+				errorResult = "ntstatus"
 				value = false
 			}
 			// General return value name, because mkwinsyscall needs one.
 			// Generated returns in general could be better. See https://github.com/microsoft/go-winmd/issues/12
 			if value {
-				w.WriteString("r ")
-				if err := c.writeType(w, &sig.RetType.Type, arch); err != nil {
+				results.WriteString("r ")
+				if err := c.writeType(&results, &sig.RetType.Type, arch); err != nil {
 					return err
 				}
 			}
 			if lastErr {
-				w.WriteString(", ")
+				results.WriteString(", ")
 			}
 		}
 		if lastErr {
-			w.WriteString("err error")
+			results.WriteString("err error")
+			errorResult = "err"
 		}
-		w.WriteString(")")
+		results.WriteString(")")
 	}
 
+	nativeName := goName
+	if len(checks) != 0 {
+		nativeName = "_winmd_" + goName
+	}
+	signature := parameters.String() + results.String()
+	w.WriteString("//sys\t" + nativeName + signature)
+
 	// Write syscall name and module if non-defaults are needed.
-	if goName != entryPoint || moduleName != "" {
+	if nativeName != entryPoint || moduleName != "" {
 		w.WriteString(" = ")
 		if moduleName != "" {
 			w.WriteString(moduleName)
@@ -615,7 +635,48 @@ func (c *Context) WriteMethodWithOptions(w io.StringWriter, methodIndex winmd.In
 		}
 		w.WriteString(entryPoint)
 	}
+	if len(checks) != 0 {
+		w.WriteString("\n\nfunc " + goName + signature + " {\n")
+		w.WriteString("\tif " + strings.Join(checks, " || ") + " {\n")
+		if errorResult != "" {
+			w.WriteString("\t\t" + errorResult + " = syscall.EINVAL\n\t\treturn\n")
+		} else {
+			w.WriteString("\t\tpanic(" + strconv.Quote(goName+": buffer length overflows native count") + ")\n")
+		}
+		w.WriteString("\t}\n\t")
+		if results.Len() != 0 {
+			w.WriteString("return ")
+		}
+		w.WriteString(nativeName + "(" + strings.Join(arguments, ", ") + ")\n}")
+	}
 	return nil
+}
+
+// sliceCountLimit only projects counts that mkwinsyscall can pass in one word.
+// Unknown and indirect counts retain their explicit ABI parameters.
+func sliceCountLimit(p *winmd.SigType, arch Arch) (limit string, project bool) {
+	var bits int
+	switch p.Kind {
+	case winmd.ElementType_I1:
+		bits = 7
+	case winmd.ElementType_U1:
+		bits = 8
+	case winmd.ElementType_I2:
+		bits = 15
+	case winmd.ElementType_U2, winmd.ElementType_CHAR:
+		bits = 16
+	case winmd.ElementType_I4:
+		bits = 31
+	case winmd.ElementType_U4:
+		bits = 32
+	case winmd.ElementType_I8, winmd.ElementType_U8:
+		return "", arch == ArchAMD64 || arch == ArchARM64
+	case winmd.ElementType_I, winmd.ElementType_U:
+		return "", true
+	default:
+		return "", false
+	}
+	return "1<<" + strconv.Itoa(bits) + "-1", true
 }
 
 func mkwinsyscallModuleName(moduleName string) string {
